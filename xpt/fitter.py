@@ -11,12 +11,16 @@ class Xi(lsqfit.MultiFitterModel):
     def __init__(self,p):
         self.p = p
 
-    def fitfcn_nlo_ct(self, p):
+    def fit_fcn(self,xi,p):
+        
+
+    def fitfcn_lo_ct(self, p):
         output = p['m_{xi,0}'] * (1 + p['d_a'] * (0.5* (p['a/w'])**2))
 
-    return output
+        return output
 
     def fitfcn_nlo_xpt(self, p):
+
 
 
 
@@ -24,7 +28,8 @@ class Xi(lsqfit.MultiFitterModel):
     
 
     def fitfcn_n2lo_ct(self, p):     
-        output = ( 
+        output = (
+            prior['d_{xi,al}'] *  
             + p['A_aa'] *xi['a'] *xi['a']
             + p['A_al'] *xi['a'] *xi['l']
             + p['A_as'] *xi['a'] *xi['s']
@@ -44,6 +49,10 @@ class Xi(lsqfit.MultiFitterModel):
 
 
     
+
+class Xi_st(lsqfit.MultiFitterModel):
+    def __init__(self,p):
+        self.p = p 
 
 
 
@@ -293,9 +302,9 @@ class Xi_st(lsqfit.MultiFitterModel):
         if xi is None:
             xi = {}
         if 'l' not in xi:
-            xi['l'] = (p['mpi'] / p['lam_chi'])**2
+            xi['l'] = (p['m_pi'] / p['lam_chi'])**2
         if 's' not in xi:
-            xi['s'] = (2 *p['mk']**2 - p['mpi']**2) / p['lam_chi']**2
+            xi['s'] = (2 *p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2
 
         y_ch = self.fitfcn_lo_ct(p, xi, latt_spacing)
 
