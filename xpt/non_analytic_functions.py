@@ -49,17 +49,17 @@ eps_pi_delta = eps_pi**2 / eps_delta**2
 #fcn_R(eps_pi_delta)
 
 
-def fcn_F(eps_pi, eps_delta, mu):
+def fcn_F(eps_pi, eps_delta):
 
     output = -1*eps_delta*(eps_delta**2 - eps_pi**2) * fcn_R(eps_pi**2 / eps_delta**2)
-    output = output - ((3/2) * eps_pi**2 * eps_delta * np.log(eps_pi**2 * (lam_chi**2)/(mu**2)))
+    output = output - ((3/2) * eps_pi**2 * eps_delta * np.log(eps_pi**2))
     output = output - (eps_delta**3 * np.log((4*eps_delta**2) / (eps_pi**2)))
     
     return output
 
 
-def fcn_J(eps_pi, eps_delta, mu):
-    out = eps_pi**2 * np.log(eps_pi**2 * (lam_chi**2)/(mu**2))
+def fcn_J(eps_pi, eps_delta):
+    out = eps_pi**2 * np.log(eps_pi**2)
     out = out +  2*eps_delta**2 * np.log((4*eps_delta**2)/ eps_pi**2)
     out = out +  2*eps_delta**2 * fcn_R(eps_pi**2/eps_delta**2)
 
