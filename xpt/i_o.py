@@ -20,11 +20,17 @@ mpl.rcParams['xtick.labelsize'] = 12
 mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['text.usetex'] = True
 
+# TODO:
+# add results summary 
+# add model collection based on particle names and model name
+
 class InputOutput(object):
 
 
     def __init__(self):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
+
+        # add in defualt dict
 
         with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
@@ -39,12 +45,14 @@ class InputOutput(object):
 
         self.ensembles = ensembles
         self.project_path = project_path
+    
 
 
     # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
     def _get_bs_data(self, scheme=None):
+        
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
-        hbar_c = self.get_data_phys_point('hbarc') # MeV-fm (PDG 2019 conversion constant)
+        hbar_c = self.get_phys_point_data('hbarc') # MeV-fm (PDG 2019 conversion constant)
 
         if scheme is None:
             scheme = 'w0_imp'
@@ -55,10 +63,14 @@ class InputOutput(object):
         with h5py.File(self.project_path+'/data/input_data.h5', 'r') as f: 
             for ens in self.ensembles:
                 data[ens] = {}
+
+                #scalars
                 data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
                 data[ens]['a/w'] = to_gvar(f[ens]['a_w'])
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L']
+                
+                #arrays
                 data[ens]['m_pi'] = f[ens]['mpi'][:]
                 data[ens]['m_k'] = f[ens]['mk'][:]
                 data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][:]
@@ -98,13 +110,24 @@ class InputOutput(object):
             output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])
         return output, ensembles
 
+    # def _make_prior(self, data=None):
+    #     if data is None:
+    #         data = self.data
+    #     prior = self.prior
+    #     new_prior = {}
+    #     for key in prior:
+    #         new_prior[key] = prior[key]
+    #     for key in ['m_pi', 'm_k', 'lam_chi', 'a/w']:
+    #         new_prior[key] = data[key]
+    #     return new_prior
 
-    def get_data_phys_point(self, param=None):
-        data_phys_point = {
+
+    def get_phys_point_data(self, param=None):
+        phys_point_data = {
             'a/w' : gv.gvar(0),
             'a' : gv.gvar(0),
             'alpha_s' : gv.gvar(0.0),
-            'L' : gv.gvar(np.infty),
+            'L' : gv.gvar(np.infty), #is this actually set to infinity
             'hbarc' : gv.gvar(197.3269804, 0), # MeV-fm
 
             'lam_chi' : 4 *np.pi *gv.gvar('92.07(57)'),
@@ -116,8 +139,24 @@ class InputOutput(object):
             #'mss' : gv.gvar('688.5(2.2)'), # Taken from arxiv/1303.1670
         }
         if param is not None:
-            return data_phys_point[param]
-        return data_phys_point
+            return phys_point_data[param]
+        return phys_point_data
+
+    def plot_qq(self, ens, param):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        stats.probplot(self._get_bs_data[ens][param], dist='norm', plot=ax)
+
+        fig = plt.gcf()
+        plt.close()
+
+        return fig
+
+    #save out results 
+
+
+
+
 
     
             
