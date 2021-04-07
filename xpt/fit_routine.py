@@ -139,9 +139,6 @@ class fit_routine(object):
         if 'xi_st' in model_info['particles']:
             models = np.append(models,Xi_st(datatag='xi_st', model_info=model_info))
 
-        if 'delta' in model_info['particles']:
-            models = np.append(models,Delta(datatag='delta', model_info=model_info))
-
         if 'lam' in model_info['particles']:
             models = np.append(models,Lambda(datatag='lam', model_info=model_info))
 
@@ -165,6 +162,7 @@ class fit_routine(object):
             new_prior[key] = data[key]
         return new_prior
 
+# S=2 Baryons #
     
 class Xi(lsqfit.MultiFitterModel):
     def __init__(self, datatag, model_info):
@@ -185,52 +183,52 @@ class Xi(lsqfit.MultiFitterModel):
         eps_delta = (p['m_{xi_st,0}'] - p['m_{xi,0}']) / p['lam_chi']
         eps_a = (1/2) * p['a/w']
         
-        #not-even leading order
+        # llo
         output = p['m_{xi,0}']
 
         #lo
-
-        if self.model_info['order_disc'] in ['lo','nlo','n2lo']:
+        if self.model_info['order_disc'] in ['lo','n2lo']:
             output += self.fitfcn_lo_ct(p,eps_a)
+            if self.model_info['order_strange'] in ['lo','n2lo']:
+                output+= self.fitfcn_lo_strange(p)
 
         if self.model_info['order_chiral'] in ['lo', 'nlo','n2lo']:
             output  += self.fitfcn_lo_xpt(p,eps_pi) 
-            
-        if self.model_info['order_strange'] in ['lo', 'nlo','n2lo']:
-            output  += self.fitfcn_lo_strange(p)
 
         #nlo
         if self.model_info['order_chiral'] in ['nlo', 'n2lo']:
             output += self.fitfcn_nlo_xpt(p, eps_pi, eps_delta)
 
         #n2lo
-
         if self.model_info['order_disc'] in ['n2lo']:
             output += self.fitfcn_n2lo_ct(p, eps_a, eps_pi)
+            if self.model_info['order_strange'] in ['n2lo']:
+                output+= self.fitfcn_n2lo_strange(p)
 
         if self.model_info['order_chiral'] in ['n2lo']:
             output += self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta)
 
-        if self.model_info['order_strange'] in ['n2lo']:
-            # self.model_info['pp'] == True:
-            # return 
-            output += self.fitfcn_n2lo_strange(p)
+        # else:
+        #     output+= (
+        #         self.fitfcn_lo_ct(p,eps_a)
+        #         + self.fitfcn_n2lo_ct(p,eps_a,eps_pi)
+        #     )
+        # if self.model_info['full_formulae'] is True:
+        #     output += (
+        #         self.fitfcn_lo_xpt(p,eps_pi)
+        #         + self.fitfcn_nlo_xpt(p, eps_pi, eps_delta)
+        #         + self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta)
+        #         + self.fitfcn_lo_ct(p,eps_a)
+        #         + self.fitfcn_n2lo_ct(p,eps_a,eps_pi)
 
-        #just log terms and special terms 
-        if self.model_info['xpt'] is True:
-            output += (
-                  self.fitfcn_lo_xpt(p,eps_pi)
-                + self.fitfcn_nlo_xpt(p, eps_pi, eps_delta)
-                + self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta)
-            )
+        #     )
         return output
 
 
     def fitfcn_lo_ct(self, p, eps_a):
-        
-        output = p['m_{xi,0}'] * (p['d_{xi,a}'] * (eps_a**2))
-
+        output = p['m_{xi,0}'] * (p['d_{xi,a}'] * (2*eps_a**2))
         return output
+
 
     def fitfcn_lo_xpt(self, p, eps_pi):
         if self.model_info['xpt'] is True:
@@ -259,22 +257,16 @@ class Xi(lsqfit.MultiFitterModel):
         if self.model_info['xpt'] is False:
             return 0
 
-
     # n2lo terms
-    def fitfcn_n2lo_ct(self, p, eps_a, eps_pi):     
+    def fitfcn_n2lo_ct(self, p, eps_a, eps_pi): 
+
         output = p['m_{xi,0}'] * ( 
             + (p['d_{xi,al}'] * eps_a**2 * eps_pi**2)
             + p['d_{xi,aa}'] * eps_a**4
             + (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *p['b_{xi,4}'] ##excluding ln(eps_pi^2)
-        )
-        
+        ) 
         return output
-    
-    def fitfcn_n2lo_log(self,p):
-        output = (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**3))
-        
-        return output
-        
+
 
     def fitfcn_n2lo_xpt(self,p, eps_pi, eps_delta):
         if self.model_info['xpt'] is True:
@@ -282,7 +274,8 @@ class Xi(lsqfit.MultiFitterModel):
                 (3/2) * (p['g_{xi_st,xi}']**2)*(p['s_{xi}']-p['s_{xi,bar}']) *
                 (p['lam_chi'] * eps_pi**2) * 
                 (naf.fcn_J(eps_pi,eps_delta)) +
-                (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *np.log(eps_pi**2)*p['a_{xi,4}']
+                (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *np.log(eps_pi**2)*p['a_{xi,4}'] +
+                (p['b_{xi,4}'] * p['lam_chi'] * (p['m_pi']**4 / p['lam_chi']**4))
             )
             return output
         if self.model_info['xpt'] is False:
@@ -334,52 +327,39 @@ class Xi_st(lsqfit.MultiFitterModel):
         output = p['m_{xi_st,0}']
 
         #lo
-
-        if self.model_info['order_disc'] in ['lo','nlo','n2lo']:
+        if self.model_info['order_disc'] in ['lo','n2lo']:
             output += self.fitfcn_lo_ct(p,eps_a)
+            if self.model_info['order_strange'] in ['lo','n2lo']:
+                output+= self.fitfcn_lo_strange(p)
 
         if self.model_info['order_chiral'] in ['lo', 'nlo','n2lo']:
             output  += self.fitfcn_lo_xpt(p,eps_pi) 
-            
-        if self.model_info['order_strange'] in ['lo', 'nlo','n2lo']:
-            output  += self.fitfcn_lo_strange(p)
 
         #nlo
         if self.model_info['order_chiral'] in ['nlo', 'n2lo']:
             output += self.fitfcn_nlo_xpt(p, eps_pi, eps_delta)
 
         #n2lo
-
         if self.model_info['order_disc'] in ['n2lo']:
             output += self.fitfcn_n2lo_ct(p, eps_a, eps_pi)
+            if self.model_info['order_strange'] in ['n2lo']:
+                output+= self.fitfcn_n2lo_strange(p)
 
         if self.model_info['order_chiral'] in ['n2lo']:
             output += self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta)
-            if self.model_info['include_log'] is True:
-                output += self.fitfcn_n2lo_log(p, eps_pi)
-
-        if self.model_info['order_strange'] in ['n2lo']:
-            # self.model_info['pp'] == True:
-            # return 
-            output += self.fitfcn_n2lo_strange(p)
-
-        #just log terms and special terms 
-        if self.model_info['xpt'] is True:
-            output += (
-                  self.fitfcn_nlo_xpt(p, eps_pi, eps_delta)
-                + self.fitfcn_n2lo_log(p,eps_pi)
-            )
+    
         return output
 
 
     def fitfcn_lo_ct(self, p, eps_a):
-        
         output = p['m_{xi_st,0}'] * (p['d_{xi_st,a}'] * (eps_a**2))
-
         return output
 
     def fitfcn_lo_xpt(self, p, eps_pi):
-        output = p['s_{xi}'] * p['lam_chi'] * eps_pi**2
+        if self.model_info['xpt'] is True:
+            output = p['s_{xi}'] * p['lam_chi'] * eps_pi**2
+        if self.model_info['xpt'] is False:
+            return 0
 
         return output
 
@@ -394,35 +374,40 @@ class Xi_st(lsqfit.MultiFitterModel):
     # no nlo disc terms 
 
     def fitfcn_nlo_xpt(self,p, eps_pi, eps_delta):
-        output = p['lam_chi'] *(
-        -(3/2) *np.pi *p['g_{xi_st,xi_st}']**2 *eps_pi**3
-        - p['g_{xi_st,xi}']**2 *naf.fcn_F(eps_pi, eps_delta))
-        return output
+        if self.model_info['xpt'] is True:
 
+            output = p['lam_chi'] *(
+            -(3/2) *np.pi *p['g_{xi_st,xi_st}']**2 *eps_pi**3
+            - p['g_{xi_st,xi}']**2 *naf.fcn_F(eps_pi, eps_delta))
+            return output
+
+        if self.model_info['xpt'] is False:
+            return 0
 
     # n2lo terms
     def fitfcn_n2lo_ct(self, p, eps_a, eps_pi):     
-        output = p['m_{xi_st,0}'] * ( 
-            + (p['d_{xi_st,al}'] * eps_a**2 * eps_pi**2)
-            + p['d_{xi_st,aa}'] * eps_a**4
-            + (p['b_{xi_st,4}'] *(p['m_pi']**4 / p['lam_chi']**3)) ##excluding ln(eps_pi^2)
-        )
-        
-        return output
-    
-    def fitfcn_n2lo_log(self,p, eps_pi):
-        output = p['lam_chi'] * eps_pi**4 * np.log(eps_pi**2)
-        
+        if self.model_info['order_disc'] in ['n2lo']:
+            output = p['m_{xi_st,0}'] * ( 
+                + (p['d_{xi_st,al}'] * eps_a**2 * eps_pi**2)
+                + p['d_{xi_st,aa}'] * eps_a**4
+                 ##excluding ln(eps_pi^2)
+            )
         return output
         
 
     def fitfcn_n2lo_xpt(self,p, eps_pi, eps_delta):
-        output = (
-            (3/2) * (p['g_{xi_st,xi}']**2)*(p['s_{xi}']-p['s_{xi,bar}']) *
-            (p['lam_chi'] * eps_pi**2) * 
-            (naf.fcn_J(eps_pi,eps_delta)) +
-            (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) * np.log(eps_pi**2) * p['a_{xi_st,4}']
-        )
+        if self.model_info['xpt'] is True:
+
+            output = (
+                (3/2) * (p['g_{xi_st,xi}']**2)*(p['s_{xi}']-p['s_{xi,bar}']) *
+                (p['lam_chi'] * eps_pi**2) * 
+                (naf.fcn_J(eps_pi,eps_delta)) +
+                (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) * np.log(eps_pi**2) * p['a_{xi_st,4}']
+                + (p['b_{xi_st,4}'] *(p['m_pi']**4 / p['lam_chi']**3))
+            )
+        if self.model_info['xpt'] is False:
+            return 0
+
         return output
 
 
@@ -448,6 +433,7 @@ class Xi_st(lsqfit.MultiFitterModel):
     def builddata(self, data):
         return data[self.datatag]
 
+# Strangeness=1 Hyperons mass formulae#
 class Lambda(lsqfit.MultiFitterModel):
     def __init__(self, datatag, model_info):
         super(Lambda, self).__init__(datatag)
@@ -464,47 +450,36 @@ class Lambda(lsqfit.MultiFitterModel):
                 p[key] = data[key]
 
         eps_pi = p['m_pi'] / p['lam_chi']
-        eps_delta = (p['m_{lam,0}'] - p['m_{sigma_st,0}']) / p['lam_chi']
+        #this mass splitting needs to be redefined for each hyperon
+        eps_delta = (p['m_{sigma,0}']-p['m_{lam,0}']) / p['lam_chi']
+        eps_delta_res = (p['m_{sigma_st,0}']-p['m_{lam,0}']) / p['lam_chi']
         eps_a = (1/2) * p['a/w']
         
         #not-even leading order
         output = p['m_{lam,0}']
 
         #lo
-
-        if self.model_info['order_disc'] in ['lo','nlo','n2lo']:
+        if self.model_info['order_disc'] in ['lo','n2lo']:
             output += self.fitfcn_lo_ct(p,eps_a)
+            if self.model_info['order_strange'] in ['lo','n2lo']:
+                output+= self.fitfcn_lo_strange(p)
 
         if self.model_info['order_chiral'] in ['lo', 'nlo','n2lo']:
             output  += self.fitfcn_lo_xpt(p,eps_pi) 
-            
-        if self.model_info['order_strange'] in ['lo', 'nlo','n2lo']:
-            output  += self.fitfcn_lo_strange(p)
 
         #nlo
         if self.model_info['order_chiral'] in ['nlo', 'n2lo']:
-            output += self.fitfcn_nlo_xpt(p, eps_pi, eps_delta)
+            output += self.fitfcn_nlo_xpt(p, eps_pi, eps_delta,eps_delta_res)
 
         #n2lo
-
         if self.model_info['order_disc'] in ['n2lo']:
             output += self.fitfcn_n2lo_ct(p, eps_a, eps_pi)
+            if self.model_info['order_strange'] in ['n2lo']:
+                output+= self.fitfcn_n2lo_strange(p)
 
         if self.model_info['order_chiral'] in ['n2lo']:
-            output += self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta)
-
-        if self.model_info['order_strange'] in ['n2lo']:
-            # self.model_info['pp'] == True:
-            # return 
-            output += self.fitfcn_n2lo_strange(p)
-
-        #just log terms and special terms 
-        if self.model_info['xpt'] is True:
-            output += (
-                  self.fitfcn_lo_xpt(p,eps_pi)
-                + self.fitfcn_nlo_xpt(p, eps_pi, eps_delta)
-                + self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta)
-            )
+            output += self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta,eps_delta_res)
+    
         return output
 
 
@@ -521,50 +496,48 @@ class Lambda(lsqfit.MultiFitterModel):
 
         if self.model_info['xpt'] is False:
             return 0
-
+#first term of red expansion 
     def fitfcn_lo_strange(self,p):
-    #first term of red expansion 
+    
         output = ( 
             p['d_{lam,s}'] *  
             ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)
         )
         return output
 
-    # no nlo disc terms 
+    # no nlo disc or strange terms 
 
-    def fitfcn_nlo_xpt(self,p, eps_pi, eps_delta):
+    def fitfcn_nlo_xpt(self,p, eps_pi, eps_delta,eps_delta_res):
         if self.model_info['xpt'] is True:
-            output = p['lam_chi'] *(
-            +(3/2) *np.pi *p['g_{lam,sigma}']**2 *eps_pi**3
-            - p['g_{xi_st,xi}']**2 *naf.fcn_F(eps_pi, eps_delta))
+            output = p['lam_chi'] * (1/2) *np.pi *p['g_{lam,sigma}']**2 * naf.fcn_F(eps_pi,eps_delta)
+            - (2 * p['g_{lam,sigma_st}']**2 * p['lam_chi'] *naf.fcn_F(eps_pi,eps_delta=eps_delta_res))
             return output
         if self.model_info['xpt'] is False:
             return 0
 
 
     # n2lo terms
+
     def fitfcn_n2lo_ct(self, p, eps_a, eps_pi):     
-        output = p['m_{xi,0}'] * ( 
-            + (p['d_{xi,al}'] * eps_a**2 * eps_pi**2)
-            + p['d_{xi,aa}'] * eps_a**4
-            + (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *p['b_{xi,4}'] ##excluding ln(eps_pi^2)
+        output = p['m_{lam,0}'] * ( 
+            + (p['d_{lam,al}'] * eps_a**2 * eps_pi**2)
+            + p['d_{lam,aa}'] * eps_a**4
+            + (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *p['b_{lam,4}'] ##excluding ln(eps_pi^2)
         )
-        
-        return output
-    
-    def fitfcn_n2lo_log(self,p):
-        output = (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**3))
         
         return output
         
 
-    def fitfcn_n2lo_xpt(self,p, eps_pi, eps_delta):
+    def fitfcn_n2lo_xpt(self,p, eps_pi, eps_delta,eps_delta_res):
         if self.model_info['xpt'] is True:
             output = (
-                (3/2) * (p['g_{xi_st,xi}']**2)*(p['s_{xi}']-p['s_{xi,bar}']) *
+                (3/4) * (p['g_{lam,sigma}']**2)*(p['s_{lam}']-p['s_{sigma}']) *
                 (p['lam_chi'] * eps_pi**2) * 
                 (naf.fcn_J(eps_pi,eps_delta)) +
-                (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *np.log(eps_pi**2)*p['a_{xi,4}']
+                (3*p['g_{lam,sigma_st}']*(p['s_{lam}']-p['s_{sigma,bar}'])* 
+                p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4) * naf.fcn_J(eps_pi,eps_delta=eps_delta_res))
+                + (np.log(eps_pi**2)*p['a_{lam,4}']*p['lam_chi'] * eps_pi**4) 
+                + (p['b_{lam,4}']*p['lam_chi']*eps_pi**4)
             )
             return output
         if self.model_info['xpt'] is False:
@@ -574,14 +547,14 @@ class Lambda(lsqfit.MultiFitterModel):
     def fitfcn_n2lo_strange(self,p):
         output = (
             #term 2
-            p['d_{xi,as}']* (0.5 * p['a/w']**2) *
+            p['d_{lam,as}']* (0.5 * p['a/w']**2) *
 
             ((2*p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2) +
             #term 3
-            ( p['d_{xi,ls}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)) * 
+            ( p['d_{lam,ls}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)) * 
             ( p['m_pi'] / p['lam_chi']**2 ) +
             #term 4
-            (p['d_{xi,ss}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)**2)
+            (p['d_{lam,ss}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)**2)
         )
 
         return output
@@ -592,3 +565,286 @@ class Lambda(lsqfit.MultiFitterModel):
 
     def builddata(self, data):
         return data[self.datatag]
+
+
+class Sigma(lsqfit.MultiFitterModel):
+    def __init__(self, datatag, model_info):
+        super(Sigma, self).__init__(datatag)
+
+        # override build data and build prior methods in lsqfit 
+        # two models, Xi and Xi*, models need to know part of data to each model use datatag
+        self.model_info = model_info
+
+    #fit_data from i_o module
+    def fitfcn(self, p, data=None):
+        
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
+
+        eps_pi = p['m_pi'] / p['lam_chi']
+        #this mass splitting needs to be redefined for each hyperon
+        eps_delta = ((p['m_{sigma,0}'] - p['m_{lam,0}']) / p['lam_chi'])*-1
+        eps_delta_res = (p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi']
+        eps_a = (1/2) * p['a/w']
+        
+        #not-even leading order
+        output = p['m_{sigma,0}']
+
+        #lo
+        if self.model_info['order_disc'] in ['lo','n2lo']:
+            output += self.fitfcn_lo_ct(p,eps_a)
+            if self.model_info['order_strange'] in ['lo','n2lo']:
+                output+= self.fitfcn_lo_strange(p)
+
+        if self.model_info['order_chiral'] in ['lo', 'nlo','n2lo']:
+            output  += self.fitfcn_lo_xpt(p,eps_pi) 
+
+        #nlo
+        if self.model_info['order_chiral'] in ['nlo', 'n2lo']:
+            output += self.fitfcn_nlo_xpt(p, eps_pi, eps_delta,eps_delta_res)
+
+        #n2lo
+        if self.model_info['order_disc'] in ['n2lo']:
+            output += self.fitfcn_n2lo_ct(p, eps_a, eps_pi)
+            if self.model_info['order_strange'] in ['n2lo']:
+                output+= self.fitfcn_n2lo_strange(p)
+
+        if self.model_info['order_chiral'] in ['n2lo']:
+            output += self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta,eps_delta_res)
+    
+        return output
+
+
+    def fitfcn_lo_ct(self, p, eps_a):
+        
+        output = p['m_{sigma,0}'] * (p['d_{sigma,a}'] * (eps_a**2))
+
+        return output
+
+    def fitfcn_lo_xpt(self, p, eps_pi):
+        if self.model_info['xpt'] is True:
+            output = p['s_{sigma}'] * p['lam_chi'] * eps_pi**2
+            return output
+
+        if self.model_info['xpt'] is False:
+            return 0
+
+    #first term of red expansion 
+    def fitfcn_lo_strange(self,p):
+    
+        output = ( 
+            p['d_{sigma,s}'] *  
+            ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)
+        )
+        return output
+
+    # no nlo disc or strange terms 
+
+    def fitfcn_nlo_xpt(self,p, eps_pi, eps_delta, eps_delta_res):
+        if self.model_info['xpt'] is True:
+            output = (
+            p['lam_chi'] * (-np.pi) *p['g_{sigma,sigma}']**2 * eps_pi**3 
+            - ((1/6)* p['g_{lam,sigma}']**2 * p['lam_chi'] * naf.fcn_F(eps_pi,eps_delta))
+            - ((2/3) * p['g_{sigma_st,sigma}']**2 * p['lam_chi'] * naf.fcn_F(eps_pi, eps_delta = eps_delta_res))
+            )
+            return output
+        if self.model_info['xpt'] is False:
+            return 0
+
+    # n2lo terms
+
+    def fitfcn_n2lo_ct(self, p, eps_a, eps_pi):     
+        output = p['m_{sigma,0}'] * ( 
+            + (p['d_{sigma,al}'] * eps_a**2 * eps_pi**2)
+            + p['d_{sigma,aa}'] * eps_a**4
+            + (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *p['b_{sigma,4}'] ##excluding ln(eps_pi^2)
+        )
+        
+        return output
+    
+    def fitfcn_n2lo_log(self,p):
+        output = (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**3))
+        
+        return output
+        
+    # extract lecs in quotes and insert into prior dict in hyperon_fit??
+    def fitfcn_n2lo_xpt(self,p, eps_pi, eps_delta, eps_delta_res):
+        if self.model_info['xpt'] is True:
+            output = (
+                (p['g_{sigma_st,sigma}']**2)*(p['s_{sigma}']-p['s_{sigma,bar}']) *
+                (p['lam_chi'] * eps_pi**2) * 
+                (naf.fcn_J(eps_pi,eps_delta=eps_delta_res)) 
+                + (1/4)*p['g_{lam,sigma}']*(p['s_{sigma}']-p['s_{lam}'])* p['lam_chi'] *(p['m_pi']**2 / p['lam_chi']**2) 
+                * naf.fcn_J(eps_pi,eps_delta)
+                + (np.log(eps_pi**2)*p['a_{sigma,4}']*p['lam_chi'] * eps_pi**4) 
+                + (p['b_{sigma,4}']*p['lam_chi']*eps_pi**4)
+            )
+            return output
+        if self.model_info['xpt'] is False:
+            return 0
+
+
+    def fitfcn_n2lo_strange(self,p):
+        output = (
+            #term 2
+            p['d_{sigma,as}']* (0.5 * p['a/w']**2) *
+
+            ((2*p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2) +
+            #term 3
+            ( p['d_{sigma,ls}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)) * 
+            ( p['m_pi'] / p['lam_chi']**2 ) +
+            #term 4
+            (p['d_{sigma,ss}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)**2)
+        )
+
+        return output
+
+    def buildprior(self, prior, mopt=False, extend=False):
+        return prior
+
+
+    def builddata(self, data):
+        return data[self.datatag]
+
+
+class Sigma_st(lsqfit.MultiFitterModel):
+    def __init__(self, datatag, model_info):
+        super(Sigma_st, self).__init__(datatag)
+
+        # override build data and build prior methods in lsqfit 
+        # two models, Xi and Xi*, models need to know part of data to each model use datatag
+        self.model_info = model_info
+
+    #fit_data from i_o module
+    def fitfcn(self, p, data=None):
+        
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
+
+        eps_pi = p['m_pi'] / p['lam_chi']
+        #this mass splitting needs to be redefined for each hyperon
+        eps_delta = ((p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi'])*-1
+        eps_delta_res = ((p['m_{sigma_st,0}'] + p['m_{lam,0}']) / p['lam_chi'])*-1
+        eps_a = (1/2) * p['a/w']
+        
+        #not-even leading order
+        output = p['m_{sigma_st,0}']
+
+        #lo
+
+        #lo
+        if self.model_info['order_disc'] in ['lo','n2lo']:
+            output += self.fitfcn_lo_ct(p,eps_a)
+            if self.model_info['order_strange'] in ['lo','n2lo']:
+                output+= self.fitfcn_lo_strange(p)
+
+        if self.model_info['order_chiral'] in ['lo', 'nlo','n2lo']:
+            output  += self.fitfcn_lo_xpt(p,eps_pi) 
+
+        #nlo
+        if self.model_info['order_chiral'] in ['nlo', 'n2lo']:
+            output += self.fitfcn_nlo_xpt(p, eps_pi, eps_delta,eps_delta_res)
+
+        #n2lo
+        if self.model_info['order_disc'] in ['n2lo']:
+            output += self.fitfcn_n2lo_ct(p, eps_a, eps_pi)
+            if self.model_info['order_strange'] in ['n2lo']:
+                output+= self.fitfcn_n2lo_strange(p)
+
+        if self.model_info['order_chiral'] in ['n2lo']:
+            output += self.fitfcn_n2lo_xpt(p, eps_pi, eps_delta,eps_delta_res)
+    
+        return output
+
+
+    def fitfcn_lo_ct(self, p, eps_a):
+        
+        output = p['m_{sigma,0}'] * (p['d_{sigma,a}'] * (eps_a**2))
+
+        return output
+
+    def fitfcn_lo_xpt(self, p, eps_pi):
+        if self.model_info['xpt'] is True:
+            output = p['s_{sigma,bar}'] * p['lam_chi'] * eps_pi**2
+            return output
+
+        if self.model_info['xpt'] is False:
+            return 0
+
+    #first term of red expansion 
+    def fitfcn_lo_strange(self,p):
+    
+        output = ( 
+            p['d_{sigma,s}'] *  
+            ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)
+        )
+        return output
+
+    # no nlo disc or strange terms 
+
+    def fitfcn_nlo_xpt(self,p, eps_pi, eps_delta, eps_delta_res):
+        if self.model_info['xpt'] is True:
+            output = (
+            (p['lam_chi'] * ((-5/9)*np.pi) *p['g_{sigma_st,sigma_st}']**2 * eps_pi**3) 
+            - ((1/3)* p['g_{sigma_st,sigma}']**2 * p['lam_chi'] * naf.fcn_F(eps_pi,eps_delta))
+            - ((1/3) * p['g_{lam,sigma_st}']**2 * p['lam_chi'] * naf.fcn_F(eps_pi, eps_delta=eps_delta_res))
+            )
+            return output
+        if self.model_info['xpt'] is False:
+            return 0
+
+    # n2lo terms
+
+    def fitfcn_n2lo_ct(self, p, eps_a, eps_pi):     
+        output = p['m_{sigma,0}'] * ( 
+            + (p['d_{sigma,al}'] * eps_a**2 * eps_pi**2)
+            +  p['d_{sigma,aa}'] * eps_a**4
+            + (p['lam_chi'] *(p['m_pi']**4 / p['lam_chi']**4)) *p['b_{sigma,4}'] ##excluding ln(eps_pi^2)
+        )
+        
+        return output
+    
+        
+    # extract lecs in quotes and insert into prior dict in hyperon_fit??
+    def fitfcn_n2lo_xpt(self,p, eps_pi, eps_delta, eps_delta_res):
+        if self.model_info['xpt'] is True:
+            output = (
+                (0.5*p['g_{sigma_st,sigma}']**2)*(p['s_{sigma,bar}']-p['s_{sigma}']) *
+                (p['lam_chi'] * eps_pi**2) * 
+                (naf.fcn_J(eps_pi,eps_delta)) 
+                + 0.5*p['g_{lam,sigma_st}']*(p['s_{sigma,bar}']-p['s_{sigma}'])* p['lam_chi'] *(p['m_pi']**2 / p['lam_chi']**2) 
+                * naf.fcn_J(eps_pi,eps_delta=eps_delta_res)
+                + (np.log(eps_pi**2)*p['a_{sigma_st,4}']*p['lam_chi'] * eps_pi**4) 
+                + (p['b_{sigma_st,4}']*p['lam_chi']*eps_pi**4)
+            )
+            return output
+        if self.model_info['xpt'] is False:
+            return 0
+
+
+    def fitfcn_n2lo_strange(self,p):
+        output = (
+            #term 2
+            p['d_{lam,as}']* (0.5 * p['a/w']**2) *
+
+            ((2*p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2) +
+            #term 3
+            ( p['d_{lam,ls}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)) * 
+            ( p['m_pi'] / p['lam_chi']**2 ) +
+            #term 4
+            (p['d_{lam,ss}'] * ((2*p['m_k']**2- p['m_pi']**2) / p['lam_chi']**2)**2)
+        )
+
+        return output
+
+    def buildprior(self, prior, mopt=False, extend=False):
+        return prior
+
+
+    def builddata(self, data):
+        return data[self.datatag]
+
+
+

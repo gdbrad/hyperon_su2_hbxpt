@@ -132,11 +132,16 @@ class InputOutput(object):
 
             'lam_chi' : 4 *np.pi *gv.gvar('92.07(57)'),
             'm_pi' : gv.gvar('134.8(3)'), # '138.05638(37)'
-            'm_k' : gv.gvar('494.2(3)'), # '495.6479(92)'
+            'm_k' : gv.gvar('494.2(3)'), # '495.6479(92)' 
 
             'm_xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
             'm_xi_st' : np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]),
+            'm_lam' : np.mean([gv.gvar(g) for g in ['1115.683(6) ', '1121.71(07)']]),
+            'm_sigma' : np.mean([gv.gvar(g) for g in ['1192.642(24)', '1205.0(0.6)']]),
+            'm_sigma_st' : np.mean([gv.gvar(g) for g in ['1383.7(10)', '1393.0(0.6)']])
+
             #'mss' : gv.gvar('688.5(2.2)'), # Taken from arxiv/1303.1670
+            ### ADD OTHER HYPERONS? ##
         }
         if param is not None:
             return phys_point_data[param]
