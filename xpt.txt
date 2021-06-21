@@ -1,0 +1,5 @@
+QCD vacuum breaks chiral symmetry down to U(3)_v
+8 massless goldstone bosons appear, each coupled via F0 to conserved axial-vector current 
+physics of the goldstone bosons described a low energy EFT called XPT 
+
+

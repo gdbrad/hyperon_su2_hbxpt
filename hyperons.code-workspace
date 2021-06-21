@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../hyperon_mass_paper"
+		},
+		{
+			"path": "../adinkra"
+		},
+		{
+			"path": "../hyperon_ga"
+		},
+		{
+			"path": "../Topos"
+		},
+		{
+			"path": "../lattedb"
+		}
+	],
+	"settings": {}
+}

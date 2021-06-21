@@ -1,0 +1,77 @@
+data:
+  m_lambda : 1249
+  m_pi : 326.4
+  m_k : 559.3
+  lam_chi : 1317
+  eps2_a : 0.029813 #0.1726644143997251
+
+prior:
+  m_{lambda,0}: 1000
+  m_{sigma,0}: 1200
+  m_{sigma_st,0}: 1400
+  m_{xi,0} : 1100
+  m_{xi_st,0} : 1300
+
+  s_{lambda} : 4.4235507
+  s_{sigma} : 2.26820413
+  s_{sigma,bar} : 0.44888188
+  s_{xi} : 0.80327777
+  s_{xi,bar} : -1.08948624
+
+  g_{lambda,sigma} : 0.33247503
+  g_{lambda,sigma_st} : 3.79792297
+  g_{sigma,sigma} : -2.91657678
+  g_{sigma_st,sigma} : 1.96509754
+  g_{sigma_st,sigma_st} : -3.54456449
+  g_{xi,xi} : -3.7791519
+  g_{xi_st,xi} : 0.8913183
+  g_{xi_st,xi_st} : 1.67509801
+
+  b_{lambda,4} : -2.01813679
+  b_{sigma,4} : 0.06812992
+  b_{sigma_st,4} : 0.32761444
+  b_{xi,4} : -0.27998815
+  b_{xi_st,4} : -0.57104937
+
+  a_{lambda,4} : 1.97550796
+  a_{sigma,4} : -3.09326462
+  a_{sigma_st,4} : -3.3729048
+  a_{xi,4} : -3.77773321
+  a_{xi_st,4} : -0.39930602
+
+  d_{lambda,a} : 3.23748928
+  d_{lambda,s} : -3.91708591
+  d_{sigma,a} : 2.36773554
+  d_{sigma,s} : 0.97996722
+  d_{sigma_st,a} : 3.27434564
+  d_{sigma_st,s} : 2.5008847
+  d_{xi,a} : 0.36856643
+  d_{xi,s} : -2.71683856
+  d_{xi_st,a} : -1.88562014
+  d_{xi_st,s} : 0.26922676
+
+  d_{lambda,aa} : -3.78170221
+  d_{lambda,al} : 1.52182295
+  d_{lambda,as} : 0.61404748
+  d_{lambda,ls} : -2.02083171
+  d_{lambda,ss} : 3.36165211
+  d_{sigma,aa} : -2.60187299
+  d_{sigma,al} : 1.61501224
+  d_{sigma,as} : -2.16949063
+  d_{sigma,ls} : 0.56572681
+  d_{sigma,ss} : 3.21250068
+  d_{sigma_st,aa} : -0.38613481
+  d_{sigma_st,al} : 2.13979895
+  d_{sigma_st,as} : -3.89490914
+  d_{sigma_st,ls} : -0.34076067
+  d_{sigma_st,ss} : 3.8750676
+  d_{xi,aa} : -0.28913773
+  d_{xi,al} : 2.16119965
+  d_{xi,as} : 2.55271343
+  d_{xi,ls} : -1.48426391
+  d_{xi,ss} : 3.51109182
+  d_{xi_st,aa} : 0.17640998
+  d_{xi_st,al} : -0.377172
+  d_{xi_st,as} : -1.50844629
+  d_{xi_st,ls} : -1.02964991
+  d_{xi_st,ss} : -2.17679768

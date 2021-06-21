@@ -41,7 +41,10 @@ class InputOutput(object):
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
         ensembles.remove('a12m220')
+        ensembles.remove('a12m220ms')
+        ensembles.remove('a12m310XL')
         ensembles.remove('a12m220S')
+        ensembles.remove('a12m180L')
 
         self.ensembles = ensembles
         self.project_path = project_path
@@ -50,9 +53,8 @@ class InputOutput(object):
 
     # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
     def _get_bs_data(self, scheme=None):
-        
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
-        hbar_c = self.get_phys_point_data('hbarc') # MeV-fm (PDG 2019 conversion constant)
+        hbar_c = self.get_data_phys_point('hbarc') # MeV-fm (PDG 2019 conversion constant)
 
         if scheme is None:
             scheme = 'w0_imp'
@@ -63,36 +65,39 @@ class InputOutput(object):
         with h5py.File(self.project_path+'/data/input_data.h5', 'r') as f: 
             for ens in self.ensembles:
                 data[ens] = {}
-
-                #scalars
                 data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                data[ens]['a/w'] = to_gvar(f[ens]['a_w'])
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L']
-                
-                #arrays
                 data[ens]['m_pi'] = f[ens]['mpi'][:]
                 data[ens]['m_k'] = f[ens]['mk'][:]
                 data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][:]
 
+                if scheme == 'w0_imp':
+                    data[ens]['eps2_a'] = 1 / (2 *to_gvar(f[ens]['w0a_callat_imp']))**2
+                elif scheme ==  'w0_org':
+                    data[ens]['eps2_a'] = 1 / (2 *to_gvar(f[ens]['w0a_callat']))**2
+                elif scheme == 't0_imp':
+                    data[ens]['eps2_a'] = 1 / (4 *to_gvar(f[ens]['t0aSq_imp']))
+                elif scheme == 't0_org':
+                    data[ens]['eps2_a'] = 1 / (4 *to_gvar(f[ens]['t0aSq']))
+
+
         with h5py.File(self.project_path+'/data/hyperon_data.h5', 'r') as f:
             for ens in self.ensembles:
+                for obs in list(f[ens]):
+                    data[ens].update({obs : f[ens][obs][:]})
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
-                        data[ens][obs] = f[ens+'_hp'][obs][:]
-                else:
-                    for obs in list(f[ens]):
-                        data[ens][obs] = f[ens][obs][:]
-
+                        data[ens].update({obs : f[ens+'_hp'][obs][:]})
 
         return data
-        
+
 
     def get_data(self, scheme=None):
         bs_data = self._get_bs_data(scheme)
 
         gv_data = {}
-        dim1_obs = ['m_delta', 'm_lam', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_pi', 'm_k', 'lam_chi']
+        dim1_obs = ['m_delta', 'm_lambda', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_omega', 'm_pi', 'm_k', 'lam_chi']
         for ens in self.ensembles:
             gv_data[ens] = {}
             for obs in dim1_obs:
@@ -102,7 +107,7 @@ class InputOutput(object):
             for obs in dim1_obs:
                 gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
 
-            gv_data[ens]['a/w'] = bs_data[ens]['a/w']
+            gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
 
         ensembles = list(gv_data)
         output = {}
@@ -110,58 +115,50 @@ class InputOutput(object):
             output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])
         return output, ensembles
 
-    # def _make_prior(self, data=None):
-    #     if data is None:
-    #         data = self.data
-    #     prior = self.prior
-    #     new_prior = {}
-    #     for key in prior:
-    #         new_prior[key] = prior[key]
-    #     for key in ['m_pi', 'm_k', 'lam_chi', 'a/w']:
-    #         new_prior[key] = data[key]
-    #     return new_prior
 
-
-    def get_phys_point_data(self, param=None):
-        phys_point_data = {
-            'a/w' : gv.gvar(0),
+    def get_data_phys_point(self, param=None):
+        data_phys_point = {
+            'eps2_a' : gv.gvar(0),
             'a' : gv.gvar(0),
             'alpha_s' : gv.gvar(0.0),
-            'L' : gv.gvar(np.infty), #is this actually set to infinity
+            'L' : gv.gvar(np.infty),
             'hbarc' : gv.gvar(197.3269804, 0), # MeV-fm
 
             'lam_chi' : 4 *np.pi *gv.gvar('92.07(57)'),
             'm_pi' : gv.gvar('134.8(3)'), # '138.05638(37)'
-            'm_k' : gv.gvar('494.2(3)'), # '495.6479(92)' 
+            'm_k' : gv.gvar('494.2(3)'), # '495.6479(92)'
 
+            'm_lambda' : gv.gvar(1115.683, 0.006),
+            'm_sigma' : np.mean([gv.gvar(g) for g in ['1189.37(07)', '1192.642(24)', '1197.449(30)']]),
+            'm_sigma_st' : np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']]),
             'm_xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
             'm_xi_st' : np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]),
-            'm_lam' : np.mean([gv.gvar(g) for g in ['1115.683(6) ', '1121.71(07)']]),
-            'm_sigma' : np.mean([gv.gvar(g) for g in ['1192.642(24)', '1205.0(0.6)']]),
-            'm_sigma_st' : np.mean([gv.gvar(g) for g in ['1383.7(10)', '1393.0(0.6)']])
-
-            #'mss' : gv.gvar('688.5(2.2)'), # Taken from arxiv/1303.1670
-            ### ADD OTHER HYPERONS? ##
+            'm_omega' : gv.gvar(1672.45,29)
         }
         if param is not None:
-            return phys_point_data[param]
-        return phys_point_data
+            return data_phys_point[param]
+        return data_phys_point
 
-    def plot_qq(self, ens, param):
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        stats.probplot(self._get_bs_data[ens][param], dist='norm', plot=ax)
+    def get_posterior(self,fit_test=None,prior=None,param=None):
+        if param == 'all':
+            return fit_test.fit.p
+        elif param is not None:
+            return fit_test.fit.p[param]
+        else:
+            output = {}
+            for param in prior:
+                if param in fit_test.fit.p:
+                    output[param] = fit_test.fit.p[param]
+            return output
 
-        fig = plt.gcf()
-        plt.close()
-
-        return fig
-
-    #save out results 
-
-
-
+    def make_prior(self,data,prior):
+        new_prior = {}
+        for key in prior:
+            new_prior[key] = prior[key]
+        for key in ['m_pi', 'm_k', 'lam_chi', 'eps2_a', 'm_delta']:
+            new_prior[key] = data[key]
+        return new_prior
 
 
-    
-            
+
+
