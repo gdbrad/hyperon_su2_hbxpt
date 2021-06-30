@@ -13,9 +13,6 @@ fv corrections
 implement scale setting
 - wait for nolan code 
 
-fit:
-- nucelon 
--delta 
 
 plot mass vs m_N 
 delta extraplation function eqns 34,35 in andre paper 
