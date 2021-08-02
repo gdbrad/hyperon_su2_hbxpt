@@ -18,3 +18,5 @@ notes/*.fdb_latexmk
 /tmp/*
 notes/notes.fdb_latexmk
 .vscode/settings.json
+grant_notes.pdf
+grant_notes.synctex.gz
