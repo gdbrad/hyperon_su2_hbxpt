@@ -780,65 +780,98 @@ class Omega(lsqfit.MultiFitterModel):
     def builddata(self, data):
         return data[self.datatag]
 
-# class Proton(lsqfit.MultiFitterModel):
-#     def __init__(self, datatag, model_info):
-#         super(Proton, self).__init__(datatag)
-        
-#         self.model_info = model_info
-
-#     #fit_data from i_o module
-#     def fitfcn(self, p, data=None):
-        
-#         if data is not None:
-#             for key in data.keys():
-#                 p[key] = data[key]
-
-#         xdata = {}
-#         xdata['lam_chi'] = p['lam_chi']
-#         xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
-#         xdata['eps_delta'] = (p['m_{proton,0}'] - p['m_{delta,0}']) / p['lam_chi']
-#         #xdata['eps_sigma'] = (p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi']
-#         #xdata['eps_a'] = ((1/2) * p['a/w'])
-#         xdata['eps2_a'] = p['eps2_a']
-#         xdata['d_eps2_s'] = (2 *p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2 - 0.3513
-#         # coefficients for nucleons
-#         xdata['B'] = 
-#         xdata['C_pi_B'] = 2*xdata['a_m']*(2*p['m_pi']**2)
-#         xdata['F_pi_B'] = xdata['a_m']*(2*p['m_pi']**2)
-#         xdata['G_pi_B'] = 4/9 *(7*xdata['m_pi']**2 + 2*xdata['m_pi']**2)
-
-
-#        #not-even leading order
-#         output  =  p['m_{proton,0}']
-#         output -= self.fitfcn_lo_ct(p, xdata) #M_Bi(1)
-#         output -= self.fitfcn_nlo_ct(p, xdata) #M_bi(3/2)
-#         output -= self.fitfcn_n2lo_xpt(p, xdata) #M_Bi(2)
     
-#         return output
 
-#     # wave function renormalization
-#     def z_b(self, p, xdata):
-#         output = 0
-#         output += -9 * xdata['g_A']**2 / 2*xdata['lam_chi']**2 * (naf.fcn_L(m=xdata['eps_pi'],mu=1) + 2/3*xdata['eps_pi']**2)
-#         output += -4*p['g_{delta,proton}']**2 / xdata['lam_chi']**2 * (naf.fcn_J(eps_pi = xdata['eps_pi'], eps_delta=xdata['eps_delta']) + xdata['eps_pi']**2)
-#         return output
+class Proton(lsqfit.MultiFitterModel):
+    def __init__(self, datatag, model_info):
+        super(Proton, self).__init__(datatag)
+        
+        self.model_info = model_info
 
-#     def fitfcn_lo_ct(self, p, xdata):
-#         output = 0
-#         output += 2 * p['alpha_M'] * xdata['m_u'] + 2 * p['s_{proton}'] * p['m_pi']**2 / xdata['B']
-
-#         return output
-
-#     def fitfcn_nlo_ct(self,p,xdata):
-#         output = 0
-#         output += 3/4 * xdata['lam_chi'] * xdata['g_A']**2 * p['m_pi']**3 
-#         output += 8* p['g_{delta,proton}']**2 / 3*xdata['lam_chi'] * naf.fcn_F(xdata['eps_pi'],xdata['eps_delta'])
+    #fit_data from i_o module
     
-#     def fitfcn_n2lo_xpt(self,p,xdata):
+    def fitfcn(self, p, data=None):
+        '''
+        mass of the ith nucleon in chiral expansion:
+        \Delta = quark mass independent delta-nucleon mass splitting
+        M_0(\Delta) = renormalized nucleon mass in chiral limit 
 
-#         output = 0
-#         output += (self.z_b -1)* self.fitfcn_lo_ct(p=p, xdata=xdata) 
-#         output += 1/xdata['lam_chi'] * ()
+        M_B_i = 
+        M_0(\Delta) - M_B_i^1(\mu,\Delta) - M_B_i^3/2(\mu,\Delta) - M_B_i^2(\mu,\Delta) + ...
+        '''
+        
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
+
+        xdata = {}
+        xdata['lam_chi'] = p['lam_chi']
+        xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
+        xdata['eps_delta'] = (p['m_{proton,0}'] - p['m_{delta,0}']) / p['lam_chi']
+        #xdata['eps_sigma'] = (p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi']
+        xdata['eps2_a'] = p['eps2_a']
+        xdata['d_eps2_s'] = (2 *p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2 - 0.3513
+        # coefficients for nucleons
+        xdata['B'] = 
+        xdata['C_b'] = 2*xdata['a_m']*(2*p['m_pi']**2)
+        xdata['F_b'] = xdata['a_m']*(2*p['m_pi']**2)
+        xdata['G_b'] = 4/9 *(7*xdata['m_pi']**2 + 2*xdata['m_pi']**2)
+
+
+       #not-even leading order
+        output  =  p['m_{proton,0}']
+        output -= self.fitfcn_lo_ct(p, xdata) #M_Bi(1)
+        output -= self.fitfcn_nlo_ct(p, xdata) #M_Bi(3/2)
+        output -= self.fitfcn_n2lo_xpt(p, xdata) #M_Bi(2)
+    
+        return output
+
+    # wave function renormalization
+    def z_b(self, p, xdata):
+        output = -1
+        output += -9 * xdata['g_A']**2 / 2*xdata['lam_chi']**2 * (naf.fcn_L(m=xdata['eps_pi'],mu=1) + 2/3*xdata['eps_pi']**2)
+        output += -4*p['g_{delta,proton}']**2 / xdata['lam_chi']**2 * (naf.fcn_J(eps_pi = xdata['eps_pi'], eps_delta=xdata['eps_delta']) + xdata['eps_pi']**2)
+        return output
+
+    def fitfcn_lo_ct(self, p, xdata):
+        output = 0
+        output += 2 * p['alpha_M'] * xdata['m_pi'] + 2 * p['s_{proton}'] * p['m_pi']**2 / xdata['B']
+
+        return output
+
+    def fitfcn_nlo_ct(self,p,xdata):
+        output = 0
+        output += 3/4 * xdata['lam_chi'] * xdata['g_A']**2 * p['m_pi']**3 
+        output += 8 * p['g_{delta,proton}']**2 / 3*xdata['lam_chi'] * naf.fcn_F(xdata['eps_pi'],xdata['eps_delta'])
+    
+    def fitfcn_n2lo_xpt(self,p,xdata):
+        ## M_PI OR EPS_PI ##
+
+        output = 0
+        output += (
+
+        self.z_b * self.fitfcn_lo_ct(p=p, xdata=xdata) 
+        + xdata['lam_chi'] * ((xdata['b_1']*xdata['eps_pi']**2) + xdata['b_5'] * p['m_pi']**2 
+        + xdata['b_6']* p['m_pi']**2 + xdata['b_8']*p['m_pi']**2 )
+        - xdata['lam_chi']**2 * xdata['C_b']* naf.fcn_L(m=xdata['eps_pi'],mu=1)
+        - 6*p['s_{proton}'] * xdata['lam_chi']**2 * p['m_pi'] * naf.fcn_L(m=xdata['eps_pi'],mu=1)
+        + 3*xdata['bA']    *  xdata['lam_chi']**3 8 naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) 
+        + 3*xdata['bvA']   * 4*xdata['lam_chi']**3 * (naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) - 1/2*xdata['eps_pi']**4)
+        + xdata['lam_chi'] * 27/16*p['g_A']**2 / p['m_{proton,0}'] * (naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) + 5/6*xdata['m_pi']**4)
+        + xdata['lam_chi']**2 * 5*p['g_{delta,proton}']**2 / 2*p['m_{proton,0}']*(naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) + 9/10*xdata['m_pi']**4))
+        + 9*xdata['g_A']**2 * p['s_{proton}'] * xdata['lam_chi']**2 * xdata['eps_pi'] *(naf.fcn_L(m=xdata['eps_pi'],mu=1)+2/3*xdata['eps_pi']**2)
+        + 8*p['g_{delta,proton}']**2 * p['s_{proton,bar}'] * xdata['lam_chi']**2 * xdata['eps_pi']*(naf.fcn_J(eps_pi = xdata['eps_pi'], eps_delta=xdata['eps_delta'])+ xdata['eps_pi']**2)
+        + 3 * p['g_A']**2 * xdata['lam_chi']**2 * xdata['F_b'] * (naf.fcn_L(m=xdata['eps_pi'],mu=1) + 2/3*xdata['eps_pi']**2)
+        - 2*p['g_{delta,proton}']**2 * xdata['lam_chi']**2 * xdata['gamma'] * xdata['G_b'] * (naf.fcn_J(eps_pi = xdata['eps_pi'], eps_delta=xdata['eps_delta'])+xdata['eps_pi']**2)
+                )
+
+        return output
+
+    def buildprior(self, prior, mopt=False, extend=False):
+        return prior
+
+    def builddata(self, data):
+        return data[self.datatag]
 
         
 
