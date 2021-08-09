@@ -5,6 +5,7 @@
 \usepackage{braket}
 \usepackage{booktabs}
 \usepackage{hyperref} 
+\usepackage{braket}
 
 % Forces bold math in section/subsection/etc headings 
 \makeatletter
@@ -28,10 +29,43 @@ In the S=1 spectrum, have virtual baryons.
 $m_\pi < m_\Delta$ in order to decay. 
 When $m_\pi > m_\Delta$, spin-1/2 is actually stable as there is no imaginary mass. _Is this the correct implication_
 
+\section*{nucleon sigma term}
+
+The sum of sigma terms determines the coupling strength of nucleons to WIMPs via spin-independent channel. 
+Sigma terms represent the contributions of explicit chiral symmetry breaking to the nucleon mass. 
+
+Need to employ baryon xpt to extrapolate lattice data for $M_N$ with heavy quarks to the physical
+and chiral limits, while including finite volume effects. Perform SU(2) baryon xpt to compute 
+extrapolations of sigma terms and mass of nucleon with the light quark mass as expansion parameter. 
+
+
+A nucleon (proton or neutron) couples to the external higgs field via $g_q$ where $q$
+is the quark falvor. Elementary fermions are massive, $m_f = g_f\frac{\partial m_f}{\partial g_f}$ where 
+$g_f$ is the fermion-higgs coupling. 
+
+For the nucleon: $M_Nf_{qN} = \sigma_{qN} := g_q\frac{\partial M_n}{\partial g_q} = m_q\frac{\partial M_N}{\partial m_q}$
+
+$ \frac{\partial M_n}{\partial g_q} = \Braket{N | \bar{q}q | N}$
+
+The overarching aim is to determine $M_\pi$ dependence on $M_N$ and compute $\sigma_{\piN}$ 
+via the feynman-hellman theorem. 
+\textbf{Result:} $M_N(M\pi)$
+
+\subsection*{Derivation of the perturbative nucleon mass}
+
+
+
+
+
+
+
 \section*{XPT expressions for Delta and Nucleon}
 In order to compute the difference between the average nucleon and average delta masses (eqn. 35), we need to compute eqns. 17 and 27
 (nucleon, delta mass extrapolations, respectively) and the several orders(lo,nlo,n2lo), therein? (18-22 for nucleon and 28-30 for delta)?
-https://arxiv.org/abs/hep-lat/0501018
+https://arxiv.org/abs/hep-lat/0501018 gives xpt expressions and mass expansions about $m_\pi^2$
+
+https://arxiv.org/abs/hep-lat/0405007v2 where lecs are defined
+
 
 
 

@@ -808,17 +808,22 @@ class Proton(lsqfit.MultiFitterModel):
         xdata['lam_chi'] = p['lam_chi']
         xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
         xdata['eps_delta'] = (p['m_{proton,0}'] - p['m_{delta,0}']) / p['lam_chi']
-        #xdata['eps_sigma'] = (p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi']
         xdata['eps2_a'] = p['eps2_a']
         xdata['d_eps2_s'] = (2 *p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2 - 0.3513
+
         # coefficients for nucleons
         xdata['B'] = 
         xdata['C_b'] = 2*xdata['a_m']*(2*p['m_pi']**2)
         xdata['F_b'] = xdata['a_m']*(2*p['m_pi']**2)
         xdata['G_b'] = 4/9 *(7*xdata['m_pi']**2 + 2*xdata['m_pi']**2)
+        xdata['b_1']
+        xdata['b_5']
+        xdata['b_6']
+        xdata['b_8']
+        xdata['b_A']
+        xdata['b_vA']
 
-
-       #not-even leading order
+       # not-even leading order
         output  =  p['m_{proton,0}']
         output -= self.fitfcn_lo_ct(p, xdata) #M_Bi(1)
         output -= self.fitfcn_nlo_ct(p, xdata) #M_Bi(3/2)
@@ -855,8 +860,8 @@ class Proton(lsqfit.MultiFitterModel):
         + xdata['b_6']* p['m_pi']**2 + xdata['b_8']*p['m_pi']**2 )
         - xdata['lam_chi']**2 * xdata['C_b']* naf.fcn_L(m=xdata['eps_pi'],mu=1)
         - 6*p['s_{proton}'] * xdata['lam_chi']**2 * p['m_pi'] * naf.fcn_L(m=xdata['eps_pi'],mu=1)
-        + 3*xdata['bA']    *  xdata['lam_chi']**3 8 naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) 
-        + 3*xdata['bvA']   * 4*xdata['lam_chi']**3 * (naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) - 1/2*xdata['eps_pi']**4)
+        + 3*xdata['bA'] *  xdata['lam_chi']**3 8 naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) 
+        + 3*xdata['bvA']  * 4*xdata['lam_chi']**3 * (naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) - 1/2*xdata['eps_pi']**4)
         + xdata['lam_chi'] * 27/16*p['g_A']**2 / p['m_{proton,0}'] * (naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) + 5/6*xdata['m_pi']**4)
         + xdata['lam_chi']**2 * 5*p['g_{delta,proton}']**2 / 2*p['m_{proton,0}']*(naf.fcn_L_bar(m=xdata['eps_pi'],mu=1) + 9/10*xdata['m_pi']**4))
         + 9*xdata['g_A']**2 * p['s_{proton}'] * xdata['lam_chi']**2 * xdata['eps_pi'] *(naf.fcn_L(m=xdata['eps_pi'],mu=1)+2/3*xdata['eps_pi']**2)
