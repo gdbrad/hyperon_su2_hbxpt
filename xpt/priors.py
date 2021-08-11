@@ -8,6 +8,8 @@ prior['m_{lambda,0}'] = gv.gvar(1000, 1000)
 prior['m_{sigma,0}'] = gv.gvar(1200, 1000) 
 prior['m_{sigma_st,0}'] = gv.gvar(1400, 1000)
 prior['m_{omega,0}'] = gv.gvar(1650, 1000)
+prior['m_{proton,0}'] = gv.gvar(938, 1000)
+prior['m_{delta,0}'] = gv.gvar(1232,1000)
 
 # lo
 prior['s_{xi}'] = gv.gvar(0, 5)
@@ -26,6 +28,10 @@ prior['g_{lambda,sigma_st}'] =gv.gvar(0, 5)
 prior['g_{sigma,sigma}'] = gv.gvar(0, 5)
 prior['g_{sigma_st,sigma}'] = gv.gvar(0, 5)
 prior['g_{sigma_st,sigma_st}']= gv.gvar(0, 5)
+prior['g_{proton,delta}'] = gv.gvar(0,5)
+prior['g_{proton,proton}'] = gv.gvar(0,5)
+prior['g_{delta,delta}'] = gv.gvar(0,5)
+
 # n2lo
 prior['a_{xi,4}'] = gv.gvar(0, 5)
 prior['a_{xi_st,4}'] = gv.gvar(0, 5)
@@ -41,6 +47,12 @@ prior['a_{omega,4}'] = gv.gvar(0, 5)
 prior['b_{omega,4}'] = gv.gvar(0, 5)
 prior['a_{omega,6}'] = gv.gvar(0, 5)
 prior['b_{omega,6}'] = gv.gvar(0, 5)
+prior['a_{proton,4}'] = gv.gvar(0, 5)
+prior['b_{proton,4}'] = gv.gvar(0,5)
+prior['b_{proton,2}'] = gv.gvar(0, 5)
+prior['y_{delta,4}'] = gv.gvar(0,5)
+prior['y_{proton,4}'] = gv.gvar(0,5)
+
 
 
 prior['t_{omega,A}'] = gv.gvar(0,2)

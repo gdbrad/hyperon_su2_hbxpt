@@ -97,7 +97,7 @@ class InputOutput(object):
         bs_data = self._get_bs_data(scheme)
 
         gv_data = {}
-        dim1_obs = ['m_delta', 'm_lambda', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_omega', 'm_pi', 'm_k', 'lam_chi']
+        dim1_obs = ['m_proton', 'm_delta', 'm_lambda', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_omega', 'm_pi', 'm_k', 'lam_chi']
         for ens in self.ensembles:
             gv_data[ens] = {}
             for obs in dim1_obs:
@@ -133,7 +133,8 @@ class InputOutput(object):
             'm_sigma_st' : np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']]),
             'm_xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
             'm_xi_st' : np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]),
-            'm_omega' : gv.gvar(1672.45,29)
+            'm_omega' : gv.gvar(1672.45,29),
+            'm_proton' : gv.gvar(938.272,29)
         }
         if param is not None:
             return data_phys_point[param]
