@@ -833,6 +833,8 @@ class Proton(lsqfit.MultiFitterModel):
         output += self.fitfcn_lo_ct(p, xdata) #M_Bi(1)
         output += self.fitfcn_nlo_ct(p, xdata) #M_Bi(3/2)
         output += self.fitfcn_n2lo_xpt(p, xdata) #M_Bi(2)
+        output += self.fitfcn_n2lo_ct(p,xdata)
+
     
         return output
 
@@ -878,12 +880,35 @@ class Proton(lsqfit.MultiFitterModel):
                     
         output += (
             p['y_{proton,4}'] * xdata['lam_chi']* xdata['eps_pi']**2 * naf.fcn_J(xdata['eps_pi'],xdata['eps_delta'])
-            + p['a_{proton,4}']*xdata['lam_chi'] * xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2
-            + p['b_{proton,4}']*xdata['lam_chi']*xdata['eps_pi']**4)
-        )
         
 
         return output
+
+    def fitfcn_n2lo_ct(self,p,xdata):
+        output = 0
+        if self.model_info['order_strange'] in ['n2lo']:  
+            output += p['m_{proton,0}']*(
+            #term 2
+            (p['d_{proton,as}']* xdata['eps2_a']) *
+
+            (xdata['d_eps2_s']) +
+            #term 3
+            (p['d_{proton,ls}'] * xdata['d_eps2_s'] * 
+            xdata['eps_pi']**2) +
+            #term 4
+            (p['d_{proton,ss}'] * xdata['d_eps2_s']**2)
+        )
+
+        if self.model_info['order_disc'] in ['n2lo']:
+            output += p['m_{proton,0}']*( 
+            (p['d_{proton,al}'] * xdata['eps2_a'] * xdata['eps_pi']**2) 
+            + (p['d_{proton,aa}'] * xdata['eps2_a']**2))
+            
+        if self.model_info['order_chiral'] in ['n2lo']:
+            output+= p['a_{proton,4}']*xdata['lam_chi'] * xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2
+            + p['b_{proton,4}']*xdata['lam_chi']*xdata['eps_pi']**4)
+        )
+
 
     def buildprior(self, prior, mopt=False, extend=False):
         return prior
@@ -892,54 +917,76 @@ class Proton(lsqfit.MultiFitterModel):
         return data[self.datatag]
 
 
-# class Delta(lsqfit.MultiFitterModel):
-#     def __init__(self, datatag, model_info):
-#         super(Delta, self).__init__(datatag)
+class Delta(lsqfit.MultiFitterModel):
+    def __init__(self, datatag, model_info):
+        super(Delta, self).__init__(datatag)
         
-#         self.model_info = model_info
+        self.model_info = model_info
 
-#     #fit_data from i_o module
+    #fit_data from i_o module
     
-#     def fitfcn(self, p, data=None):
-#         '''
-#         mass of the ith nucleon in chiral expansion:
-#         \Delta = quark mass independent delta-nucleon mass splitting
-#         M_0(\Delta) = renormalized nucleon mass in chiral limit 
+    def fitfcn(self, p, data=None):
+        '''
+        mass of the ith nucleon in chiral expansion:
+        \Delta = quark mass independent delta-nucleon mass splitting
+        M_0(\Delta) = renormalized nucleon mass in chiral limit 
 
-#         M_B_i = 
-#         M_0(\Delta) - M_B_i^1(\mu,\Delta) - M_B_i^3/2(\mu,\Delta) - M_B_i^2(\mu,\Delta) + ...
-#         '''
+        M_B_i = 
+        M_0(\Delta) - M_B_i^1(\mu,\Delta) - M_B_i^3/2(\mu,\Delta) - M_B_i^2(\mu,\Delta) + ...
+        '''
         
-#         if data is not None:
-#             for key in data.keys():
-#                 p[key] = data[key]
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
 
-#         xdata = {}
-#         xdata['lam_chi'] = p['lam_chi']
-#         xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
-#         xdata['eps_delta'] = (p['m_{proton,0}'] - p['m_{delta,0}']) / p['lam_chi']
-#         xdata['eps2_a'] = p['eps2_a']
-#         xdata['d_eps2_s'] = (2 *p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2 - 0.3513
+        xdata = {}
+        xdata['lam_chi'] = p['lam_chi']
+        xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
+        xdata['eps_delta'] = (p['m_{delta,0}'] - p['m_proton,0}']) / p['lam_chi']
+        xdata['eps2_a'] = p['eps2_a']
+        xdata['d_eps2_s'] = (2 *p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2 - 0.3513
 
-#         # coefficients for delta
-#         xdata['B'] = 
-#         xdata['C_b'] = 2*xdata['a_m']*(2*p['m_pi']**2)
-#         xdata['F_b'] = xdata['a_m']*(2*p['m_pi']**2)
-#         xdata['G_b'] = 4/9 *(7*xdata['m_pi']**2 + 2*xdata['m_pi']**2)
-#         xdata['b_1']
-#         xdata['b_5']
-#         xdata['b_6']
-#         xdata['b_8']
-#         xdata['b_A']
-#         xdata['b_vA']
+        # coefficients for delta
 
-#        # not-even leading order
-#         output  =  p['m_{delta,0}']
-#         output -= self.fitfcn_lo_ct(p, xdata) #M_Bi(1)
-#         output -= self.fitfcn_nlo_ct(p, xdata) #M_Bi(3/2)
-#         output -= self.fitfcn_n2lo_xpt(p, xdata) #M_Bi(2)
+
+       # not-even leading order
+        output  =  p['m_{delta,0}']
+        output -= self.fitfcn_lo_ct(p, xdata) #M_Bi(1)
+        output -= self.fitfcn_nlo_xpt(p, xdata) #M_Bi(3/2)
+        output -= self.fitfcn_n2lo_xpt(p, xdata) #M_Bi(2)
+        output += self.fitfcn_n2lo_ct(p,xdata)
+
+
+    def fitfcn_lo_ct(self, p, xdata):
+        output = 0
+        output += p['b_{delta,2}'] * xdata['lam_chi'] * xdata['eps_pi']**2
+
+        return output
+
+    def fitfcn_nlo_ct(self,p,xdata):
+        output = 0
+        output += -3*np.pi/2 * p['g_{delta,delta}']**2 * xdata['lam_chi'] * xdata['eps_pi']**3 
+        output += -4/3 * p['g_{proton,delta}']**2 * xdata['lam_chi'] * naf.fcn_F(xdata['eps_pi'],xdata['eps_delta'])
+        return output
     
-#         return output
+    def fitfcn_n2lo_xpt(self,p,xdata):
+        ## M_PI OR EPS_PI ##
+
+        output = 0
+
+        output += (
+            p['y_{proton,4}'] * xdata['lam_chi']* xdata['eps_pi']**2 * naf.fcn_J(xdata['eps_pi'],xdata['eps_delta'])
+        
+
+        return output
+
+
+    def fitfcn_n2lo_ct(self,p,xdata):
+        
+
+        
+    
+        return output
 
 
 
