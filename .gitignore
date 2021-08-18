@@ -20,3 +20,8 @@ notes/notes.fdb_latexmk
 .vscode/settings.json
 grant_notes.pdf
 grant_notes.synctex.gz
+grant_notes.aux
+grant_notes.bbl
+grant_notes.pdf
+grant_notes.synctex.gz
+data/hyper_spec_axial.h5
