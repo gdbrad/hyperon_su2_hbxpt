@@ -13,6 +13,7 @@
 \makeatother
 \def\mc#1{{\mathcal #1}}
 \def\tr{\text{tr}}
+\def\ol{\overline}
 
 \begin{document}
 
@@ -243,19 +244,46 @@ The covariant derivative
 \subsection*{LO self-energy correction of nucleon masses}
 
 Here, we will compute the leading order correction to the nucleon mass using heavy baryon chiral perturbation theory. First, some notation. We define the spurion field $\chi_{\pm} = u^{\dagger}\chi u^{\dagger} \pm u\chi^{\dagger}u$ where $u^2 = U$.
-The nucleon operator is constructed as $\bar{N}N = \bar{N}^iN_i = [\bar{p}p + \bar{n}N]$. We begin with computing the mass shift from the 
-operator proportional to $\bar{N}Ntr(\chi_+)$. 
+The nucleon operator is constructed as 
+\begin{align*}
+  \bar{N}N = \bar{N}^iN_i = [\bar{p}p + \bar{n}N]
+\end{align*}
+We begin with computing the mass shift from the operator proportional to $\bar{N}Ntr(\chi_+)$. 
+
 \begin{align*}
 tr(\chi_+) &= 2tr(\chi) + \dots \\
 &= 2tr(2Bm_Q) \\
 &= 4(2B\hat{m}) + \dots
 \end{align*}
 
+\textbf{partially quenched vs non-quenched vs quenched}
 
+\subsection*{step 2}
+From Eq (48) of 0904.2404 as is, the nucleon operators (b1, b5, b6, b8), and compute their correction to the nucleon self-energies.
+There are 9 relevant operators in the partially quenched theory, which reduce to 4 in unquenched theory.
+We can leave the $T$ terms alone for now. These b terms will condense down to a single parameter when fitting 
+lattice data.  Using our new notation, $\mc{M_\pm} \equiv \chi_\pm$; $Tr(\mc{M_\pm})$ evaluates
+to a scalar. It is useful to note that $\chi^\delta(m_u = m_d) = 0$. Again, recall that in order to include the 
+baryon fields in the chiral lagrangian, we need the relation $u^2=U=exp(\frac{i\pi \centerdot \tau}{F})$. 
 
-
-From Eq (48) of 0904.2404 as is, 
-the nucleon operators (b1, b5, b6, b8), and compute their correction to the nucleon self-energies
+As with the mesons, the unquenched baryon chiral lagrangian is given by (with new conventions) 
+\begin{widetext}
+  \begin{align} \label{eq:LOBaryons}
+  \mc{L} =&\ 
+    \ol{N} iv \cdot D N 
+    +\frac{\alpha_M}{(4\pi F)}\,\ol{N} \chi^\delta_+ N
+    +\frac{\sigma_M}{(4\pi F)}\,\ol{N} N \,{\rm tr}(\chi_+) 
+  \nonumber\\&\ 
+    - (\ol{T}^\mu[iv \cdot D\ - \Delta]T_\mu) 
+    +\frac{\alpha_T}{(4\pi F)}\,(\overline{T}^\mu \chi_+^\delta T_\mu)
+    +\frac{{\sigma}_T}{(4\pi F)}\,(\ol{T}^\mu T_\mu)\,{\rm tr}(\chi_+)  
+  \nonumber\\&\ 
+    +\,g_A \,\overline{N}^i S \cdot{u^j_i} \, N_j 
+    +\,g_{\Delta\Delta}\,\ol{T}^{kji}_\mu S\cdot {u^{i'}_i}\,T_\mu^{i'jk}  
+    +g_{\Delta N}\,\left[\ol{T}^{kji}_\mu \cdot{u}_i^{i'}
+                      \epsilon_{j i'} N_k + \overline{N}^k \epsilon^{ij}u^{i'}_i  \cdot T_{i'jk}] \,
+  \end{align}
+  \end{widetext}
 
 \begin{align}
   \mc{L}_M = \frac{1}{(4\pi f)^3} \bigg\{&
@@ -279,9 +307,114 @@ the nucleon operators (b1, b5, b6, b8), and compute their correction to the nucl
     \bigg\}\, .
   \end{align}
 
+Following the process as done by Andre in 2.2 of notes:
+
+Here, we will compute the leading order correction to the nucleon mass using heavy baryon chiral perturbation theory. First, some notation. 
+We define the spurion field 
+$\chi_{\pm} = u^{\dagger}\chi u^{\dagger} \pm u\chi^{\dagger}u$ where $u^2 = U$.
+
+The nucleon operator is constructed as $\bar{N}N = \bar{N}^iN_i = [\bar{p}p + \bar{n}N]$. 
+
+The set of mass shifts from the four operators in eqn. 48 of 0904 are 
+\begin{align*}
+\bar{N}Ntr(\chi_+)\chi_+ \\
+\bar{N}N(\chi^\delta_+)^2 \\
+\bar{N}Ntr(\chi_+)^2  \\
+\bar{N}Ntr(\chi^2_+) 
+\end{align*}
+
+
+We begin with computing the mass shift from the operator proportional to $\bar{N}Ntr(\chi_+)\chi_+$ with coefficient $b^M_6$. 
+
+\begin{align*}
+tr(\chi_+)\chi_+ &= 2tr(\chi)2\chi + \dots \\
+&= 2tr(2Bm_Q)^2 \\
+&= 8(4B^2\hat{m}^2) + \dots
+\end{align*}
+
+To LO, the full operator in the lagrangian is 
+$\mathcal{L} = \frac{\sigma_N}{4\pi F}8(4B^2\hat{m}^2) [\bar{p}p + \bar{n}n] $
+
+
+The second operator of interest at LO is the $(\chi^\delta_+)^2$ with coefficient $b^1_M$.
+\begin{align*}
+(\chi^\delta_+)^2 &= (\chi_+ - \frac{1}{2}tr(\chi_+))^2 \\
+&= 4\chi^2 - \frac{\chi_+}{4}tr(2\chi) - \frac{\chi_+}{4}tr(2\chi) + \frac{1}{4}tr(4\chi^2) \\
+&= 4\chi^2 - \frac{\chi_+}{2}tr(2\chi) + \frac{1}{4}tr(4\chi^2) \\
+\end{align*}
+
+The third operator of interest at LO is the $\bar{N}Ntr(\chi^2_+)$ with coefficient $b^5_M$.
+\begin{align*}
+(\chi^\delta_+)^2 &= (\chi_+ - \frac{1}{2}tr(\chi_+))^2 \\
+&= 
+  \\
+&= 8(4B^2\hat{m}^2) + \dots
+\end{align*}
+
+The fourth operator of interst at LO is $\bar{N}Ntr(\chi_+)^2$ with coefficient $b^8_M$
+\begin{align*}
+tr(\chi_+)^2 &= 4tr(\chi)2\chi + \dots \\
+&= 4tr(2Bm_Q)^2 \\
+&= 16(4B^2\hat{m}^2) + \dots
+\end{align*}
+To LO, the full operator in the Lagrangian is 
+$\mathcal{L} = \frac{\sigma_N}{4\pi F}16(4B^2\hat{m}^2) [\bar{p}p + \bar{n}n] $
+
+From eqn. 50, $\delta_N = \frac{b^M_5(m^4_\pi)}{2(4\pi F_\pi)^3}$
+
+\subsection*{step 3}
 Convert Eq (48) of above, to our updated normalization (from new notes), and repeat
 
-Take LO Lagrangian from notes (1.10) and expand up to two pion fields, and use these operators to compute (what you will see) are N2LO corrections to the nucleon mass
+\subsection*{step 4}
+Take LO Lagrangian from notes (1.10) and expand up to two pion fields, 
+and use the operators found in step 3 to compute the N2LO corrections to the nucleon mass.
+
+Following Andre's notes, the leading order nucleon lagrangian is given by: 
+\begin{align*}
+  \mc{L} =&\ 
+    \ol{N} iv \cdot D N 
+    +\frac{\alpha_M}{(4\pi F)}\,\ol{N} \chi^\delta_+ N
+    +\frac{\sigma_M}{(4\pi F)}\,\ol{N} N \,{\rm tr}(\chi_+) 
+  \nonumber\\&\ 
+    - \ol{T}^\mu[iv \cdot D\ - \Delta]T_\mu 
+    +\frac{\alpha_T}{(4\pi F)}\,\overline{T}^\mu \chi_+^\delta T_\mu
+    +\frac{{\sigma}_T}{(4\pi F)}\,\ol{T}^\mu T_\mu\,{\rm tr}(\chi_+)  
+  \nonumber\\&\ 
+\end{align*}
+
+The most general Lagrangian under global chiral transformations, 
+\begin{align*}
+  U \rightarrow LUR^\dagger, X \rightarrow L\chi R^\dagger
+\end{align*}
+
+must be the product of terms of the form $Tr(\chi_+\chi^\dagger)$, which remain independent of the pion fields. 
+The only invariant term with two derivatives is 
+\begin{align*}
+  \mathcal{L}_2 = \frac{F^2}{4}tr \partial_\mu \chi \partial^\mu \chi^\dagger.
+\end{align*}
+
+This Lagrangian only has terms with an even number of pions because the pion is a pseudoscalar. We can expand $\chi$ in a power series in the pion field as:
+\begin{align*}
+  \mathcal{L}_2 = Tr \partial_\mu \pi \partial^\mu \pi + \frac{1}{6F^2}Tr[\pi, \partial_\mu \pi]^2 + \dotsm
+\end{align*}
+
+
+At this point, we have to determine the terms in the $\mathcal{L_{eff}}$ that are required to compute to a given order
+in $\epsilon_\pi = \frac{m_\pi}{\Lambda_\chi}$. 
+
+
+
+
+
+
+
+
+
+
+
+\subsection*{meeting 8/20/21}
+expansion of nucleon mass splittings should behave as well as for $m_\pi$ itself
+
 
 
 \end{document}
