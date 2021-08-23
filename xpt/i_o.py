@@ -156,7 +156,7 @@ class InputOutput(object):
         new_prior = {}
         for key in prior:
             new_prior[key] = prior[key]
-        for key in ['m_pi', 'm_k', 'lam_chi', 'eps2_a', 'm_delta']:
+        for key in ['m_pi', 'm_k', 'lam_chi', 'eps2_a','m_delta']:
             new_prior[key] = data[key]
         return new_prior
 
