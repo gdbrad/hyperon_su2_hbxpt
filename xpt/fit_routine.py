@@ -932,7 +932,7 @@ class Proton(lsqfit.MultiFitterModel):
         
         if data is not None:
             for key in data.keys():
-                p[key] = data[key]
+                p[key] = data[key] 
 
         xdata = {}
         xdata['lam_chi'] = p['lam_chi']
@@ -941,46 +941,40 @@ class Proton(lsqfit.MultiFitterModel):
         xdata['eps2_a'] = p['eps2_a']
         xdata['d_eps2_s'] = (2 *p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2 - 0.3513
 
-       # not-even leading order
-        output  =  p['m_{proton,0}']
-        output += self.fitfcn_lo_ct(p, xdata) #M_Bi(1)
-        output += self.fitfcn_nlo_xpt(p, xdata) #M_Bi(3/2)
-        #output += self.fitfcn_n2lo_xpt(p, xdata) #M_Bi(2)
-        output += self.fitfcn_n2lo_ct(p,xdata)
-        output += self.fitfcn_n4lo_ct(p,xdata)
+        output = 0
+        output += self.fitfcn_lo(p,xdata) 
+        output += self.fitfcn_nlo(p,xdata) 
+        output += self.fitfcn_n2lo(p,xdata)
+        output += self.fitfcn_n4lo(p,xdata)
+        if self.model_info['lam_chi'] is True:
+            output = output / xdata['lam_chi']
+        output  +=  p['m_{proton,0}']
         return output
 
-    def fitfcn_lo_ct(self, p, xdata):
+    def fitfcn_lo(self, p, xdata):
         output = 0
         if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
-            output += (p['m_{proton,0}'] * (p['d_{proton,a}'] * xdata['eps2_a']))
-        
+            output += p['m_{proton,0}'] * (p['d_{proton,a}'] * xdata['eps2_a'])
+    
         if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
-            if self.model_info['lam_chi'] is True:
-                output+= (p['b_{proton,2}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
-            elif self.model_info['lam_chi'] is False:
-                output+= (p['b_{proton,2}'] * xdata['eps_pi']**2)
+                output+= p['b_{proton,2}'] * xdata['lam_chi'] * xdata['eps_pi']**2
 
         if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-            output+= (p['m_{proton,0}']*p['d_{proton,s}'] *  xdata['d_eps2_s'])
+            output+= p['m_{proton,0}']*(p['d_{proton,s}'] *  xdata['d_eps2_s'])
 
         return output
 
-    def fitfcn_nlo_xpt(self,p,xdata):
+    def fitfcn_nlo(self,p,xdata):
         output = 0
         if self.model_info['xpt'] is True:
-            if self.model_info['lam_chi'] is True:
-                output += -3*np.pi/2 * p['g_{proton,proton}']**2 * xdata['lam_chi'] * xdata['eps_pi']**3 
-                output += -4/3 * p['g_{proton,delta}']**2 * xdata['lam_chi'] * naf.fcn_F(xdata['eps_pi'],xdata['eps_delta'])
-            elif self.model_info['lam_chi'] is False:
-                output += -3*np.pi/2 * p['g_{proton,proton}']**2 * xdata['eps_pi']**3  
-                output += -4/3 * p['g_{proton,delta}']**2 * naf.fcn_F(xdata['eps_pi'],xdata['eps_delta'])      
+            output += -3*np.pi/2 * p['g_{proton,proton}']**2 * xdata['lam_chi'] * xdata['eps_pi']**3 
+            output += -4/3 * p['g_{proton,delta}']**2 * xdata['lam_chi'] * naf.fcn_F(xdata['eps_pi'],xdata['eps_delta'])    
         if self.model_info['xpt'] is False:
             return 0
         
         return output
 
-    def fitfcn_n2lo_ct(self,p,xdata):
+    def fitfcn_n2lo(self,p,xdata):
         output = 0
         if self.model_info['order_strange'] in ['n2lo']:  
             output += p['m_{proton,0}']*(
@@ -993,39 +987,22 @@ class Proton(lsqfit.MultiFitterModel):
             + (p['d_{proton,aa}'] * xdata['eps2_a']**2))
 
         if self.model_info['order_light'] in ['n2lo']:
-            if self.model_info['lam_chi'] is True:
-                output += p['m_{proton,0}'] * (p['b_{proton,4}']*xdata['lam_chi']*xdata['eps_pi']**4)
-            elif self.model_info['lam_chi'] is False:
-                output += p['m_{proton,0}'] * (p['b_{proton,4}']*xdata['eps_pi']**4)
-
+            output += p['m_{proton,0}'] * (p['b_{proton,4}']*xdata['lam_chi']*xdata['eps_pi']**4)
+            
         if self.model_info['order_chiral'] in ['n2lo']:
-            if self.model_info['lam_chi'] is True:
-                output+= (p['g_{proton,4}'] * xdata['lam_chi']* xdata['eps_pi']**2 * naf.fcn_J(xdata['eps_pi'],xdata['eps_delta']))
-                + p['a_{proton,4}']*xdata['lam_chi'] * xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2)
-            elif self.model_info['lam_chi'] is False:
-                output+= (p['g_{proton,4}'] * xdata['eps_pi']**2 * naf.fcn_J(xdata['eps_pi'],xdata['eps_delta']))
-                + p['a_{proton,4}']* xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2)
-        
+            output+= (p['g_{proton,4}'] * xdata['lam_chi']* xdata['eps_pi']**2 * naf.fcn_J(xdata['eps_pi'],xdata['eps_delta']))
+            + p['a_{proton,4}']*xdata['lam_chi'] * xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2)
+    
         return output
 
-    def fitfcn_n4lo_ct(self,p,xdata):
+    def fitfcn_n4lo(self,p,xdata):
         output = 0
-        if self.model_info['order_light'] in ['n4lo']:
-            if self.model_info['lam_chi'] is True:
-                output += xdata['lam_chi'] * xdata['eps_pi']**6 *p['b_{proton,6}'] 
-            elif self.model_info['lam_chi'] is False:
-                output += xdata['eps_pi']**6 *p['b_{proton,6}'] 
-
-        if self.model_info['order_disc'] in ['n4lo']:
-            if self.model_info['lam_chi'] is True:
-                output += xdata['lam_chi'] * (p['d_{proton,all}'] * xdata['eps2_a'] * xdata['eps_pi']**4
-                + p['d_{proton,aal}'] * xdata['eps2_a']**4 * xdata['eps_pi']**2
-                + p['d_{proton,aal}'] * xdata['eps2_a']**6)
-
-            elif self.model_info['lam_chi'] is False:
-                output += (p['d_{proton,all}'] * xdata['eps2_a'] * xdata['eps_pi']**4
-                + p['d_{proton,aal}'] * xdata['eps2_a']**4 * xdata['eps_pi']**2
-                + p['d_{proton,aal}'] * xdata['eps2_a']**6)
+        #if self.model_info['order_light'] in ['n4lo']:
+        output += xdata['lam_chi'] * (
+            + xdata['eps_pi']**6 *p['b_{proton,6}']
+            + p['d_{proton,all}'] * xdata['eps2_a'] * xdata['eps_pi']**4
+            + p['d_{proton,aal}'] * xdata['eps2_a']**2 * xdata['eps_pi']**2
+            + p['d_{proton,aal}'] * xdata['eps2_a']**3)
         return output
 
     def buildprior(self, prior, mopt=False, extend=False):
