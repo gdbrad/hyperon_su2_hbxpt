@@ -4,12 +4,25 @@ models:
     particles : [proton]
     eps2a_defn : w0_imp
     order_chiral  : n2lo
-    order_disc : n2lo
+    order_disc : n4lo
     order_strange : n2lo
-    order_light : n2lo
+    order_light : n4lo
     xpt : True
     fv : True
     lam_chi: True
+    sigma: False
+
+  proton:s_n2lo:d_n4lo:x_n2lo:l_n4lo:lc_f:sigma_t:
+    particles : [proton]
+    eps2a_defn : w0_imp
+    order_chiral  : n2lo
+    order_disc : n4lo
+    order_strange : n2lo
+    order_light : n4lo
+    xpt : True
+    fv : True
+    lam_chi: False
+    sigma: True
 
   proton:s_n2lo:d_n4lo:x_n2lo:l_n4lo:lc_f:
     particles : [proton]
@@ -21,8 +34,12 @@ models:
     xpt : True
     fv : True
     lam_chi: False
+    sigma: False
 
-  proton:s_n2lo:d_n2lo:x_n2lo:l_n2lo:lc_f:
+  
+
+
+  proton:s_n2lo:d_n2lo:x_n2lo:l_n2lo:
     particles : [proton]
     eps2a_defn : w0_imp
     order_chiral  : n2lo
