@@ -76,10 +76,11 @@ class InputOutput(object):
                 data[ens]['m_pi'] = f[ens]['mpi'][:]
                 data[ens]['m_k'] = f[ens]['mk'][:]
                 data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][:]
+                #data[ens]['units_Fpi'] = 1/data[ens]['lam_chi']
 
-                if units=='Fpi':
-                    #for data[ens]['units'] not in data[ens]['lam_chi']:
-                    data[ens]['units'] = 1/data[ens]['lam_chi'] #for removing lam_chi dependence of fits
+                # if units=='Fpi':
+                # #     #for data[ens]['units'] not in data[ens]['lam_chi']:
+                #     data[ens]['units'] =  #for removing lam_chi dependence of fits
 
                 if scheme == 'w0_imp':
                     data[ens]['eps2_a'] = 1 / (2 *to_gvar(f[ens]['w0a_callat_imp']))**2
@@ -101,15 +102,13 @@ class InputOutput(object):
         return data
 
 
-    def get_data(self, scheme=None,units=None, div_lam_chi=None):
+    def get_data(self, scheme=None,units=None):
         bs_data = self._get_bs_data(scheme,units)
         phys_data = self.get_data_phys_point(param='m_proton')
 
         gv_data = {}
-        if div_lam_chi is True:
-            dim1_obs = ['m_proton', 'm_delta', 'm_lambda', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_omega']
-        else:
-            dim1_obs = ['m_proton', 'm_delta', 'm_lambda', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_omega', 'm_pi', 'm_k', 'lam_chi']
+        
+        dim1_obs = ['m_proton', 'm_delta', 'm_lambda', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_omega', 'm_pi', 'm_k', 'lam_chi']
         for ens in self.ensembles:
             gv_data[ens] = {}
             for obs in dim1_obs:

@@ -12,7 +12,7 @@ class fit_routine(object):
     def __init__(self, prior, data, model_info):
          
         self.prior = prior
-        self.data = data
+        self.data = data 
         self.model_info = model_info.copy()
         self._fit = None
         self._simultaneous = False
@@ -231,7 +231,7 @@ class fit_routine(object):
                     output[p][o] = {}
 
             output['proton']['llo' ]['light'  ] = ['m_{proton,0}']
-            output['proton']['lo'  ]['disc'   ] = ['d_{proton,a}','m_{proton,0}']
+            output['proton']['lo'  ]['disc'   ] = ['d_{proton,a}']
             output['proton']['lo'  ]['light'  ] = ['b_{proton,2}']
             output['proton']['lo'  ]['strange'] = ['d_{proton,s}']
             output['proton']['nlo' ]['xpt'    ] = ['g_{proton,proton}', 'g_{proton,delta}','m_{delta,0}']

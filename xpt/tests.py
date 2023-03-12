@@ -54,7 +54,7 @@ class VerboseFitfcn(object):
             model = model_description
         self.phys_point_data = phys_point_data
         self.data = data
-        self.p = prior
+        self.prior = prior
         self.model = model
         #self._fitter = xpt.fitter.Fitter(prior=None, data=None, model=None)
 
@@ -102,7 +102,7 @@ class VerboseFitfcn(object):
         #stat_keys = ['lam_chi','eps2_a','m_lambda','m_pi','m_k']
 
         #output = {}
-        mdls = fit.fit_routine(prior=self.p, data=self.data, model_info=self.model)
+        mdls = fit.fit_routine(prior=self.prior, data=self.data, model_info=self.model)
         #print(mdls.fit)
     
         result = {}

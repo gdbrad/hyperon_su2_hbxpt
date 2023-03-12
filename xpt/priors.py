@@ -8,7 +8,7 @@ prior['m_{lambda,0}'] = gv.gvar(1000, 1000)
 prior['m_{sigma,0}'] = gv.gvar(1200, 1000) 
 prior['m_{sigma_st,0}'] = gv.gvar(1400, 1000)
 prior['m_{omega,0}'] = gv.gvar(1650, 1000)
-prior['m_{proton,0}'] = gv.gvar(930, 400)
+prior['m_{proton,0}'] = gv.gvar(900,400)
 prior['m_{delta,0}'] = gv.gvar(1232,1000)
 
 # lo
