@@ -207,6 +207,20 @@ class fitter(object):
                         baryon_model(datatag="nucleon_"+sink,
                         t=list(range(self.t_range['proton'][0], self.t_range['proton'][1])),
                         param_keys=param_keys, n_states=self.n_states['proton']))
+        
+        if self.delta_corr is not None:
+            # if self.mutliple_smear == False:
+            for sink in list(self.delta_corr.keys()):
+                param_keys = {
+                    'E0'      : 'delta_E0',
+                    'log(dE)' : 'delta_log(dE)',
+                    'z'       : 'delta_z_'+sink 
+                }   
+                models = np.append(models,
+                        baryon_model(datatag="delta_"+sink,
+                        t=list(range(self.t_range['delta'][0], self.t_range['delta'][1])),
+                        param_keys=param_keys, n_states=self.n_states['delta']))
+        
         if self.lam_corr is not None:
             # if self.mutliple_smear == False:
             for sink in list(self.lam_corr.keys()):
@@ -256,7 +270,18 @@ class fitter(object):
                         baryon_model(datatag="sigma_"+sink,
                         t=list(range(self.t_range['sigma_st'][0], self.t_range['sigma_st'][1])),
                         param_keys=param_keys, n_states=self.n_states['sigma_st']))
-
+        if self.sigma_st_corr is not None:
+            # if self.mutliple_smear == False:
+            for sink in list(self.sigma_corr.keys()):
+                param_keys = {
+                    'E0'      : 'sigma_st_E0',
+                    'log(dE)' : 'sigma_st_log(dE)',
+                    'z'       : 'sigma_st_z_'+sink 
+                }   
+                models = np.append(models,
+                        baryon_model(datatag="sigma_st_"+sink,
+                        t=list(range(self.t_range['sigma_st'][0], self.t_range['sigma_st'][1])),
+                        param_keys=param_keys, n_states=self.n_states['sigma_st']))
         
         return models
 
@@ -266,6 +291,9 @@ class fitter(object):
         if self.nucleon_corr is not None:
             for sinksrc in list(self.nucleon_corr.keys()):
                 data["nucleon_"+sinksrc] = self.nucleon_corr[sinksrc][self.t_range['proton'][0]:self.t_range['proton'][1]]
+        if self.delta_corr is not None:
+            for sinksrc in list(self.delta_corr.keys()):
+                data["delta_"+sinksrc] = self.delta_corr[sinksrc][self.t_range['delta'][0]:self.t_range['delta'][1]]
         if self.lam_corr is not None:
             for sinksrc in list(self.lam_corr.keys()):
                 data["lam_"+sinksrc] = self.lam_corr[sinksrc][self.t_range['lam'][0]:self.t_range['lam'][1]]
@@ -274,17 +302,15 @@ class fitter(object):
                 data["sigma_"+sinksrc] = self.sigma_corr[sinksrc][self.t_range['sigma'][0]:self.t_range['sigma'][1]]
         if self.sigma_st_corr is not None:
             for sinksrc in list(self.sigma_st_corr.keys()):
-                data["sigma_st"+sinksrc] = self.sigma_st_corr[sinksrc][self.t_range['sigma_st'][0]:self.t_range['sigma_st'][1]]
+                data["sigma_st_"+sinksrc] = self.sigma_st_corr[sinksrc][self.t_range['sigma_st'][0]:self.t_range['sigma_st'][1]]
         if self.xi_corr is not None:
             for sinksrc in list(self.xi_corr.keys()):
                 data["xi_"+sinksrc] = self.xi_corr[sinksrc][self.t_range['xi'][0]:self.t_range['xi'][1]]
         if self.xi_st_corr is not None:
             for sinksrc in list(self.xi_st_corr.keys()):
-                data["xi_st"+sinksrc] = self.xi_st_corr[sinksrc][self.t_range['xi_st'][0]:self.t_range['xi_st'][1]]
+                data["xi_st_"+sinksrc] = self.xi_st_corr[sinksrc][self.t_range['xi_st'][0]:self.t_range['xi_st'][1]]
         return data
-        
-        return data
-
+    
     def _make_prior(self,prior):
         resized_prior = {}
 
@@ -294,7 +320,7 @@ class fitter(object):
 
         new_prior = resized_prior.copy()
         if self.simult:
-            for corr in ['sigma','lam','proton','xi']:
+            for corr in ['sigma','lam','proton','xi','xi_st','sigma_st','delta']:
                 new_prior[corr+'_E0'] = resized_prior[corr+'_E'][0]
                 new_prior.pop(corr+'_E', None)
                 new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))

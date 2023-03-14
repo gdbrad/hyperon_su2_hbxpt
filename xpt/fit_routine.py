@@ -162,7 +162,9 @@ class fit_routine(object):
 
     def _make_prior(self, data=None):
         '''
-        Only need priors for LECs/data needed in fit
+        Only need priors for LECs/data needed in fit.
+        verbosely separates all parameters that appear in the hyperon exttrapolation formulae 
+        
         '''
         if data is None:
             data = self.data

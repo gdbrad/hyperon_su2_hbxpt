@@ -1,39 +1,34 @@
-from pathlib import Path
-import sys
-import argparse
-
-
 import tqdm
 import h5py as h5
 import numpy as np
+import sys
 np.set_printoptions(threshold=sys.maxsize)
 import gvar as gv
 import pandas as pd
 import os 
 import matplotlib
 from matplotlib.backends.backend_pdf import PdfPages
+from pathlib import Path
 import importlib
+import argparse
 import platform
 
-from src.corr_fitter import gmo_fit_analysis as fa
-from src.corr_fitter import load_data_priors as ld
-from src.corr_fitter import gmo_fitter as fitter
-from src.corr_fitter import bs_utils as bs 
-
+import corr_fitter.bs_utils as bs 
+import corr_fitter.corr_fit_analysis as fa
+import corr_fitter.load_data_priors as ld
+import corr_fitter.corr_fitter as fitter
 matplotlib.rcParams['figure.figsize'] = [10, 8]
 
 importlib.reload(fa)
 
 
 def main():
-    '''
-    executable which performs analysis of octet and decuplet correlators using the lsqfit module 
-    '''
-    parser = argparse.ArgumentParser(description='analysis of simult. fit to the baryons')
+    parser = argparse.ArgumentParser(description='analysis of simult. fit to the 4 baryons that form the gmo relation, also fit the gmo product correlator directly')
     parser.add_argument('fit_params', help='input file to specify fit')
-    parser.add_argument('--fit_type',help='specify simultaneous baryon fit or individual fits')
-    parser.add_argument('pdf',help='generate a pdf and output plot?',default=True)
-    parser.add_argument('--bs',help='perform bootstrapping?',default=False, action='store_true')
+    parser.add_argument('--fit_type',help='specify simultaneous baryon fit with or without gmo product correlator as input')
+    parser.add_argument('--fix_prior',help='optimize priors after first fit?',default=False,action='store_true')
+    parser.add_argument('--pdf',help='generate a pdf and output plot?',default=False,action='store_true')
+    parser.add_argument('--bs',help='perform bootstrapping?',default=False, action='store_true') 
     parser.add_argument('--bsn',help='number of bs samples',type=int,default=2000) 
 
     # parser.add_argument('xpt',help='run gmo xpt analysis?',default=True)
@@ -51,7 +46,7 @@ def main():
 
     p_dict = fp.p_dict
     abbr = p_dict['abbr']
-    if abbr in['a12m180S','a12m220']:
+    if abbr  == 'a12m180S' or abbr == 'a12m220':
         nucleon_corr = ld.get_raw_corr(file,p_dict['abbr'],particle='proton')
         prior_nucl = {}
         prior = {}
@@ -67,34 +62,39 @@ def main():
             prior = gv.gvar(prior_nucl)
 
     # pull in raw corr data
-    nucleon = ld.get_raw_corr(file,p_dict['abbr'],particle='proton')
-    lam = ld.get_raw_corr(file,p_dict['abbr'],particle='lambda_z')
-    xi = ld.get_raw_corr(file,p_dict['abbr'],particle='xi_z')
-    xi_st = ld.get_raw_corr(file,p_dict['abbr'],particle='xi_star_z')
-    sigma = ld.get_raw_corr(file,p_dict['abbr'],particle='sigma_p')
-    sigma_st = ld.get_raw_corr(file,p_dict['abbr'],particle='sigma_star__p')
+    nucleon  = ld.get_raw_corr(file,p_dict['abbr'],particle='proton')
+    lam      = ld.get_raw_corr(file,p_dict['abbr'],particle='lambda_z')
+    xi       = ld.get_raw_corr(file,p_dict['abbr'],particle='xi_z')
+    xi_st    = ld.get_raw_corr(file,p_dict['abbr'],particle='xi_star_z')
+    sigma    = ld.get_raw_corr(file,p_dict['abbr'],particle='sigma_p')
+    sigma_st = ld.get_raw_corr(file,p_dict['abbr'],particle='sigma_star_p')
     delta = ld.get_raw_corr(file,p_dict['abbr'],particle='delta_pp')
-    ncfg = xi['PS'].shape[0]
+
+    ncfg     = xi['PS'].shape[0]
 
     model_type = args.fit_type
-    # prior = ld.fetch_prior(model_type,p_dict)
+    prior = fp.prior
+    # print(prior)
+
     
-    if args.fit_type == 'all':
-        sim_baryons = fa.fit_analysis(t_range=p_dict
-        ['t_range'],simult=True,t_period=64,states=p_dict['all'],p_dict=p_dict, n_states=p_dict['n_states'],prior=prior,
-        nucleon_corr_data=nucleon,lam_corr_data=lam, xi_corr_data=xi,sigma_corr_data=sigma,model_type=model_type)
-        print(sim_baryons)
-        fit_out = sim_baryons.get_fit()
+    if args.fit_type == 'hyperons':
+        hyperons = fa.corr_fit_analysis(t_range=p_dict
+        ['t_range'],simult=True,t_period=64,states=p_dict['hyperons'],p_dict=p_dict, 
+        n_states=p_dict['n_states'],prior=prior,nucleon_corr_data=None,lam_corr_data=lam, 
+        xi_corr_data=xi,xi_st_corr_data=xi_st,sigma_corr_data=sigma,
+        sigma_st_corr_data=sigma_st,model_type=model_type)
+        print(hyperons)
+        fit_out = hyperons.get_fit()
         
         out_path = 'fit_results/{0}/{1}/'.format(p_dict['abbr'],model_type)
 
         ld.pickle_out(fit_out=fit_out,out_path=out_path,species="baryon")
         print(ld.print_posterior(out_path=out_path))
         if args.pdf:
-            plot1 = sim_baryons.return_best_fit_info()
-            plot2 = sim_baryons.plot_effective_mass(t_plot_min=0, t_plot_max=40,model_type=model_type, 
+            plot1 = hyperons.return_best_fit_info()
+            plot2 = hyperons.plot_effective_mass(t_plot_min=0, t_plot_max=40,model_type=model_type, 
             show_plot=True,show_fit=True)
-            plot3 = sim_baryons.plot_effective_wf(model_type=model_type, t_plot_min=0, t_plot_max=40, 
+            plot3 = hyperons.plot_effective_wf(model_type=model_type, t_plot_min=0, t_plot_max=40, 
             show_plot=True,show_fit=True)
 
             output_dir = 'fit_results/{0}/{1}_{0}'.format(p_dict['abbr'],model_type)
@@ -105,10 +105,33 @@ def main():
                 # pp.savefig(plot3)
 
             output_pdf.close()
-    
-    
 
+    if args.fit_type == 'all':
+        all_baryons = fa.corr_fit_analysis(t_range=p_dict
+        ['t_range'],simult=True,t_period=64,states=p_dict['hyperons'],p_dict=p_dict, 
+        n_states=p_dict['n_states'],prior=prior, delta_corr_data=delta,
+        nucleon_corr_data=nucleon,lam_corr_data=lam, xi_corr_data=xi,xi_st_corr_data=xi_st,
+        sigma_corr_data=sigma, sigma_st_corr_data=sigma_st,model_type=model_type)
+        print(all_baryons)
+        fit_out = all_baryons.get_fit()      
+        out_path = 'fit_results/{0}/{1}/'.format(p_dict['abbr'],model_type)
+        ld.pickle_out(fit_out=fit_out,out_path=out_path,species="baryon")
+        print(ld.print_posterior(out_path=out_path))
+        if args.pdf:
+            plot1 = all_baryons.return_best_fit_info()
+            plot2 = all_baryons.plot_effective_mass(t_plot_min=0, t_plot_max=40,model_type=model_type, 
+            show_plot=True,show_fit=True)
+                # plot3 = all_baryons.plot_effective_wf(model_type=model_type, t_plot_min=0, t_plot_max=40, 
+                # show_plot=True,show_fit=True)
 
+            output_dir = 'fit_results/{0}/{1}_{0}'.format(p_dict['abbr'],model_type)
+            output_pdf = output_dir+".pdf"
+            with PdfPages(output_pdf) as pp:
+                        pp.savefig(plot1)                
+                        pp.savefig(plot2)
+                # pp.savefig(plot3)
+
+            output_pdf.close()
    
         
     # individual correlator fits to form "naive" gmo relation

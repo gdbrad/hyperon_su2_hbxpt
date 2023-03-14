@@ -11,16 +11,14 @@ import matplotlib.mlab as mlab
 import matplotlib.colors as colors
 from matplotlib.backends.backend_pdf import PdfPages
 import cmath
-from gmo_fitter import fitter
-import mass_relations as ma 
+from corr_fitter.corr_fitter import fitter
 
 
-class fit_analysis(object):
+class corr_fit_analysis(object):
 
-    def __init__(self, t_range,t_period, prior,p_dict, n_states=None, model_type = None,states=None,simult=None,gmo_type=None,
-                 nucleon_corr_data=None,lam_corr_data=None,
-                 xi_corr_data=None,sigma_corr_data=None,
-                 gmo_corr_data = None
+    def __init__(self, t_range,t_period, prior,p_dict, n_states=None, model_type = None,states=None,simult=None,
+                 nucleon_corr_data=None,lam_corr_data=None,delta_corr_data=None,
+                 xi_corr_data=None,xi_st_corr_data=None,sigma_corr_data=None,sigma_st_corr_data=None
                  ):
         #All fit ensembles (manual and automatic) must have these variables
         
@@ -29,6 +27,11 @@ class fit_analysis(object):
             nucleon_corr_gv = gv.dataset.avg_data(nucleon_corr_data)
         else:
             nucleon_corr_gv = None
+
+        if delta_corr_data is not None:
+            delta_corr_gv = gv.dataset.avg_data(delta_corr_data)
+        else:
+            delta_corr_gv = None
         if lam_corr_data is not None:
             lam_corr_gv = gv.dataset.avg_data(lam_corr_data)
         else:
@@ -37,14 +40,21 @@ class fit_analysis(object):
             xi_corr_gv = gv.dataset.avg_data(xi_corr_data)
         else:
             xi_corr_gv = None
+
+        if xi_st_corr_data is not None:
+            xi_st_corr_gv = gv.dataset.avg_data(xi_st_corr_data)
+        else:
+            xi_st_corr_gv = None
         if sigma_corr_data is not None:
             sigma_corr_gv = gv.dataset.avg_data(sigma_corr_data)
         else:
             sigma_corr_gv = None
-        if gmo_corr_data is not None:
-            gmo_corr_gv =gmo_corr_data
+
+        if sigma_st_corr_data is not None:
+            sigma_st_corr_gv = gv.dataset.avg_data(sigma_st_corr_data)
         else:
-            gmo_corr_gv = None
+            sigma_st_corr_gv = None
+        
 
         # Default to a 1 state fit
         if n_states is None:
@@ -64,10 +74,11 @@ class fit_analysis(object):
         self.nucleon_corr_gv = nucleon_corr_gv
         self.lam_corr_gv = lam_corr_gv
         self.sigma_corr_gv = sigma_corr_gv
+        self.sigma_st_corr_gv = sigma_st_corr_gv
+        self.xi_st_corr_gv = xi_st_corr_gv
+        self.delta_corr_gv = delta_corr_gv
         self.xi_corr_gv = xi_corr_gv
-        self.gmo_corr_gv = gmo_corr_gv
         self.states=states 
-        self.gmo_type = gmo_type
         self.simult = simult
         self.n_states = n_states
         self.prior = prior
@@ -147,87 +158,45 @@ class fit_analysis(object):
         if index in list(self.fits.keys()):
             return self.fits[index]
         else:
-            for gmo_type in ['z_gmo','d_gmo','d_z_gmo','4_baryon']:
-                temp_fit[gmo_type] = fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, t_range=t_range,states=self.states,simult=self.simult, t_period=t_period,model_type=self.model_type,gmo_type=gmo_type,
+                temp_fit = fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
+                            t_range=t_range,states=self.states,simult=self.simult,
+                             t_period=t_period,model_type=self.model_type, delta_corr=self.delta_corr_gv,
                                nucleon_corr=self.nucleon_corr_gv,lam_corr=self.lam_corr_gv,
-                               xi_corr=self.xi_corr_gv,sigma_corr=self.sigma_corr_gv,
-                               gmo_ratio_corr=self.gmo_corr_gv).get_fit()
-
-                self.fits[gmo_type] = temp_fit[gmo_type]
+                               xi_corr=self.xi_corr_gv,xi_st_corr=self.xi_st_corr_gv,
+                               sigma_corr=self.sigma_corr_gv,sigma_st_corr=self.sigma_st_corr_gv).get_fit()
         return temp_fit
 
     # type should be either "corr, "gA", or "gV"
     def _get_models(self, model_type=None):
         
-        # data_gv = [nucleon_corr , lam_corr ,sigma_corr, xi_corr]?
         if model_type is None:
             return None
-        #data_gv = [nucleon_corr , lam_corr ,sigma_corr, xi_corr] 
-        elif model_type == "sigma":
-            nucleon_corr = None
-            lam_corr = None
-            sigma_corr = self.sigma_corr_gv
-            xi_corr = None
-            gmo_ratio_corr = None
 
-
-        elif model_type == "xi":
-            nucleon_corr = None
-            lam_corr = None
-            sigma_corr = None
-            xi_corr = self.xi_corr_gv
-            gmo_ratio_corr = None
-
-
-        elif model_type == "lam":
-            nucleon_corr = None
-            lam_corr = self.lam_corr_gv
-            sigma_corr = None
-            xi_corr = None
-            gmo_ratio_corr = None
-
-        elif model_type == "proton":
-            nucleon_corr = self.nucleon_corr_gv
-            lam_corr = None
-            sigma_corr = None
-            xi_corr = None
-            gmo_ratio_corr = None
-
-        elif model_type == "simult_baryons":
-            nucleon_corr = self.nucleon_corr_gv
+        if model_type == "hyperons":
+            nucleon_corr = None 
+            delta_corr = None
             lam_corr = self.lam_corr_gv
             sigma_corr = self.sigma_corr_gv
             xi_corr = self.xi_corr_gv
-            gmo_ratio_corr = None
+            xi_st_corr  = self.xi_st_corr_gv
+            sigma_st_corr = self.sigma_st_corr_gv
 
-        elif model_type == "gmo_direct":
-            nucleon_corr = None
-            lam_corr = None
-            sigma_corr = None
-            xi_corr = None
-            gmo_ratio_corr = self.gmo_corr_gv
-
-        elif model_type == "simult_baryons_gmo":
+        if model_type == "all":
             nucleon_corr = self.nucleon_corr_gv
+            delta_corr = self.delta_corr_gv
             lam_corr = self.lam_corr_gv
             sigma_corr = self.sigma_corr_gv
             xi_corr = self.xi_corr_gv
-            gmo_ratio_corr = self.gmo_corr_gv
-
-        elif model_type == "simult_gmo_linear":
-            nucleon_corr = self.nucleon_corr_gv
-            lam_corr = self.lam_corr_gv
-            sigma_corr = self.sigma_corr_gv
-            xi_corr = self.xi_corr_gv
-            gmo_ratio_corr = self.gmo_corr_gv
-
-
+            xi_st_corr  = self.xi_st_corr_gv
+            sigma_st_corr = self.sigma_st_corr_gv
         else:
             return None 
 
-        return fitter(n_states=self.n_states,gmo_type=self.gmo_type, states=self.states,prior=self.prior,simult=self.simult, p_dict=self.p_dict, 
-                        t_range=self.t_range,t_period=self.t_period,model_type=self.model_type,
-                      nucleon_corr=nucleon_corr,lam_corr=lam_corr,xi_corr=xi_corr,sigma_corr=sigma_corr,gmo_ratio_corr=gmo_ratio_corr)._make_models_simult_fit()
+        return fitter(n_states=self.n_states, states=self.states,prior=self.prior,simult=self.simult, p_dict=self.p_dict, 
+                        t_range=self.t_range,t_period=self.t_period,model_type=self.model_type,nucleon_corr=nucleon_corr,
+                        lam_corr=lam_corr,delta_corr=delta_corr,
+                        xi_corr=xi_corr,xi_st_corr = xi_st_corr,sigma_st_corr = sigma_st_corr,sigma_corr=sigma_corr
+                        )._make_models_simult_fit()
 
     def _generate_data_from_fit(self, t, t_start=None, t_end=None, model_type=None, n_states=None):
         if model_type is None:
@@ -251,20 +220,6 @@ class fit_analysis(object):
         output = {model.datatag : model.fitfcn(p=fit.p, t=t) for model in models}
         return output
 
-    def get_gmo_effective(self, gmo_ratio=None, t=None, dt=None):
-        if gmo_ratio is None:
-            gmo_ratio = self.gmo_corr_gv
-
-        # If still empty, return nothing
-        if gmo_ratio is None:
-            return None
-
-        if dt is None:
-            dt = 1
-        return {key : 1/dt * np.log(gmo_ratio[key] / np.roll(gmo_ratio[key], -1))
-                for key in list(gmo_ratio.keys())}
-
-    # def plot_m4(self,correlators_gv=None,model_type=None, t_plot_min = None, t_plot_max = None,fig_name=None,show_fit=None):
 
     def plot_gmo_effective_mass(self, effective_mass,t_plot_min=None, model_type=None,
                             t_plot_max=None, show_plot=True, show_fit=True,fig_name=None):
@@ -333,74 +288,6 @@ class fit_analysis(object):
 
         return fig
 
-    def plot_delta_gmo(self,correlators_gv=None,model_type=None, t_plot_min = None, 
-    t_plot_max = None,fig_name=None,show_fit=None):
-        if t_plot_min == None: t_plot_min = 0
-        # if t_plot_max == None: t_plot_max = correlators_gv[correlators_gv.keys()[0]].shape[0] - 1
-        colors = np.array(['red', 'blue', 'green','magenta'])
-
-        x = np.arange(t_plot_min,t_plot_max)
-        # t = {}
-
-        y = {}
-        y_err = {}
-        lower_quantile = np.inf
-        upper_quantile = -np.inf
-        for j, key in enumerate(sorted(correlators_gv.keys())):
-            # t[key] = np.arange(t_plot_min, t_plot_max)
-
-            pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-            y[key] = gv.mean(correlators_gv[key])[x]
-            y_err[key] = gv.sdev(correlators_gv[key])[x]
-
-            lower_quantile = np.min([np.nanpercentile(y[key], 25), lower_quantile])
-            upper_quantile = np.max([np.nanpercentile(y[key], 75), upper_quantile])
-            
-            plt.errorbar(x=x, y=y[key], xerr = 0.0, yerr=y_err[key], fmt='o', capsize=5.0,
-            color = colors[j%len(colors)],capthick=2.0, alpha=0.6, elinewidth=5.0, label=key)
-        delta_quantile = upper_quantile - lower_quantile
-        plt.ylim(lower_quantile - 0.5*delta_quantile,
-                 upper_quantile + 0.5*delta_quantile)
-            # Label dirac/smeared data
-            # plt.legend()
-            # plt.grid(True)
-            # plt.xlabel('$t$', fontsize = 24)
-            # plt.ylabel('$G^{GMO}(t)$', fontsize = 24)
-
-        if show_fit:
-            t = np.linspace(t_plot_min-2, t_plot_max+2)
-            dt = (t[-1] - t[0])/(len(t) - 1)
-            fit_data_gv = self._generate_data_from_fit(model_type=model_type, t=t)
-            gmo_fit_data = {}
-            gmo_fit_data['SS'] = fit_data_gv['gmo_ratio_SS']
-            gmo_fit_data['PS'] = fit_data_gv['gmo_ratio_PS']
-
-            t = t[1:-1]
-
-            for j, key in enumerate(sorted(gmo_fit_data.keys())):
-                A_eff_fit = gmo_fit_data[key][2:-2]
-                # print(A_eff_fit)
-                pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-                plt.plot(t[1:-1], pm(A_eff_fit, 0), '--', color=colors[j%len(colors)])
-                plt.plot(t[1:-1], pm(A_eff_fit, 1), t[1:-1], pm(A_eff_fit, -1), color=colors[j%len(colors)])
-                plt.fill_between(t[1:-1], pm(A_eff_fit, -1), pm(A_eff_fit, 1),
-                                 facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
-            plt.title("Best fit for $N_{states} = $%s" %(self.n_states['simult_baryons_gmo']), fontsize = 24)
-        
-        plt.xlim(t_plot_min-0.5, t_plot_max-.5)
-        # plt.ylim(0.5,0.7)
-
-        plt.xlabel('$t$', fontsize = 24)
-        plt.ylabel('$G_{GMO}(t)$')
-        plt.grid(True)
-        plt.legend()
-        # if show_plot == True: plt.show() 
-        # else: plt.close()
-
-        fig = plt.gcf()
-        plt.close()
-        return fig
-
     def get_m_4(self,t=None):
         # output = {}
         if t is None:
@@ -464,8 +351,6 @@ class fit_analysis(object):
             xi_corr_gv      = self.xi_corr_gv
             lam_corr_gv     = None
             sigma_corr_gv   = None
-        elif model_type == 'gmo_ratio':
-            nucleon_corr_gv = self.gmo_corr_gv
         
         effective_wf['proton'] = self.get_nucleon_effective_wf(nucleon_corr_gv)
         effective_wf['xi']     = self.get_nucleon_effective_wf(xi_corr_gv)
@@ -535,31 +420,28 @@ class fit_analysis(object):
         if t_plot_max is None:
             t_plot_max = self.t_max
         markers = ["^", "v"]
-        colors = np.array(['red', 'blue', 'green','magenta','yellow','purple','cyan','teal'])
+        colors = np.array(['red', 'blue', 'green','magenta','yellow','darkblue','slateblue'])
         t = np.arange(t_plot_min, t_plot_max)
         effective_mass = {}
-        if model_type == None:
+        if model_type is None:
             raise TypeError(model_type,'you need to supply a correlator model in order to generate an eff mass plot for that correlator')
-        elif model_type == 'simult_baryons':
+        elif model_type == 'all':
             nucleon_corr_gv = self.nucleon_corr_gv
             xi_corr_gv      = self.xi_corr_gv
             lam_corr_gv     = self.lam_corr_gv
             sigma_corr_gv   = self.sigma_corr_gv
-        elif model_type == 'gmo_ratio':
-            nucleon_corr_gv = self.gmo_corr_gv
+            sigma_st_corr_gv= self.sigma_st_corr_gv
+            xi_st_corr_gv = self.xi_st_corr_gv
+            delta_corr_gv = self.delta_corr_gv
 
-        elif model_type == 'xi':
-            nucleon_corr_gv = None
-            xi_corr_gv      = self.xi_corr_gv
-            lam_corr_gv     = None
-            sigma_corr_gv   = None
-            effective_mass['xi'] = self.get_nucleon_effective_mass(xi_corr_gv)
+        effective_mass['proton']   = self.get_nucleon_effective_mass(nucleon_corr_gv)
+        effective_mass['xi']       = self.get_nucleon_effective_mass(xi_corr_gv)
+        effective_mass['sigma']    = self.get_nucleon_effective_mass(sigma_corr_gv)
+        effective_mass['lam']      = self.get_nucleon_effective_mass(lam_corr_gv)
+        effective_mass['sigma_st'] = self.get_nucleon_effective_mass(sigma_st_corr_gv)
+        effective_mass['xi_st']    = self.get_nucleon_effective_mass(xi_st_corr_gv)
+        effective_mass['delta']    = self.get_nucleon_effective_mass(delta_corr_gv)
 
-        
-        effective_mass['proton'] = self.get_nucleon_effective_mass(nucleon_corr_gv)
-        effective_mass['xi'] = self.get_nucleon_effective_mass(xi_corr_gv)
-        effective_mass['sigma'] = self.get_nucleon_effective_mass(sigma_corr_gv)
-        effective_mass['lam'] = self.get_nucleon_effective_mass(lam_corr_gv)
 
         if effective_mass is None:
             return None
@@ -570,7 +452,7 @@ class fit_analysis(object):
         upper_quantile = -np.inf
         for i,baryon in enumerate(effective_mass.keys()):
             y[baryon] = {}
-            y_err[baryon] = {}
+            y_err[baryon] = {}           
             for j, key in enumerate(effective_mass[baryon].keys()):
                 y[baryon][key] = gv.mean(effective_mass[baryon][key])[t]
                 y_err[baryon][key] = gv.sdev(effective_mass[baryon][key])[t]
@@ -596,10 +478,10 @@ class fit_analysis(object):
                 plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j%len(colors)])
                 plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),
                                  facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
-            plt.title("Simultaneous fit to 4 baryons for $N_{states} = $%s" %(self.n_states['gmo']), fontsize = 24)
+            plt.title("Simultaneous fit to 4 baryons for $N_{states} = $%s" %(self.n_states['all']), fontsize = 24)
 
         plt.xlim(t_plot_min-0.5, t_plot_max-.5)
-        # plt.ylim(0.55,0.9)
+        plt.ylim(0.7,1.5)
          # Get unique markers when making legend
         handles, labels = plt.gca().get_legend_handles_labels()
         temp = {}
@@ -840,18 +722,6 @@ class fit_analysis(object):
         # Create a plot of best and stability plots
         #plots = np.append(plots, self.plot_all_fits())
         plots = np.append(plots, self.plot_effective_mass(t_plot_min=0,t_plot_max=20,model_type=model_type,fig_name=fig_name,show_fit=True))
-
-        return plots
-    
-    def make_gmo_plots(self,model_type=None, fig_name = None,show_all=False):
-        plots = np.array([])
-        plots = np.append(self.return_best_fit_info(), plots)
-
-        # Create a plot of best and stability plots
-        #plots = np.append(plots, self.plot_all_fits())
-        gmo_eff_mass = self.get_gmo_effective(gmo_ratio=self.gmo_corr_gv)
-        plots = np.append(plots,self.plot_delta_gmo(correlators_gv=self.gmo_corr_gv,t_plot_min=0,t_plot_max=20,model_type=model_type,fig_name = fig_name,show_fit=True))
-        plots = np.append(plots,self.plot_gmo_effective_mass(effective_mass=gmo_eff_mass,t_plot_min=0,t_plot_max=20,model_type=model_type,show_fit=True,fig_name=fig_name))
 
         return plots
 
