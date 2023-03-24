@@ -1,44 +1,42 @@
 import gvar as gv 
+import numpy as np 
 p_dict = {
-    'abbr' : 'a09m135', #CHANGE THIS
-    'part' : ['delta_pp', 'kplus', 'lambda_z', 'omega_m', 'piplus', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
-    'particles' : ['proton'],
+    'abbr': 'a09m135',
+    'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'meson_states' : ['piplus','kplus'],
-    'gmo_direct' : ['gmo'],
-    'simult_baryons_gmo' : ['sigma_p','lambda_z','proton','xi_z'],
-    'gmo_states': ['sigma_p','lambda_z','proton','xi_z'], #states for gmo study
-    'gmo_states_all' : ['gmo','delta','sigma_p','lambda_z','proton','xi_z','piplus','kplus'],
+    'simult_baryons': ['sigma_p','lambda_z','proton','xi_z'],
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
+    'bs_seed' : 'a09m135',
 
    't_range' : {
-        'sigma' : [10,20],
-        'xi' : [10,20],
-        'proton' : [10,20],
-        'delta' : [6,15],
-        'lam' : [10,20],
-        'gmo' : [2,10], 
+        'sigma' : [7,20],
+        'sigma_st' : [7,20],
+        'xi' :  [7,20],
+        'xi_st' : [7,20],
+        'proton' :   [7,20],
+        'delta' : [7,20],
+        'lam' : [7,20],
         'pi' : [5,30],
         'kplus': [8,28],
-	    'gmo_ratio':[10,20],
-	    'gmo_direct':[10,25],
-        'simult_baryons': [4,15],
-        'simult_baryons_gmo':[10,20]
+        'hyperons':   [7,20],
+        'all':   [7,20],
+
+
     },
     'n_states' : {
         'sigma' : 2,
+        'sigma_st' : 2,
         'xi' :2,
+        'xi_st' :2,
         'delta':2,
         'proton':2,
         'lam':2,
-        'gmo':2,
         'pi' : 2,
         'kplus': 2,
-	    'gmo_ratio':2,
-        'gmo_direct':2,
-        'simult_baryons':2,
-        'simult_baryons_gmo':2
-
+        'mesons':2,
+	    'hyperons'   :2,
+        'all':2
     },
     
     'make_plots' : True,
@@ -48,23 +46,48 @@ p_dict = {
     'show_many_states' : False, # This doesn't quite work as expected: keep false
     'use_prior' : True
 }
-'''
-$\delta_{GMO}$ xpt extrapolation model and prior information
-'''
-model_info = {}
-model_info['particles'] = ['piplus','kplus','eta']
-model_info['order_chiral'] = 'lo'
-model_info['tree_level'] = True
-model_info['loop_level'] = False
-model_info['delta'] = True
-model_info['abbr'] = ['a12m180L']
-model_info['observable'] = ['delta_gmo'] #'centroid', 'octet'
 
-prior = {}
-prior['m_{kplus,0}'] = gv.gvar(0.35,.1)
-prior['m_{eta,0}'] = gv.gvar(.3,.2)
-prior['m_{piplus,0}'] = gv.gvar(.25,.1)
-prior['m_{delta,0}'] = gv.gvar(2,1)
+prior = gv.BufferDict()
+prior = {
+    'sigma_E': np.array(['0.53(22)', '0.7(3.2)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
+    'sigma_st_E': np.array(['0.75(22)', '0.89(3.2)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
+    'sigma_st_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
+    'sigma_st_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    'sigma_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
+    'sigma_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    'lam_E': np.array(['0.6(2.2)', '0.75(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
+    'lam_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
+    'lam_z_SS': np.array(['4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06'],dtype=object),
+    'proton_E': np.array(['0.51(22)', '0.9(2.2)', '1.0(2.2)', '1.1(2.2)'], dtype=object),
+    'proton_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'proton_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    'delta_E': np.array(['0.71(32)', '0.95(22)', '1.0(2.2)', '1.1(2.2)'], dtype=object),
+    'delta_z_PS': np.array(['0.0(3.3)e-04', '0.0(3.3)e-04', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'delta_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    'xi_E': np.array(['0.6(22)', '1.28(32)', '1.45(32)', '1.55(32)'], dtype=object),
+    'xi_st_E': np.array(['0.75(22)', '0.98(32)', '1.45(32)', '1.55(32)'], dtype=object),
+    'xi_st_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'xi_st_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    'xi_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'xi_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    }
+# '''
+# $\delta_{GMO}$ xpt extrapolation model and prior information
+# '''
+# model_info = {}
+# model_info['particles'] = ['piplus','kplus','eta']
+# model_info['order_chiral'] = 'lo'
+# model_info['tree_level'] = True
+# model_info['loop_level'] = False
+# model_info['delta'] = True
+# model_info['abbr'] = ['a12m180L']
+# model_info['observable'] = ['delta_gmo'] #'centroid', 'octet'
 
-# TODO put prior routines in here, filename save options 
-priors = gv.BufferDict()
+# prior = {}
+# prior['m_{kplus,0}'] = gv.gvar(0.35,.1)
+# prior['m_{eta,0}'] = gv.gvar(.3,.2)
+# prior['m_{piplus,0}'] = gv.gvar(.25,.1)
+# prior['m_{delta,0}'] = gv.gvar(2,1)
+
+# # TODO put prior routines in here, filename save options 
+# priors = gv.BufferDict()

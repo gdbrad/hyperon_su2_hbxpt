@@ -20,7 +20,6 @@ class corr_fit_analysis(object):
                  nucleon_corr_data=None,lam_corr_data=None,delta_corr_data=None,
                  xi_corr_data=None,xi_st_corr_data=None,sigma_corr_data=None,sigma_st_corr_data=None
                  ):
-        #All fit ensembles (manual and automatic) must have these variables
         
         #Convert correlator data into gvar dictionaries
         if nucleon_corr_data is not None:
@@ -80,6 +79,7 @@ class corr_fit_analysis(object):
         self.xi_corr_gv = xi_corr_gv
         self.states=states 
         self.simult = simult
+        self.ensembles = list(sorted(lam_corr_data)) # this could be any of the other correlators, assuming that data exists on each ensemble 
         self.n_states = n_states
         self.prior = prior
         self.t_range = t_range
@@ -121,6 +121,16 @@ class corr_fit_analysis(object):
     #         output += '\n'
     #         output += self.fit[obs].format(pstyle=None)
 
+
+    @property
+    def fit_keys(self):
+        output = {}
+        for observable in self.get_fit():
+            keys1 = list(self._input_prior[observable].keys())
+            keys2 = list(self.fit[observable].p.keys())
+            output[observable] = np.intersect1d(keys1, keys2)
+        return output
+
     @property
     def posterior(self):
         return self._get_posterior()
@@ -128,7 +138,8 @@ class corr_fit_analysis(object):
     # Returns dictionary with keys fit parameters, entries gvar results
     def _get_posterior(self, param=all):
         output = {}
-        for observable in ['z_gmo','d_gmo','d_z_gmo','4_baryon']:
+        fit_keys = self.get_fit.keys()
+        for observable in self.get_fit():
             if param is None:
                 output[observable] = {param : self.get_fit[observable].p[param] for param in self.fit_keys[observable]}
             elif param == 'all':
@@ -434,6 +445,17 @@ class corr_fit_analysis(object):
             xi_st_corr_gv = self.xi_st_corr_gv
             delta_corr_gv = self.delta_corr_gv
 
+        elif model_type == 'hyperons':
+            nucleon_corr_gv = None
+            xi_corr_gv      = self.xi_corr_gv
+            lam_corr_gv     = self.lam_corr_gv
+            sigma_corr_gv   = self.sigma_corr_gv
+            sigma_st_corr_gv= self.sigma_st_corr_gv
+            xi_st_corr_gv = self.xi_st_corr_gv
+            delta_corr_gv = None
+
+        
+
         effective_mass['proton']   = self.get_nucleon_effective_mass(nucleon_corr_gv)
         effective_mass['xi']       = self.get_nucleon_effective_mass(xi_corr_gv)
         effective_mass['sigma']    = self.get_nucleon_effective_mass(sigma_corr_gv)
@@ -452,7 +474,12 @@ class corr_fit_analysis(object):
         upper_quantile = -np.inf
         for i,baryon in enumerate(effective_mass.keys()):
             y[baryon] = {}
-            y_err[baryon] = {}           
+            y_err[baryon] = {}
+            for eff in effective_mass:
+                if effective_mass[eff] is None:
+                    pass
+            if effective_mass is None:
+                pass           
             for j, key in enumerate(effective_mass[baryon].keys()):
                 y[baryon][key] = gv.mean(effective_mass[baryon][key])[t]
                 y_err[baryon][key] = gv.sdev(effective_mass[baryon][key])[t]
@@ -481,7 +508,7 @@ class corr_fit_analysis(object):
             plt.title("Simultaneous fit to 4 baryons for $N_{states} = $%s" %(self.n_states['all']), fontsize = 24)
 
         plt.xlim(t_plot_min-0.5, t_plot_max-.5)
-        plt.ylim(0.7,1.5)
+        plt.ylim(0.5,1.2)
          # Get unique markers when making legend
         handles, labels = plt.gca().get_legend_handles_labels()
         temp = {}

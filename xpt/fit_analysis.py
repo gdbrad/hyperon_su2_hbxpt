@@ -33,11 +33,11 @@ class fit_analysis(object):
     
     def __init__(self, phys_point_data, data=None, model_info=None, prior=None):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
-
+        # TODO REPLACE WITH NEW BS FILE 
         with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
-
+        # TODO REPLACE WITH UPDATED SCALE SETTING FILE 
         with h5py.File(project_path+'/data/input_data.h5', 'r') as f: 
             ens_in = sorted(list(f.keys()))
 
@@ -77,6 +77,10 @@ class fit_analysis(object):
         return output
 
     def _get_error_budget(self, **kwargs):
+        '''
+        hardcoded list of chiral expansion parameters associated with each hyperon,
+        calculates a parameters relative contribution to the total error inherent in the mass expansion
+        '''
         
         output = None
         
