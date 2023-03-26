@@ -10,6 +10,7 @@ import os
 import h5py
 import yaml
 import sys
+import datetime
 sys.setrecursionlimit(10000)
 
 import matplotlib as mpl
@@ -28,10 +29,13 @@ mpl.rcParams['text.usetex'] = True
 #internal xpt modules
 import fit_routine as fit
 import i_o
+f = open('models.yaml', 'r')
+models = yaml.load(f,Loader=yaml.FullLoader)
+    #print(keys)
 
 class fit_analysis(object):
     
-    def __init__(self, phys_point_data, data=None, model_info=None, prior=None):
+    def __init__(self, phys_point_data, collection=None,data=None, model_info=None, prior=None):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
         with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
@@ -54,6 +58,64 @@ class fit_analysis(object):
         self._phys_point_data = phys_point_data
         self._fit = {}
         self.fitter = fit.fit_routine(prior=prior,data=data, model_info=model_info)
+
+        if collection is None:
+            name = str(datetime.datetime.now())
+            for c in [' ', ':', '.', '-']:
+                name = name.replace(c, '_')
+        else: 
+            name = collection
+        for item in models.values():
+            collection = item
+
+        print(collection)
+
+        defaults = {
+            'name' : name, 
+            'models' : [
+                'Fpi_n2lo_w0orig',
+                'Fpi_n2lo_alphas_w0orig',
+                'Fpi_n2lo_alphas_fv_w0orig',
+                'Fpi_n2lo_fv_w0orig',
+                'Fpi_n2lo_log_w0orig',
+                'Fpi_n2lo_log_alphas_w0orig',
+                'Fpi_n2lo_log_alphas_fv_w0orig',
+                'Fpi_n2lo_log_fv_w0orig',
+                'Fpi_n3lo_w0orig',
+                'Fpi_n3lo_alphas_w0orig',
+                'Fpi_n3lo_alphas_fv_w0orig',
+                'Fpi_n3lo_fv_w0orig',
+                'Fpi_n3lo_log_log2_w0orig',
+                'Fpi_n3lo_log_log2_alphas_w0orig',
+                'Fpi_n3lo_log_log2_alphas_fv_w0orig',
+                'Fpi_n3lo_log_log2_fv_w0orig',
+                'Om_n2lo_w0orig',
+                'Om_n2lo_alphas_w0orig',
+                'Om_n2lo_alphas_fv_w0orig',
+                'Om_n2lo_fv_w0orig',
+                'Om_n2lo_log_w0orig',
+                'Om_n2lo_log_alphas_w0orig',
+                'Om_n2lo_log_alphas_fv_w0orig',
+                'Om_n2lo_log_fv_w0orig',
+                'Om_n3lo_w0orig',
+                'Om_n3lo_alphas_w0orig',
+                'Om_n3lo_alphas_fv_w0orig',
+                'Om_n3lo_fv_w0orig',
+                'Om_n3lo_log_log2_w0orig',
+                'Om_n3lo_log_log2_alphas_w0orig',
+                'Om_n3lo_log_log2_alphas_fv_w0orig',
+                'Om_n3lo_log_log2_fv_w0orig'],
+            'excluded_ensembles' : None,
+            'data_file' : 'omega_pi_k_spec',
+            'empirical_priors' : None,
+            'use_charm_reweighting' : False,
+            'use_milc_aw0' : False,
+            'improved_observables' : True,
+        }
+
+
+        
+
 
         # def __str__(self):
         #     output = "Model: %s" %(self.model) 
