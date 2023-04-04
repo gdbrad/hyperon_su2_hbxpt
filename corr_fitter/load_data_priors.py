@@ -5,6 +5,8 @@ import numpy as np
 import os 
 # import bs_utils as bs 
 
+
+
 def pickle_out(fit_out,out_path,species=None):
     if not os.path.exists(out_path):
         os.makedirs(out_path)
@@ -15,22 +17,64 @@ def pickle_out(fit_out,out_path,species=None):
     fit_dump['Q'] = fit_out.Q
     if species == 'meson':
         return gv.dump(fit_dump,out_path+'meson_fit_params')
-    elif species == 'baryon':
-        return gv.dump(fit_dump,out_path+'fit_params')
-    elif species == 'baryon_w_gmo':
-        return gv.dump(fit_dump,out_path+'fit_params_all')
+    elif species == 'hyperons':
+        return gv.dump(fit_dump,out_path+'hyperons')
+def get_posterior(fit_out,param='all'):
+    output = {}
+    for observable in fit_keys(fit_out):
+        if param is None:
+            output[observable] = {param : fit_out[observable].p[param] for param in fit_keys(fit_out)[observable]}
+        elif param == 'all':
+            output[observable] = fit_out[observable].p
+        else:
+            output[observable] = fit_out[observable].p[param]
+
+    return output
+
+def get_hyperon_posterior(bs_data):
+    post = {}
+    posterior = {}
+    hyperon_gs = {}
+
+    for ens in bs_data:
+        hyperon_gs[ens] = {}
+
+        if ens != 'spec':
+            out_path = os.getcwd()+'/fit_results/'+ens+'/all/'
+            post[ens]= gv.load(out_path+"fit_params")
+            posterior[ens] = post[ens]['p']
+            for hyperon in ['lam', 'sigma', 'sigma_st', 'xi_st', 'xi']:
+                hyperon_gs[ens]['m_'+hyperon]=posterior[ens][hyperon+'_E0']
+    return hyperon_gs
+
+
+def fit_keys(fit_out):
+    output = {}
+    for observable in fit_out.keys():
+        keys1 = list(fit_out.prior[observable].keys())
+        keys2 = list(fit_out[observable].p.keys())
+        output[observable] = np.intersect1d(keys1, keys2)
+    return output
+
 
 def print_posterior(out_path):
     posterior = {}
     post_out = gv.load(out_path+"fit_params")
+    posterior['delta_E0'] = post_out['p']['delta_E0']
+    posterior['delta_E1'] = np.exp(post_out['p']['delta_log(dE)'][0])+posterior['delta_E0']
     posterior['lam_E0'] = post_out['p']['lam_E0']
     posterior['lam_E1'] = np.exp(post_out['p']['lam_log(dE)'][0])+posterior['lam_E0']
     posterior['proton_E0'] = post_out['p']['proton_E0']
     posterior['proton_E1'] = np.exp(post_out['p']['proton_log(dE)'][0])+posterior['proton_E0']
     posterior['sigma_E0'] = post_out['p']['sigma_E0']
     posterior['sigma_E1'] = np.exp(post_out['p']['sigma_log(dE)'][0]) + posterior['sigma_E0']
+    posterior['sigma_st_E0'] = post_out['p']['sigma_E0']
+    posterior['sigma_st_E1'] = np.exp(post_out['p']['sigma_log(dE)'][0]) + posterior['sigma_E0']
     posterior['xi_E0'] = post_out['p']['xi_E0']
     posterior['xi_E1'] = np.exp(post_out['p']['xi_log(dE)'][0]) + posterior['xi_E0']
+    posterior['xi_st_E0'] = post_out['p']['xi_st_E0']
+    posterior['xi_st_E1'] = np.exp(post_out['p']['xi_st_log(dE)'][0]) + posterior['xi_st_E0']
+
 
     return posterior
 def get_raw_corr(file_h5,abbr,particle,normalize=None):
@@ -59,23 +103,6 @@ def get_raw_corr_normalize(file_h5,abbr,particle):
             data_normalized['PS'] = data['PS']/data['PS'].mean(axis=0)[0]
     return data_normalized
 
-def G_gmo(file_h5,abbr):
-    temp = {}
-    for smr in get_raw_corr(file_h5=file_h5, abbr=abbr,particle='proton'): 
-        for part in ['lambda_z', 'sigma_p', 'proton', 'xi_z']:
-            temp[(part, smr)] = get_raw_corr(file_h5=file_h5, abbr=abbr,particle=part)[smr]
-    temp = gv.dataset.avg_data(temp)
-
-    output = {}
-    for smr in get_raw_corr(file_h5=file_h5, abbr=abbr,particle='proton'):
-            output[smr] = (
-                temp[('lambda_z', smr)]
-                * np.power(temp[('sigma_p', smr)], 1/3)
-                * np.power(temp[('proton', smr)], -2/3)
-                * np.power(temp[('xi_z', smr)], -2/3)
-            )
-    return output
-
 def get_raw_corr_new(file_h5,abbr,normalize=None):
     data = {}
     data_normalized ={}
@@ -93,21 +120,6 @@ def get_raw_corr_new(file_h5,abbr,normalize=None):
 
     return data
 
-def G_gmo_bs(file_h5,abbr,bsN,bs_list):
-    raw = get_raw_corr_new(file_h5,abbr,normalize=True)
-    bs_M = raw['proton_SS'].shape[0] 
-    bs_N = 2000 # In real-world cases, this would probably be much larger
-    bs_list = bs.get_bs_list(bs_M,bs_N)
-    data = {}
-    gmo = {}
-    for src_snk in ['PS', 'SS']:
-        for baryon in ['lambda_z', 'sigma_p', 'proton', 'xi_z']:
-            data[baryon+'_'+src_snk] = raw[baryon+'_'+src_snk][bs_list].mean(axis=0)
-            gmo[src_snk] = np.zeros_like(data[baryon+'_'+src_snk])
-        gmo[src_snk] += data['lambda_z_'+src_snk] *np.power(data['sigma_p_'+src_snk], 1/3) *np.power(data['proton_'+src_snk], -2/3) * np.power(data['xi_z_'+src_snk], -2/3)
-    correlators = gv.dataset.avg_data(gmo, bstrap=True)
-
-    return correlators
 
 def resample_correlator(raw_corr,bs_list, n):
     resampled_raw_corr_data = ({key : raw_corr[key][bs_list[n, :], :]

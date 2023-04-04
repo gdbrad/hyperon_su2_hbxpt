@@ -1,6 +1,7 @@
 import time
 import sys
 import lsqfit
+import h5py as h5
 import os
 import pandas as pd
 import numpy as np
@@ -12,74 +13,125 @@ import matplotlib.colors as colors
 from matplotlib.backends.backend_pdf import PdfPages
 import cmath
 from corr_fitter.corr_fitter import fitter
+import corr_fitter.load_data_priors as ld
+import importlib
+
+import tqdm
+from multiprocessing import Pool
+from functools import partial
+
+def analyze_hyperon_corrs(file_path, fit_params_path,model_type:str,bs:bool=False, bs_file:str=None, bs_path:str=None, bs_N:int=None, bs_seed:str=None):
+    sys.path.append(os.path.dirname(os.path.abspath(fit_params_path)))
+
+    fp = importlib.import_module(fit_params_path.split('/')[-1].split('.py')[0])
+    p_dict = fp.p_dict
+    prior = fp.prior
+    corrs = {
+        'lam': ld.get_raw_corr(file_path, p_dict['abbr'], particle='lambda_z'),
+        'xi': ld.get_raw_corr(file_path, p_dict['abbr'], particle='xi_z'),
+        'xi_st': ld.get_raw_corr(file_path, p_dict['abbr'], particle='xi_star_z'),
+        'sigma': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_p'),
+        'sigma_st': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_star_p'),
+    }
+    bs_M = corrs['lam']['SS'].shape[0]
+
+    all_baryons = corr_fit_analysis(t_range=p_dict
+            ['t_range'],simult=True,t_period=64,states=p_dict['hyperons'],p_dict=p_dict, 
+            n_states=p_dict['n_states'],prior=prior, corr_gv = corrs,model_type=model_type)
+
+    hyperon_fit = all_baryons.get_fit()
+
+    print(hyperon_fit)
+    # return my_fit
+
+    if bs:
+
+
+        def fast_resample_correlator(corr, bs_seed, bs_N):
+            bs_M = corrs['lam']['SS'].shape[0]
+            bs_list = np.random.randint(low=0, high=bs_M, size=(bs_N, bs_M))
+            
+            resampled_raw_corr_data = {key: corr[key][bs_list[n, :], :] for key in corr.keys() for n in range(bs_N)}
+            fit_parameters_keys = sorted(hyperon_fit.p.keys())
+            return {key: [] for key in fit_parameters_keys}, resampled_raw_corr_data
+            
+        bs_N = range(bs_N)
+        bs_list = np.random.randint(low=0, high=bs_M, size=(bs_N, bs_M))
+
+
+        def parallel_resample_correlator(bs_list, correlators, j):
+            correlators_bs = {}
+            for r in correlators:
+                correlator_bs = fast_resample_correlator(correlators[r], bs_list, j)
+                correlators_bs[r] = correlator_bs
+            return correlators_bs
+
+        with Pool(processes=4) as p:
+            output = {key: [] for key in hyperon_fit.keys()}
+            results = p.imap_unordered(partial(parallel_resample_correlator, bs_list), bs_N)
+
+            # iterate with tqdm only once for faster performance
+            for i in tqdm.tqdm(results, total=len(bs_N), desc='making fit with resampled hyperon correlators'):
+                all_baryons_bs = corr_fit_analysis(t_range=p_dict['t_range'], simult=True, t_period=64, states=p_dict['hyperons'], p_dict=p_dict,
+                                                    n_states=p_dict['n_states'], prior=prior, corr_gv=i, model_type="all")
+
+                temp_fit = all_baryons_bs.get_fit()
+                for key in hyperon_fit.keys():
+                    p = temp_fit.pmean[key]
+                    output[key].append(p)
+
+        table = gv.dataset.avg_data(output, bstrap=True)
+        print('\n\n', gv.tabulate(table))
+
+        post_bs = {}
+
+        for r in output:
+            output[r]  = np.array(output[r])
+
+        with h5.File(bs_file, 'a') as f5:
+            try:
+                f5.create_group(bs_path)
+            except Exception as e:
+                print(e)
+            for r in output:
+                if len(output[r]) > 0:
+                    if r in f5[bs_path]:
+                        del f5[bs_path+'/'+r]
+                    f5.create_dataset(bs_path+'/'+r, data=output[r])
+
+    else:
+        return all_baryons
 
 
 class corr_fit_analysis(object):
 
     def __init__(self, t_range,t_period, prior,p_dict, n_states=None, model_type = None,states=None,simult=None,
-                 nucleon_corr_data=None,lam_corr_data=None,delta_corr_data=None,
-                 xi_corr_data=None,xi_st_corr_data=None,sigma_corr_data=None,sigma_st_corr_data=None
-                 ):
+                 corr_gv=None):
         
         #Convert correlator data into gvar dictionaries
-        if nucleon_corr_data is not None:
-            nucleon_corr_gv = gv.dataset.avg_data(nucleon_corr_data)
+        if corr_gv is not None:
+            for key, value in corr_gv.items():
+                corr_gv[key] = gv.dataset.avg_data(value)
         else:
-            nucleon_corr_gv = None
-
-        if delta_corr_data is not None:
-            delta_corr_gv = gv.dataset.avg_data(delta_corr_data)
-        else:
-            delta_corr_gv = None
-        if lam_corr_data is not None:
-            lam_corr_gv = gv.dataset.avg_data(lam_corr_data)
-        else:
-            lam_corr_gv = None
-        if xi_corr_data is not None:
-            xi_corr_gv = gv.dataset.avg_data(xi_corr_data)
-        else:
-            xi_corr_gv = None
-
-        if xi_st_corr_data is not None:
-            xi_st_corr_gv = gv.dataset.avg_data(xi_st_corr_data)
-        else:
-            xi_st_corr_gv = None
-        if sigma_corr_data is not None:
-            sigma_corr_gv = gv.dataset.avg_data(sigma_corr_data)
-        else:
-            sigma_corr_gv = None
-
-        if sigma_st_corr_data is not None:
-            sigma_st_corr_gv = gv.dataset.avg_data(sigma_st_corr_data)
-        else:
-            sigma_st_corr_gv = None
-        
+            corr_gv = None
 
         # Default to a 1 state fit
         if n_states is None:
             n_states = 1
 
-        for data_gv in [nucleon_corr_gv]:
+        for data_gv in [corr_gv]:
             if data_gv is not None:
                 t_max = len(data_gv[list(data_gv.keys())[0]])
 
 
         t_start = np.min([t_range[key][0] for key in list(t_range.keys())])
         t_end = np.max([t_range[key][1] for key in list(t_range.keys())])
-
         max_n_states = np.max([n_states[key] for key in list(n_states.keys())])
         self.p_dict = p_dict
         self.model_type = model_type
-        self.nucleon_corr_gv = nucleon_corr_gv
-        self.lam_corr_gv = lam_corr_gv
-        self.sigma_corr_gv = sigma_corr_gv
-        self.sigma_st_corr_gv = sigma_st_corr_gv
-        self.xi_st_corr_gv = xi_st_corr_gv
-        self.delta_corr_gv = delta_corr_gv
-        self.xi_corr_gv = xi_corr_gv
+        self.corr_gv = corr_gv
         self.states=states 
         self.simult = simult
-        self.ensembles = list(sorted(lam_corr_data)) # this could be any of the other correlators, assuming that data exists on each ensemble 
         self.n_states = n_states
         self.prior = prior
         self.t_range = t_range
@@ -90,69 +142,6 @@ class corr_fit_analysis(object):
         self.fits = {}
         
         #self.bs = None
-
-    # def __str__(self):
-    #     output = "Model: %s" %(self.model)
-    #     for obs in ['z_gmo', 'z_baryons','d_gmo','d_z_gmo','4_baryon']:
-    #         output += '\n---\n'
-
-    #         if obs == 'w0':
-    #             output += "\nw0: %s\n\n" %(self.w0)
-    #             for a_xx in ['a06', 'a09', 'a12', 'a15']:
-    #                 w0_a = self.interpolate_w0a(latt_spacing=a_xx)
-    #                 output += 'w0/{}: {}'.format(a_xx, w0_a).ljust(22)  + '=> %s/fm: %s\n'%(a_xx, self.w0 / w0_a)
-
-    #         elif obs == 't0':
-    #             output += "\nsqrt(t0): %s\n\n" %(self.sqrt_t0)
-    #             for a_xx in ['a06', 'a09', 'a12', 'a15']:
-    #                 t0_a2 = self.interpolate_t0a2(latt_spacing=a_xx)
-    #                 output += 't0/{}^2: {}'.format(a_xx, t0_a2).ljust(22)  + '=> %s/fm: %s\n'%(a_xx, self.sqrt_t0 / np.sqrt(t0_a2))
-
-
-
-    #         output += '\nParameters:\n'
-    #         my_str = self.fit[obs].format(pstyle='m')
-    #         for item in my_str.split('\n'):
-    #             for key in self.fit_keys['w0']:
-    #                 re = key+' '
-    #                 if re in item:
-    #                     output += item + '\n'
-
-    #         output += '\n'
-    #         output += self.fit[obs].format(pstyle=None)
-
-
-    @property
-    def fit_keys(self):
-        output = {}
-        for observable in self.get_fit():
-            keys1 = list(self._input_prior[observable].keys())
-            keys2 = list(self.fit[observable].p.keys())
-            output[observable] = np.intersect1d(keys1, keys2)
-        return output
-
-    @property
-    def posterior(self):
-        return self._get_posterior()
-
-    # Returns dictionary with keys fit parameters, entries gvar results
-    def _get_posterior(self, param=all):
-        output = {}
-        fit_keys = self.get_fit.keys()
-        for observable in self.get_fit():
-            if param is None:
-                output[observable] = {param : self.get_fit[observable].p[param] for param in self.fit_keys[observable]}
-            elif param == 'all':
-                output[observable] = self.get_fit[observable].p
-            else:
-                output[observable] = self.get_fit[observable].p[param]
-
-        return output
-
-    # def fit(self):
-    #     for observable in ['z_gmo','d_gmo','d_z_gmo','4_baryon']:
-    #         self.fit[observable] =self.get_fit[observable]
-    #     return self.fit
 
     def get_fit(self, t_range=None, n_states=None,t_period=None):
         if t_range is None:
@@ -170,11 +159,8 @@ class corr_fit_analysis(object):
             return self.fits[index]
         else:
                 temp_fit = fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
-                            t_range=t_range,states=self.states,simult=self.simult,
-                             t_period=t_period,model_type=self.model_type, delta_corr=self.delta_corr_gv,
-                               nucleon_corr=self.nucleon_corr_gv,lam_corr=self.lam_corr_gv,
-                               xi_corr=self.xi_corr_gv,xi_st_corr=self.xi_st_corr_gv,
-                               sigma_corr=self.sigma_corr_gv,sigma_st_corr=self.sigma_st_corr_gv).get_fit()
+                                t_range=t_range,states=self.states,simult=self.simult,
+                                t_period=t_period,model_type=self.model_type, raw_corrs=self.corr_gv).get_fit()
         return temp_fit
 
     # type should be either "corr, "gA", or "gV"
@@ -183,31 +169,11 @@ class corr_fit_analysis(object):
         if model_type is None:
             return None
 
-        if model_type == "hyperons":
-            nucleon_corr = None 
-            delta_corr = None
-            lam_corr = self.lam_corr_gv
-            sigma_corr = self.sigma_corr_gv
-            xi_corr = self.xi_corr_gv
-            xi_st_corr  = self.xi_st_corr_gv
-            sigma_st_corr = self.sigma_st_corr_gv
-
-        if model_type == "all":
-            nucleon_corr = self.nucleon_corr_gv
-            delta_corr = self.delta_corr_gv
-            lam_corr = self.lam_corr_gv
-            sigma_corr = self.sigma_corr_gv
-            xi_corr = self.xi_corr_gv
-            xi_st_corr  = self.xi_st_corr_gv
-            sigma_st_corr = self.sigma_st_corr_gv
-        else:
-            return None 
-
-        return fitter(n_states=self.n_states, states=self.states,prior=self.prior,simult=self.simult, p_dict=self.p_dict, 
-                        t_range=self.t_range,t_period=self.t_period,model_type=self.model_type,nucleon_corr=nucleon_corr,
-                        lam_corr=lam_corr,delta_corr=delta_corr,
-                        xi_corr=xi_corr,xi_st_corr = xi_st_corr,sigma_st_corr = sigma_st_corr,sigma_corr=sigma_corr
-                        )._make_models_simult_fit()
+        return fitter(
+            n_states=self.n_states, states=self.states,prior=self.prior,simult=self.simult, p_dict=self.p_dict, 
+            t_range=self.t_range,t_period=self.t_period,model_type=self.model_type,raw_corrs=self.corr_gv
+            )._make_models_simult_fit()
+    
 
     def _generate_data_from_fit(self, t, t_start=None, t_end=None, model_type=None, n_states=None):
         if model_type is None:
@@ -226,204 +192,29 @@ class corr_fit_analysis(object):
 
         models = self._get_models(model_type=model_type)
         fit = self.get_fit(t_range=t_range, n_states=n_states)
+        print(models,'model')
 
-        # datatag[-3:] converts, eg, 'nucleon_dir' -> 'dir'
         output = {model.datatag : model.fitfcn(p=fit.p, t=t) for model in models}
         return output
 
 
-    def plot_gmo_effective_mass(self, effective_mass,t_plot_min=None, model_type=None,
-                            t_plot_max=None, show_plot=True, show_fit=True,fig_name=None):
-        if t_plot_min is None:
-            t_plot_min = self.t_min
-        if t_plot_max is None:
-            t_plot_max = self.t_max
-        markers = ["^", "v"]
-        colors = np.array(['red', 'blue','green','magenta'])
-        t = np.arange(t_plot_min, t_plot_max)
-        # effective_mass = {}
-        if model_type == None:
-            raise TypeError(model_type,'you need to supply a correlator model in order to generate an eff mass plot for that correlator')
-        if effective_mass is None:
-            return None
-
-        y = {}
-        y_err = {}
-        lower_quantile = np.inf
-        upper_quantile = -np.inf
-        for j, key in enumerate(effective_mass.keys()):
-            y[key] = gv.mean(effective_mass[key])[t]
-            y_err[key] = gv.sdev(effective_mass[key])[t]
-            lower_quantile = np.min([np.nanpercentile(y[key], 25), lower_quantile])
-            upper_quantile = np.max([np.nanpercentile(y[key], 75), upper_quantile])
-
-            plt.errorbar(x=t, y=y[key], xerr=0.0, yerr=y_err[key], fmt='o', capsize=2.0,
-                color = colors[j%len(colors)], capthick=2.0, alpha=0.6, elinewidth=5.0, label=key)
-        delta_quantile = upper_quantile - lower_quantile
-        plt.ylim(lower_quantile - 0.5*delta_quantile,
-                 upper_quantile + 0.5*delta_quantile)
-
-        if show_fit:
-            t = np.linspace(t_plot_min-2, t_plot_max+2)
-            dt = (t[-1] - t[0])/(len(t) - 1)
-            fit_data_gv = self._generate_data_from_fit(model_type=model_type, t=t)
-
-            for j, key in enumerate(fit_data_gv.keys()):
-                eff_mass_fit = self.get_nucleon_effective_mass(fit_data_gv, dt)[key][1:-1]
-
-                pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-                plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j%len(colors)])
-                plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j%len(colors)])
-                plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),
-                                 facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
-            plt.title("gmo_ratio_eff for $N_{states} = $%s" %(self.n_states['gmo']), fontsize = 24)
-
-        plt.xlim(t_plot_min-0.5, t_plot_max-.5)
-        # plt.ylim(0.0,0.03)
-         # Get unique markers when making legend
-        handles, labels = plt.gca().get_legend_handles_labels()
-        temp = {}
-        for j, handle in enumerate(handles):
-            temp[labels[j]] = handle
-
-        plt.legend([temp[label] for label in sorted(temp.keys())], [label for label in sorted(temp.keys())])
-        # plt.legend()
-        plt.grid(True)
-        plt.xlabel('$t$', fontsize = 24)
-        plt.ylabel('$M^{eff}_{GMO}$', fontsize = 24)
-        fig = plt.gcf()
-        # plt.savefig(fig_name)
-        # if show_plot == True: plt.show()
-        # else: plt.close()
-        plt.close()
-
-        return fig
-
-    def get_m_4(self,t=None):
-        # output = {}
-        if t is None:
-            t = {key : np.arange(len(self.nucleon_corr_gv[key])) for key in list(self.nucleon_corr_gv.keys())}
-        output= {key: self.nucleon_corr_gv[key] + self.lam_corr_gv[key] - 3*self.sigma_corr_gv[key] + self.xi_corr_gv[key]*t[key] for key in list(self.nucleon_corr_gv.keys())}
-        # if mev:
-            # output[self.abbr] = 197.3269804 * output[self.abbr] # MeV-fm
-            # output = output 
-        return output
-
-    def get_nucleon_effective_mass(self, nucleon_corr_gv=None, dt=None):
-        if nucleon_corr_gv is None:
-            nucleon_corr_gv = self.nucleon_corr_gv
-
-        # If still empty, return nothing
-        if nucleon_corr_gv is None:
-            return None
-
+    def compute_eff_mass(self, corr_gv=None, dt=None):
+        if corr_gv is None:
+            corr_gv = self.corr_gv
         if dt is None:
             dt = 1
-        return {key : 1/dt * np.log(nucleon_corr_gv[key] / np.roll(nucleon_corr_gv[key], -1))
-                for key in list(nucleon_corr_gv.keys())}
-
-    def get_nucleon_effective_wf(self, nucleon_corr_gv=None, t=None, dt=None):
-        if nucleon_corr_gv is None:
-            nucleon_corr_gv = self.nucleon_corr_gv
-
-        # If still empty, return nothing
-        if nucleon_corr_gv is None:
-            return None
-
-        effective_mass = self.get_nucleon_effective_mass(nucleon_corr_gv, dt)
-        if t is None:
-            t = {key : np.arange(len(nucleon_corr_gv[key])) for key in list(nucleon_corr_gv.keys())}
+        eff_mass = {}
+        if len(corr_gv.keys()) == 10:
+            for key in corr_gv:
+                eff_mass[key] = 1/dt * np.log(corr_gv[key] / np.roll(corr_gv[key], -1))
         else:
-            t = {key : t for key in list(nucleon_corr_gv.keys())}
-
-        return {key : np.exp(effective_mass[key]*t[key]) * nucleon_corr_gv[key]
-                for key in list(nucleon_corr_gv.keys())}
-
-    def plot_effective_wf(self, model_type = None,t_plot_min=None,
-                           t_plot_max=None, show_plot=True, show_fit=True):
-        if t_plot_min is None:
-            t_plot_min = self.t_min
-        if t_plot_max is None:
-            t_plot_max = self.t_max
-
-        markers = ["^", "v"]
-        colors = np.array(['red', 'blue', 'green','magenta','yellow','purple','cyan','teal'])
-        t = np.arange(t_plot_min, t_plot_max)
-        effective_wf = {}
-        if model_type == None:
-            raise TypeError(model_type,'you need to supply a correlator model in order to generate an eff mass plot for that correlator')
-        elif model_type == 'simult_baryons':
-            nucleon_corr_gv = self.nucleon_corr_gv
-            xi_corr_gv      = self.xi_corr_gv
-            lam_corr_gv     = self.lam_corr_gv
-            sigma_corr_gv   = self.sigma_corr_gv
-        elif model_type == 'xi':
-            nucleon_corr_gv = None
-            xi_corr_gv      = self.xi_corr_gv
-            lam_corr_gv     = None
-            sigma_corr_gv   = None
-        
-        effective_wf['proton'] = self.get_nucleon_effective_wf(nucleon_corr_gv)
-        effective_wf['xi']     = self.get_nucleon_effective_wf(xi_corr_gv)
-        effective_wf['sigma']  = self.get_nucleon_effective_wf(sigma_corr_gv)
-        effective_wf['lam']    = self.get_nucleon_effective_wf(lam_corr_gv)
-
-        if effective_wf is None:
-            return None
-
-        y = {}
-        y_err = {}
-        lower_quantile = np.inf
-        upper_quantile = -np.inf
-        for i,baryon in enumerate(effective_wf.keys()):
-            y[baryon] = {}
-            y_err[baryon] = {}
-            for j, key in enumerate(effective_wf[baryon].keys()):
-                y[baryon][key] = gv.mean(effective_wf[baryon][key])[t]
-                y_err[baryon][key] = gv.sdev(effective_wf[baryon][key])[t]
-                lower_quantile = np.min([np.nanpercentile(y[baryon][key], 25), lower_quantile])
-                upper_quantile = np.max([np.nanpercentile(y[baryon][key], 75), upper_quantile])
-
-                plt.errorbar(x=t, y=y[baryon][key], xerr=0.0, yerr=y_err[baryon][key], fmt=markers[j%len(markers)], capsize=4.0,
-                    color = colors[i%len(colors)], capthick=1.0, alpha=0.6, elinewidth=5.0, label=baryon+'_'+key)
-            delta_quantile = upper_quantile - lower_quantile
-            plt.ylim(lower_quantile - 0.5*delta_quantile,
-                    upper_quantile + 0.5*delta_quantile)
-
-        if show_fit:
-            t = np.linspace(t_plot_min-2, t_plot_max+2)
-            dt = (t[-1] - t[0])/(len(t) - 1)
-            fit_data_gv = self._generate_data_from_fit(model_type=model_type, t=t)
-
-            for j, key in enumerate(fit_data_gv.keys()):
-                eff_mass_fit = self.get_nucleon_effective_wf(fit_data_gv, dt)[key][1:-1]
-
-                pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-                plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j%len(colors)])
-                plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j%len(colors)])
-                plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),
-                                 facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
-            plt.title("Simultaneous fit to 4 baryons for $N_{states} = $%s" %(self.n_states['gmo']), fontsize = 24)
-
-        plt.xlim(t_plot_min-0.5, t_plot_max-.5)
-        # plt.ylim(0.55,0.9)
-         # Get unique markers when making legend
-        handles, labels = plt.gca().get_legend_handles_labels()
-        temp = {}
-        for j, handle in enumerate(handles):
-            temp[labels[j]] = handle
-
-        plt.legend([temp[label] for label in sorted(temp.keys())], [label for label in sorted(temp.keys())])
-        # plt.legend()
-        plt.grid(True)
-        plt.xlabel('$t$', fontsize = 24)
-        plt.ylabel('$M^{eff}_{baryon}$', fontsize = 24)
-        fig = plt.gcf()
-        # plt.savefig(fig_name)
-        if show_plot == True: plt.show()
-        else: plt.close()
-        return fig
-
+            for corr in corr_gv:
+                eff_mass[corr] = {}
+                for key in corr_gv[corr]:
+                    eff_mass[corr][key] = 1/dt * np.log(corr_gv[corr][key] / np.roll(corr_gv[corr][key], -1))
+                
+        return eff_mass
+    
     def plot_effective_mass(self, t_plot_min=None, model_type=None,
                             t_plot_max=None, show_plot=True, show_fit=True,fig_name=None):
         if t_plot_min is None:
@@ -434,40 +225,13 @@ class corr_fit_analysis(object):
         colors = np.array(['red', 'blue', 'green','magenta','yellow','darkblue','slateblue'])
         t = np.arange(t_plot_min, t_plot_max)
         effective_mass = {}
-        if model_type is None:
-            raise TypeError(model_type,'you need to supply a correlator model in order to generate an eff mass plot for that correlator')
-        elif model_type == 'all':
-            nucleon_corr_gv = self.nucleon_corr_gv
-            xi_corr_gv      = self.xi_corr_gv
-            lam_corr_gv     = self.lam_corr_gv
-            sigma_corr_gv   = self.sigma_corr_gv
-            sigma_st_corr_gv= self.sigma_st_corr_gv
-            xi_st_corr_gv = self.xi_st_corr_gv
-            delta_corr_gv = self.delta_corr_gv
 
-        elif model_type == 'hyperons':
-            nucleon_corr_gv = None
-            xi_corr_gv      = self.xi_corr_gv
-            lam_corr_gv     = self.lam_corr_gv
-            sigma_corr_gv   = self.sigma_corr_gv
-            sigma_st_corr_gv= self.sigma_st_corr_gv
-            xi_st_corr_gv = self.xi_st_corr_gv
-            delta_corr_gv = None
+        if self.corr_gv is None:
+            raise TypeError('you need to supply a correlator model in order to generate an eff mass plot for that correlator')
 
+        effective_mass = self.compute_eff_mass(self.corr_gv)
+        print(effective_mass)
         
-
-        effective_mass['proton']   = self.get_nucleon_effective_mass(nucleon_corr_gv)
-        effective_mass['xi']       = self.get_nucleon_effective_mass(xi_corr_gv)
-        effective_mass['sigma']    = self.get_nucleon_effective_mass(sigma_corr_gv)
-        effective_mass['lam']      = self.get_nucleon_effective_mass(lam_corr_gv)
-        effective_mass['sigma_st'] = self.get_nucleon_effective_mass(sigma_st_corr_gv)
-        effective_mass['xi_st']    = self.get_nucleon_effective_mass(xi_st_corr_gv)
-        effective_mass['delta']    = self.get_nucleon_effective_mass(delta_corr_gv)
-
-
-        if effective_mass is None:
-            return None
-
         y = {}
         y_err = {}
         lower_quantile = np.inf
@@ -475,11 +239,6 @@ class corr_fit_analysis(object):
         for i,baryon in enumerate(effective_mass.keys()):
             y[baryon] = {}
             y_err[baryon] = {}
-            for eff in effective_mass:
-                if effective_mass[eff] is None:
-                    pass
-            if effective_mass is None:
-                pass           
             for j, key in enumerate(effective_mass[baryon].keys()):
                 y[baryon][key] = gv.mean(effective_mass[baryon][key])[t]
                 y_err[baryon][key] = gv.sdev(effective_mass[baryon][key])[t]
@@ -496,19 +255,20 @@ class corr_fit_analysis(object):
             t = np.linspace(t_plot_min-2, t_plot_max+2)
             dt = (t[-1] - t[0])/(len(t) - 1)
             fit_data_gv = self._generate_data_from_fit(model_type=model_type, t=t)
-
+            print(fit_data_gv,'fit_data')
+            eff_mass_fit = {}
             for j, key in enumerate(fit_data_gv.keys()):
-                eff_mass_fit = self.get_nucleon_effective_mass(fit_data_gv, dt)[key][1:-1]
+                eff_mass_fit = self.compute_eff_mass(fit_data_gv, dt)[key][1:-1]
 
                 pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
                 plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j%len(colors)])
                 plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j%len(colors)])
                 plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),
                                  facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
-            plt.title("Simultaneous fit to 4 baryons for $N_{states} = $%s" %(self.n_states['all']), fontsize = 24)
+            plt.title("Simultaneous fit to %d baryons for $N_{states} = $%s" %(len(effective_mass),self.n_states['all']), fontsize = 24)
 
         plt.xlim(t_plot_min-0.5, t_plot_max-.5)
-        plt.ylim(0.5,1.2)
+        plt.ylim(0.4,1.4)
          # Get unique markers when making legend
         handles, labels = plt.gca().get_legend_handles_labels()
         temp = {}
@@ -527,7 +287,7 @@ class corr_fit_analysis(object):
 
         return fig
 
-    def plot_stability(self, model_type=None, t_start=None, t_end=None, t_middle=None,
+    def plot_stability(self, model_type=None,corr=None, t_start=None, t_end=None, t_middle=None,
                        vary_start=True, show_plot=False, n_states_array=None,fig_name=None):
 
 
@@ -604,8 +364,8 @@ class corr_fit_analysis(object):
                     t_range[model_type] = [t_start, ti]
                     temp_fit = self.get_fit(t_range, n_states_dict)
                 if temp_fit is not None:
-                    if model_type == 'corr':
-                        fit_data[n_state]['y'] = np.append(fit_data[n_state]['y'], temp_fit.p['E0'])
+                    if model_type == 'all':
+                        fit_data[n_state]['y'] = np.append(fit_data[n_state]['y'], temp_fit.p[corr+'_E0'])
                     fit_data[n_state]['chi2/df'] = np.append(fit_data[n_state]['chi2/df'], temp_fit.chi2 / temp_fit.dof)
                     fit_data[n_state]['Q'] = np.append(fit_data[n_state]['Q'], temp_fit.Q)
                     fit_data[n_state]['t'] = np.append(fit_data[n_state]['t'], ti)
@@ -640,17 +400,17 @@ class corr_fit_analysis(object):
         # Band for best result
 
         best_fit = self.get_fit()
-        if model_type == 'corr':
-            y_best = best_fit.p['E0']
+        if model_type == 'all':
+            y_best = best_fit.p[corr+'_E0']
             ylabel = r'$E_0$'
 
-        tp = np.arange(t[0]-1, t[-1]+2)
-        tlim = (tp[0], tp[-1])
+            tp = np.arange(t[0]-1, t[-1]+2)
+            tlim = (tp[0], tp[-1])
 
-        pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-        y2 = np.repeat(pm(y_best, 0), len(tp))
-        y2_upper = np.repeat(pm(y_best, 1), len(tp))
-        y2_lower = np.repeat(pm(y_best, -1), len(tp))
+            pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
+            y2 = np.repeat(pm(y_best, 0), len(tp))
+            y2_upper = np.repeat(pm(y_best, 1), len(tp))
+            y2_lower = np.repeat(pm(y_best, -1), len(tp))
 
         # Ground state plot
         plt.plot(tp, y2, '--')
@@ -717,7 +477,7 @@ class corr_fit_analysis(object):
         colorbar.set_label(r'$\chi^2_\nu$', fontsize = 24)
 
         fig = plt.gcf()
-        plt.savefig(fig_name)
+        # plt.savefig(fig_name)
         if show_plot == True: plt.show()
         else: plt.close()
 
@@ -760,37 +520,14 @@ class corr_fit_analysis(object):
         if bs:
             output = output +"\t bs: True" 
         output = output+"\n"
-        # if self.nucleon_corr_gv is not None:
+        # if self.corr_gv is not None:
         output = output + "\t N_{corr} = "+str(self.n_states[self.model_type])+"\t"
         output = output+"\n"
-        # if self.nucleon_corr_gv is not None:
+        # if self.corr_gv is not None:
         output = output + "\t t_{corr} = "+str(self.t_range[self.model_type])
         # output += ma.GMO()
         output = output+"\n"
         output += "Fit results: \n"
 
         temp_fit = self.get_fit()
-        if self.model_type != 'gmo_direct':
-            output += "\t GMO rln = " 
-            output= output+  str(temp_fit.p['lam_E0'] + 1/3* temp_fit.p['sigma_E0'] - 2/3*temp_fit.p['proton_E0'] - 2/3*temp_fit.p['xi_E0'])
-            output = output+"\n"
-            output += "\t M_4 posterior =    " 
-            output += str(temp_fit.p['lam_E0'] - 3* temp_fit.p['sigma_E0'] + temp_fit.p['proton_E0'] + temp_fit.p['xi_E0'])
-            output = output+"\n"
-            output += "\t Centroid posterior =    " 
-            output += str(1/8*temp_fit.p['lam_E0'] + 3/8* temp_fit.p['sigma_E0'] + 1/4*temp_fit.p['proton_E0'] + 1/4*temp_fit.p['xi_E0'])
-            output = output+"\n"
-            output+= str("\t lam_E0=  ")
-            output+= str(temp_fit.p['lam_E0'])
-            output = output+"\n" 
-            output+= str("\t proton_E0=  ")
-            output+= str(temp_fit.p['proton_E0'])
-            output = output+"\n"
-            output+= str("\t xi_E0=  ")
-            output += str(temp_fit.p['xi_E0'])
-            output = output+"\n"
-            output+= str("\t sigma_E0=  ")
-            output += str(temp_fit.p['sigma_E0'])
-            output+= "\n"
-        
         return output + str(temp_fit)

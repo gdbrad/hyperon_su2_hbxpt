@@ -1,27 +1,13 @@
 import gvar as gv 
 import numpy as np 
 p_dict = {
-    'abbr': 'a09m135',
-    'hyperons' : ['lambda_z', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
+    'abbr': 'a09m400',
+    'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'meson_states' : ['piplus','kplus'],
-    'simult_baryons': ['sigma_p','lambda_z','proton','xi_z'],
+    'simulbaryons': ['sigma_p','lambda_z','proton','xi_z'],
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
     'bs_seed' : 'a09m135',
-
-   't_range' : {
-        'sigma' : [9,20],
-        'sigma_st' : [9,20],
-        'xi' :  [9,20],
-        'xi_st' : [9,20],
-        'lam' : [9,20],
-        'pi' : [5,30],
-        'kplus': [8,28],
-        'hyperons':   [9,20],
-        'all':   [9,20],
-
-
-    },
 
     'tag':{
         'sigma' : 'sigma',
@@ -29,18 +15,36 @@ p_dict = {
         'xi' :  'xi',
         'xi_st' : 'xi_st',
         'lam' : 'lam'
-        },
+},
+
+    't_range':{
+
+    'sigma' : [6,18],
+    'sigma_st' : [8,17],
+    'xi' :  [6,18],
+    'xi_st' : [8,15],
+    'proton' :   [8,17],
+    'delta' : [10,19],
+    'lam' : [6,18],
+    'pi' : [5,30],
+    'kplus': [8,28],
+    'hyperons':   [6,18],
+    'all':   [6,18],
+
+    },
     'n_states' : {
         'sigma' : 2,
         'sigma_st' : 2,
         'xi' :2,
         'xi_st' :2,
+        'delta':2,
+        'proton':2,
         'lam':2,
         'pi' : 2,
         'kplus': 2,
         'mesons':2,
 	    'hyperons'   :2,
-        'all':3
+        'all':2
     },
     
     'make_plots' : True,
@@ -53,16 +57,22 @@ p_dict = {
 
 prior = gv.BufferDict()
 prior = {
-    'sigma_E': np.array(['0.53(22)', '0.7(3.2)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
+    'sigma_E': np.array(['0.63(22)', '0.7(3.2)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
     'sigma_st_E': np.array(['0.75(22)', '0.89(3.2)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
     'sigma_st_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
     'sigma_st_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
     'sigma_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
     'sigma_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
-    'lam_E': np.array(['0.6(2.2)', '0.75(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
+    'lam_E': np.array(['0.6(22)', '0.75(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
     'lam_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
     'lam_z_SS': np.array(['4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06'],dtype=object),
-    'xi_E': np.array(['0.6(22)', '1.28(32)', '1.45(32)', '1.55(32)'], dtype=object),
+    'proton_E': np.array(['0.51(22)', '0.7(2.2)', '1.0(2.2)', '1.1(2.2)'], dtype=object),
+    'proton_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'proton_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    'delta_E': np.array(['0.6(22)', '0.95(22)', '1.0(2.2)', '1.1(2.2)'], dtype=object),
+    'delta_z_PS': np.array(['0.0(3.3)e-04', '0.0(3.3)e-04', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'delta_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
+    'xi_E': np.array(['0.6(22)', '0.9(32)', '1.45(32)', '1.55(32)'], dtype=object),
     'xi_st_E': np.array(['0.75(22)', '0.98(32)', '1.45(32)', '1.55(32)'], dtype=object),
     'xi_st_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
     'xi_st_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),

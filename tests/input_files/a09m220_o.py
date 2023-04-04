@@ -1,8 +1,8 @@
 import gvar as gv 
 import numpy as np 
 p_dict = {
-    'abbr': 'a09m135',
-    'hyperons' : ['lambda_z', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
+    'abbr': 'a09m220_o',
+    'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'meson_states' : ['piplus','kplus'],
     'simult_baryons': ['sigma_p','lambda_z','proton','xi_z'],
     'srcs'     :['S'],
@@ -10,26 +10,24 @@ p_dict = {
     'bs_seed' : 'a09m135',
 
    't_range' : {
-        'sigma' : [9,20],
-        'sigma_st' : [9,20],
-        'xi' :  [9,20],
-        'xi_st' : [9,20],
-        'lam' : [9,20],
+        'sigma' : [10,20],
+        'sigma_st' : [10,20],
+        'xi' :  [10,20],
+        'xi_st' : [10,20],
+        'lam' : [10,20],
         'pi' : [5,30],
         'kplus': [8,28],
-        'hyperons':   [9,20],
-        'all':   [9,20],
-
-
+        'hyperons':   [10,20],
+        'all':   [10,20]
+        },
+    'tag':{
+            'sigma' : 'sigma',
+            'sigma_st' : 'sigma_st',
+            'xi' :  'xi',
+            'xi_st' : 'xi_st',
+            'lam' : 'lam',
     },
 
-    'tag':{
-        'sigma' : 'sigma',
-        'sigma_st' : 'sigma_st',
-        'xi' :  'xi',
-        'xi_st' : 'xi_st',
-        'lam' : 'lam'
-        },
     'n_states' : {
         'sigma' : 2,
         'sigma_st' : 2,
@@ -39,8 +37,8 @@ p_dict = {
         'pi' : 2,
         'kplus': 2,
         'mesons':2,
-	    'hyperons'   :2,
-        'all':3
+	    'hyperons' :2,
+        'all':2
     },
     
     'make_plots' : True,

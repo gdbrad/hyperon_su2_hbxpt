@@ -30,7 +30,8 @@ def main():
     parser.add_argument('--fix_prior',help='optimize priors after first fit?',default=False,action='store_true')
     parser.add_argument('--pdf',help='generate a pdf and output plot?',default=False,action='store_true')
     parser.add_argument('--bs',help='perform bootstrapping?',default=False, action='store_true') 
-    parser.add_argument('--bsn',help='number of bs samples',type=int,default=2000) 
+    parser.add_argument('--bsn',help='number of bs samples',type=int,default=2000)
+    parser.add_argument('--bs_write',help='write bs file?',default=False,action='store_true') 
     parser.add_argument('--post',help='perform a final save of fit posterior to a pickle file',default=False,action='store_true')
 
 
@@ -71,14 +72,18 @@ def main():
     xi_st    = ld.get_raw_corr(file,p_dict['abbr'],particle='xi_star_z')
     sigma    = ld.get_raw_corr(file,p_dict['abbr'],particle='sigma_p')
     sigma_st = ld.get_raw_corr(file,p_dict['abbr'],particle='sigma_star_p')
-    delta = ld.get_raw_corr(file,p_dict['abbr'],particle='delta_pp')
+    delta    = ld.get_raw_corr(file,p_dict['abbr'],particle='delta_pp')
 
     ncfg     = xi['PS'].shape[0]
+    bs_list = bs.get_bs_list(Ndata=ncfg,Nbs=2000)
+
+    # hi = ld.resample_correlator(raw_corr=nucleon,bs_list=bs_list,n=2000)
+    # print(hi)
+
 
     model_type = args.fit_type
     prior = fp.prior
     # print(prior)
-
     
     if args.fit_type == 'hyperons':
         hyperons = fa.corr_fit_analysis(t_range=p_dict
@@ -124,30 +129,32 @@ def main():
         ['t_range'],simult=True,t_period=64,states=p_dict['hyperons'],p_dict=p_dict, 
         n_states=p_dict['n_states'],prior=prior, delta_corr_data=delta,
         nucleon_corr_data=nucleon,lam_corr_data=lam, xi_corr_data=xi,xi_st_corr_data=xi_st,
-        sigma_corr_data=sigma, sigma_st_corr_data=sigma_st,model_type=model_type)
-        print(all_baryons)
-        fit_out = all_baryons.get_fit()      
+        sigma_corr_data=sigma, sigma_st_corr_data=sigma_st,model_type="all")
+        # print(all_baryons)
+        fit_out = all_baryons.get_fit()
         out_path = 'fit_results/{0}/{1}/'.format(p_dict['abbr'],model_type)
         ld.pickle_out(fit_out=fit_out,out_path=out_path,species="baryon")
-        print(ld.print_posterior(out_path=out_path))
-
-
+        # print(ld.print_posterior(out_path=out_path))
 
         if args.pdf:
             plot1 = all_baryons.return_best_fit_info()
-            plot2 = all_baryons.plot_effective_mass(t_plot_min=0, t_plot_max=40,model_type=model_type, 
+            plot2 = all_baryons.plot_effective_mass(t_plot_min=0, t_plot_max=20,model_type=model_type, 
             show_plot=True,show_fit=True)
+            # plot3 = all_baryons.plot_stability(model_type='all',corr='proton',t_start=0,t_end=20,show_plot=True)
                 # plot3 = all_baryons.plot_effective_wf(model_type=model_type, t_plot_min=0, t_plot_max=40, 
                 # show_plot=True,show_fit=True)
 
             output_dir = 'fit_results/{0}/{1}_{0}'.format(p_dict['abbr'],model_type)
             output_pdf = output_dir+".pdf"
             with PdfPages(output_pdf) as pp:
-                        pp.savefig(plot1)                
-                        pp.savefig(plot2)
+                pp.savefig(plot1)                
+                pp.savefig(plot2)
                 # pp.savefig(plot3)
+            pp.close()
+            # output_pdf.close()
 
-            output_pdf.close()
+        # if args.bs:
+
    
         
     ''' xpt routines 

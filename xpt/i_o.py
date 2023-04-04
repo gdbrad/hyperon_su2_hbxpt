@@ -7,7 +7,8 @@ import os
 #import yaml
 import h5py
 
-# Set defaults for plots
+# Set de
+#faults for plots
 import matplotlib as mpl
 mpl.rcParams['lines.linewidth'] = 1
 mpl.rcParams['figure.figsize']  = (6.75, 6.75/1.618034333)
@@ -30,24 +31,31 @@ class InputOutput(object):
     def __init__(self):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
 
-        # add in defualt dict
-
-        with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
+        # bootstrapped hyperon correlator data
+        with h5py.File(project_path+'/data/hyperon_bs_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
 
-        with h5py.File(project_path+'/data/input_data.h5', 'r') as f: 
+        # bootstrapped scale setting data 
+        with h5py.File(project_path+'/data/scale_setting.h5', 'r') as f: 
             ens_in = sorted(list(f.keys()))
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
-        ensembles.remove('a12m220')
-        ensembles.remove('a12m220ms')
-        ensembles.remove('a12m310XL')
-        ensembles.remove('a12m220S')
-        ensembles.remove('a12m180L')
-
         self.ensembles = ensembles
         self.project_path = project_path
+
+    def get_scale_setting_data(self): 
+        bs_data = {}
+
+        with h5py.File(self.project_path+'/data/scale_setting.h5', 'r') as f: 
+            for ens in f:
+                bs_data[ens] = {}
+                bs_data[ens]['m_omega'] = f[ens]['omega_E_0'][:]
+                bs_data[ens]['m_pi'] = f[ens]['pion_E_0'][:]
+                bs_data[ens]['m_k'] = f[ens]['kaon_E_0'][:]
+                bs_data[ens]['mres-L'] = f[ens]['mres-L'][:]
+                bs_data[ens]['mres-S'] = f[ens]['mres-S'][:]
+        return bs_data
 
     # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
     def _get_bs_data(self, scheme=None, units=None):
@@ -61,7 +69,7 @@ class InputOutput(object):
             raise ValueError('Invalid scale setting scheme')
 
         data = {}
-        with h5py.File(self.project_path+'/data/input_data.h5', 'r') as f: 
+        with h5py.File(self.project_path+'/data/input_data.h5','r') as f: 
             for ens in self.ensembles:
                 data[ens] = {}
                 if scheme in ['w0_org','w0_imp'] and units=='phys':
@@ -73,15 +81,16 @@ class InputOutput(object):
                 data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L']
-                data[ens]['m_pi'] = f[ens]['mpi'][:]
-                data[ens]['m_k'] = f[ens]['mk'][:]
-                data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][:]
-                #data[ens]['units_Fpi'] = 1/data[ens]['lam_chi']
+                # data[ens]['m_pi'] = f[ens]['pion_E_0'][:]
+                # data[ens]['m_k'] = f[ens]['mk'][:]
+                data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][1:]
+                data[ens]['units_Fpi'] = 1/data[ens]['lam_chi'][1:]
 
                 # if units=='Fpi':
                 # #     #for data[ens]['units'] not in data[ens]['lam_chi']:
                 #     data[ens]['units'] =  #for removing lam_chi dependence of fits
 
+    
                 if scheme == 'w0_imp':
                     data[ens]['eps2_a'] = 1 / (2 *to_gvar(f[ens]['w0a_callat_imp']))**2
                 elif scheme ==  'w0_org':
@@ -91,24 +100,36 @@ class InputOutput(object):
                 elif scheme == 't0_org':
                     data[ens]['eps2_a'] = 1 / (4 *to_gvar(f[ens]['t0aSq']))
 
-        with h5py.File(self.project_path+'/data/hyperon_data.h5', 'r') as f:
+        with h5py.File(self.project_path+'/data/hyperon_bs_data.h5', 'r') as f:
             for ens in self.ensembles:
-                for obs in list(f[ens]):
+                for obs in ['lam_E0', 'sigma_E0', 'sigma_st_E0', 'xi_st_E0', 'xi_E0']:
+                    if units=='lam_chi':
+                        data[ens].update({obs: f[ens][obs][:] / data[ens]['lam_chi']})
                     data[ens].update({obs : f[ens][obs][:]})
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
 
+        with h5py.File(self.project_path+'/data/scale_setting.h5', 'r') as f: 
+            for ens in self.ensembles:
+                data[ens]['m_omega'] = f[ens]['omega_E_0'][:]
+                data[ens]['m_pi'] = f[ens]['pion_E_0'][:]
+                data[ens]['m_k'] = f[ens]['kaon_E_0'][:]
+                data[ens]['mres-L'] = f[ens]['mres-L'][:]
+                data[ens]['mres-S'] = f[ens]['mres-S'][:]
+    
         return data
 
 
     def get_data(self, scheme=None,units=None):
         bs_data = self._get_bs_data(scheme,units)
         phys_data = self.get_data_phys_point(param='m_proton')
+        scale_setting_data = self.get_scale_setting_data()
 
         gv_data = {}
         
-        dim1_obs = ['m_proton', 'm_delta', 'm_lambda', 'm_sigma', 'm_sigma_st', 'm_xi', 'm_xi_st', 'm_omega', 'm_pi', 'm_k', 'lam_chi']
+        dim1_obs = ['lam_E0', 'sigma_E0', 'sigma_st_E0', 'xi_st_E0', 'xi_E0',
+                    'm_omega', 'm_pi', 'm_k', 'lam_chi']
         for ens in self.ensembles:
             gv_data[ens] = {}
             for obs in dim1_obs:
@@ -130,6 +151,9 @@ class InputOutput(object):
 
 
     def get_data_phys_point(self, param=None):
+        '''
+        define physical point data
+        '''
         data_phys_point = {
             'eps2_a' : gv.gvar(0),
             'a' : gv.gvar(0),
@@ -141,7 +165,7 @@ class InputOutput(object):
             'm_pi' : gv.gvar('134.8(3)'), # '138.05638(37)'
             'm_k' : gv.gvar('494.2(3)'), # '495.6479(92)'
 
-            'm_lambda' : gv.gvar(1115.683, 0.006),
+            'm_lam' : gv.gvar(1115.683, 0.006),
             'm_sigma' : np.mean([gv.gvar(g) for g in ['1189.37(07)', '1192.642(24)', '1197.449(30)']]),
             'm_sigma_st' : np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']]),
             'm_xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
@@ -154,6 +178,9 @@ class InputOutput(object):
         return data_phys_point
 
     def get_posterior(self,fit_test=None,prior=None,param=None):
+        '''
+        get posteriors from resulting lsqfit multifitter object
+        '''
         if param == 'all':
             return fit_test.fit.p
         elif param is not None:
@@ -166,11 +193,14 @@ class InputOutput(object):
             return output
 
     def make_prior(self,data,prior):
+        '''
+        reconstruct priors with second set coming from the bootstrapped input data file
+        '''
         new_prior = {}
         for key in prior:
             new_prior[key] = prior[key]
-        for key in ['m_pi', 'm_k', 'lam_chi', 'eps2_a','m_delta']:
-            new_prior[key] = data[key]
+        # for key in ['m_pi', 'm_k', 'lam_chi', 'eps2_a','m_delta']:
+        #     new_prior[key] = data[key]
         return new_prior
 
 
