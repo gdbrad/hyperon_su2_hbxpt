@@ -29,9 +29,9 @@ mpl.rcParams['text.usetex'] = True
 #internal xpt modules
 import xpt.fit_routine as fit
 import xpt.i_o
-f = open('xpt/models.yaml', 'r')
-models = yaml.load(f,Loader=yaml.FullLoader)
-    #print(keys)
+# f = open('models.yaml', 'r')
+# models = yaml.load(f,Loader=yaml.FullLoader)
+#     #print(keys)
 
 class fit_analysis(object):
     

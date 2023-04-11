@@ -80,3 +80,10 @@ model_info['delta'] = True
 model_info['abbr'] = ['a12m180L']
 model_info['observable'] = ['delta_gmo'] #'centroid', 'octet'
 
+tag = {
+    'sigma': 'sigma',
+    'sigma_st': 'sigma_st',
+    'xi': 'xi',
+    'xi_st': 'xi_st',
+    'lam': 'lam',
+}

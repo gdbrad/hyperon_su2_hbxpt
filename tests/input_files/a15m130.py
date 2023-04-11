@@ -24,6 +24,13 @@ p_dict = {
 
 
     },
+    'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+    },
     'n_states' : {
         'sigma' : 2,
         'sigma_st' : 2,

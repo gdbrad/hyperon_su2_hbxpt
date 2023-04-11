@@ -64,3 +64,11 @@ prior['m_{delta,0}'] = gv.gvar(2,1)
 
 # TODO put prior routines in here, filename save options 
 priors = gv.BufferDict()
+
+tag = {
+    'sigma': 'sigma',
+    'sigma_st': 'sigma_st',
+    'xi': 'xi',
+    'xi_st': 'xi_st',
+    'lam': 'lam',
+}

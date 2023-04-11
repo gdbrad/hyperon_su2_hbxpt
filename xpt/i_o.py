@@ -32,15 +32,26 @@ class InputOutput(object):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
 
         # bootstrapped hyperon correlator data
-        with h5py.File(project_path+'/data/hyperon_bs_data.h5', 'r') as f:
+        with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
 
         # bootstrapped scale setting data 
-        with h5py.File(project_path+'/data/scale_setting.h5', 'r') as f: 
-            ens_in = sorted(list(f.keys()))
+        with h5py.File(project_path+'/data/scale_setting.h5', 'r') as ff: 
+            ens_in = sorted(list(ff.keys()))
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
+        print(ensembles)
+
+        ensembles.remove('a09m135')
+        # #ensembles.remove('a12m220')
+        # ensembles.remove('a12m220ms')
+        # ensembles.remove('a12m310XL')
+
+
+        # ensembles.remove('a12m220S')
+        # ensembles.remove('a12m180L')
+        # ensembles.remove('a15m135XL')
         self.ensembles = ensembles
         self.project_path = project_path
 
@@ -100,15 +111,15 @@ class InputOutput(object):
                 elif scheme == 't0_org':
                     data[ens]['eps2_a'] = 1 / (4 *to_gvar(f[ens]['t0aSq']))
 
-        with h5py.File(self.project_path+'/data/hyperon_bs_data.h5', 'r') as f:
+        with h5py.File(self.project_path+'/data/hyperon_data.h5', 'r') as ff:
             for ens in self.ensembles:
-                for obs in ['lam_E0', 'sigma_E0', 'sigma_st_E0', 'xi_st_E0', 'xi_E0']:
+                for obs in ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi']:
                     if units=='lam_chi':
-                        data[ens].update({obs: f[ens][obs][:] / data[ens]['lam_chi']})
-                    data[ens].update({obs : f[ens][obs][:]})
-                if ens+'_hp' in list(f):
-                    for obs in list(f[ens+'_hp']):
-                        data[ens].update({obs : f[ens+'_hp'][obs][:]})
+                        data[ens].update({obs: ff[ens][obs][:] / data[ens]['lam_chi']})
+                    data[ens].update({obs : ff[ens][obs][:]})
+                if ens+'_hp' in list(ff):
+                    for obs in list(ff[ens+'_hp']):
+                        data[ens].update({obs : ff[ens+'_hp'][obs][:]})
 
         with h5py.File(self.project_path+'/data/scale_setting.h5', 'r') as f: 
             for ens in self.ensembles:
@@ -128,7 +139,7 @@ class InputOutput(object):
 
         gv_data = {}
         
-        dim1_obs = ['lam_E0', 'sigma_E0', 'sigma_st_E0', 'xi_st_E0', 'xi_E0',
+        dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi',
                     'm_omega', 'm_pi', 'm_k', 'lam_chi']
         for ens in self.ensembles:
             gv_data[ens] = {}

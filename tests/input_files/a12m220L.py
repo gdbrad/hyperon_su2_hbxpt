@@ -36,6 +36,13 @@ p_dict = {
         'all':2
 
     },
+    'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+    },
     
     'make_plots' : True,
     'save_prior' : False,

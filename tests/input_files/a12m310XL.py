@@ -4,8 +4,7 @@ p_dict = {
     'part' : ['delta_pp', 'kplus', 'lambda_z', 'omega_m', 'piplus', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'particles' : ['proton'],
     'meson_states' : ['piplus','kplus'],
-    'gmo_states': ['sigma_p','lambda_z','proton','xi_z'], #states for gmo study
-    'gmo_states_all' : ['gmo_num','delta','sigma_p','lambda_z','proton','xi_z','piplus','kplus'],
+    'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
 
@@ -18,9 +17,7 @@ p_dict = {
         'gmo' : [2,10], 
         'pi' : [5,30],
         'kplus': [8,28],
-	    'gmo_ratio':[6,15],
-        'simult_baryons': [4,15],
-        'simult_baryons_gmo':[4,15]
+        'hyperons':   [5,15],
     },
     'n_states' : {
         'sigma' : 2,
@@ -31,9 +28,7 @@ p_dict = {
         'gmo':2,
         'pi' : 2,
         'kplus': 2,
-	    'gmo_ratio':2,
-        'simult_baryons':2,
-        'simult_baryons_gmo':2
+	    'hyperons':2
 
     },
     
@@ -64,3 +59,11 @@ prior['m_{delta,0}'] = gv.gvar(2,1)
 
 # TODO put prior routines in here, filename save options 
 priors = gv.BufferDict()
+
+tag = {
+    'sigma': 'sigma',
+    'sigma_st': 'sigma_st',
+    'xi': 'xi',
+    'xi_st': 'xi_st',
+    'lam': 'lam',
+}

@@ -1,7 +1,7 @@
 models:
 
   xi_system:
-    s_n2lo:d_n2lo:x_n2lo:l_n2lo:
+    xi:xi_st:s_n2lo:d_n2lo:x_n2lo:l_n2lo:w0imp:fv:xpt:
       particles: [xi, xi_st]
       eps2a_defn: w0_imp
       order_chiral: n2lo

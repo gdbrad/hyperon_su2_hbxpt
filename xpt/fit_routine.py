@@ -8,9 +8,41 @@ import xpt.non_analytic_functions as naf
 import xpt.i_o
 
 
-class FitRoutine():
+class FitRoutine:
+    """
+    The `FitRoutine` class is designed to fit models to data using least squares fitting.
+    It takes in the prior information, data, model information, and options for empirical Bayes analysis.
 
-    def __init__(self, prior, data, model_info):
+    Attributes:
+        prior (dict): A dictionary containing prior information for the fit.
+        data (dict): A dictionary containing the data to be fit. The keys correspond to the names of the
+                     data types(baryon correlators), and the values are arrays of the data.
+        model_info (dict): A dictionary containing the information about the model to be fit.
+        empbayes (bool): A boolean indicating whether to perform empirical Bayes analysis.
+        empbayes_grouping (list): A list of dictionaries containing information about how to group the data
+                                  for the empirical Bayes analysis.
+        _fit (tuple): A tuple containing the fit results. The first element is a dictionary of the fit
+                      parameters, and the second element is a dictionary of the fit errors.
+        _simultaneous (bool): A boolean indicating whether to fit data simultaneously.
+        _posterior (dict): A dictionary containing information about the posterior distribution of the fit.
+        _empbayes_fit (tuple): A tuple containing the empirical Bayes fit results. The first element is the
+                               empirical Bayes prior, and the second element is a dictionary of the fit
+                               parameters.
+
+    Methods:
+        __init__(self, prior, data, model_info, empbayes, empbayes_grouping):
+            Constructor method for the `FitRoutine` class.
+        __str__(self):
+            String representation of the fit.
+        fit(self):
+            Method to perform the fit. Returns the fit results as a tuple.
+        _make_models(self):
+            Method to create models.
+        _make_prior(self):
+            Method to create prior information.
+    """
+
+    def __init__(self, prior, data, model_info,emp_bayes,empbayes_grouping):
 
         self.prior = prior
         self.data = data
@@ -18,8 +50,8 @@ class FitRoutine():
         self._fit = None
         self._simultaneous = False
         self._posterior = None
-
-        self.empbayes = None
+        self.emp_bayes = False #boolean
+        self.empbayes_grouping = None #groups for empirical bayes prior study
         self._empbayes_fit = None
         # self.y = {datatag: self.data['m_'+datatag]
         #           for datatag in self.model_info['particles']}
@@ -34,54 +66,76 @@ class FitRoutine():
             models = self._make_models()
             prior = self._make_prior()
             data = self.data
-
             fitter = lsqfit.MultiFitter(models=models)
             fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False)
-
             self._fit = fit
+            if self.emp_bayes:
 
+                self._empbayes_fit = self._make_empbayes_fit()
+                return self._empbayes_fit
+    
         return self._fit
 
-    def _empbayes(self):
+    def _empbayes_grouping(self):
+        '''
+        routine adapted from @millernb
+        '''
         zkeys = {}
 
-        if self.empbayes == 'all':
+        if self.empbayes_grouping == 'all':
             for param in self.prior:
                 zkeys[param] = [param]
 
         # include particle choice xi or xi_st to fill inside bracket
-        elif self.empbayes == 'order':
-            zkeys['chiral_n0lo'] = ['m_{xi,0}', 'm_{xi_st,0}']
+        elif self.empbayes_grouping == 'order':
+            # vary all light quark terms together, strange terms together
+            zkeys['chiral_llo'] = ['m_{xi,0}', 'm_{xi_st,0}']
             zkeys['chiral_lo'] = ['s_{xi}', 's_{xi,bar}']
             zkeys['chiral_nlo'] = ['g_{xi,xi}',
                                    'g_{xi_st,xi}', 'g_{xi_st,xi_st}']
             zkeys['chiral_n2lo'] = [
                 'b_{xi,4}', 'b_{xi_st,4}', 'a_{xi,4}', 'a_{xi_st,4}']
-            zkeys['latt_nlo'] = ['d_{xi,a}',
+            zkeys['disc_nlo'] = ['d_{xi,a}',
                                  'd_{xi_st,a}', 'd_{xi,s}', 'd_{xi_st,s}']
-            zkeys['latt_n2lo'] = [
+            zkeys['disc_n2lo'] = [
                 'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}']
 
         # discretization effects
-        # could just zip the chiral and latt dicts above...
-        elif self.empbayes == 'disc':
+        elif self.empbayes_grouping == 'disc':
             zkeys['chiral'] = ['m_{xi,0}', 'm_{xi_st,0}', 's_{xi}', 's_{xi,bar}', 'g_{xi,xi}', 'g_{xi_st,xi}', 'g_{xi_st,xi_st}',
                                'b_{xi,4}', 'b_{xi_st,4}', 'a_{xi,4}', 'a_{xi_st,4}']
             zkeys['disc'] = ['d_{xi,a}', 'd_{xi_st,a}', 'd_{xi,s}', 'd_{xi_st,s}',
                              'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}']
+            
+        elif self.empbayes_grouping == 'disc_only':
+            zkeys['disc'] = ['d_{xi,a}', 'd_{xi_st,a}', 'd_{xi,s}', 'd_{xi_st,s}',
+                             'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}']
+            
 
-        all_keys = np.array([k for g in zkeys for k in zkeys[g]])
+        all_keys = [k for g in zkeys for k in zkeys[g]]
         prior_keys = list(self._make_prior())
+        print(prior_keys)
+        ignored_keys = set(all_keys) - set(prior_keys)
+
+        # Don't determine empirical priors in param not in model
+        for group in zkeys:
+            for key in ignored_keys:
+                if key in ignored_keys and key in zkeys[group]:
+                    zkeys[group].remove(key)
+
+        print(zkeys)
 
         return zkeys
 
-    def _make_empbayes_fit(self, empbayes_grouping='order'):
-        if (self._empbayes_fit is None) or (empbayes != self.empbayes):
-            self.empbayes = empbayes
+    def _make_empbayes_fit(self, empbayes_grouping='disc',observable=None):
+        if (self._empbayes_fit is None) or (empbayes_grouping != self.empbayes_grouping):
+            self.empbayes_grouping = empbayes_grouping
 
             z0 = gv.BufferDict()
-            for group in self._empbayes():
+            for group in self._empbayes_grouping():
                 z0[group] = 1.0
+
+            print(z0)
 
             # Might need to change minargs default values for empbayes_fit to converge:
             # tol=1e-8, svdcut=1e-12, debug=False, maxit=1000, add_svdnoise=False, add_priornoise=False
@@ -91,8 +145,7 @@ class FitRoutine():
             # For debugging. Same as 'callback':
             # https://github.com/scipy/scipy/blob/c0dc7fccc53d8a8569cde5d55673fca284bca191/scipy/optimize/optimize.py#L651
 
-            fit, z = lsqfit.empbayes_fit(
-                z0, fitargs=self._make_fitargs, maxit=200, analyzer=None)
+            fit, z = lsqfit.empbayes_fit(z0, fitargs=self._make_fitargs, maxit=200, analyzer=None)
             print(z)
             self._empbayes_fit = fit
 
@@ -118,7 +171,7 @@ class FitRoutine():
 
         def capped(x, x_min, x_max): return np.max([np.min([x, x_max]), x_min])
 
-        zkeys = self._empbayes()
+        zkeys = self._empbayes_grouping()
         zmin = 1e-2
         zmax = 1e3
         for group in z.keys():
@@ -127,10 +180,42 @@ class FitRoutine():
                     z[group] = sig_fig(capped(z[group], zmin, zmax))
                     prior[param] = gv.gvar(0, 1) * z[group]
 
-        fitfcn = self._make_models()[-1].fitfcn
-        # print(self._counter['iters'], ' ', z)#{key : np.round(1. / z[key], 8) for key in z.keys()}
+        return dict(prior=prior,data=data)
+    
+    
+    @property
+    def posterior(self):
+        return self._get_posterior()
 
-        return (dict(data=data, fcn=fitfcn, prior=prior))
+    def _get_posterior(self,param=None):
+        #output = {}
+        #return self.fit.p
+        if param == 'all':
+            return self.fit.p
+        elif param is not None:
+            return self.fit.p[param]
+        # elif param =='fpi':
+        #     return self.fitter_fpi.fit.p
+        else:
+            output = {}
+            for param in self.prior:
+                if param in self.fit.p:
+                    output[param] = self.fit.p[param]
+            return output  
+
+    def get_fitfcn(self,p=None,data=None,particle=None):
+        output = {}
+        if p is None:
+            p = {}
+            p.update(self.posterior)
+        for mdl in self._make_models(model_info=self.model_info):
+            part = mdl.datatag
+            output[part] = mdl.fitfcn(p)
+
+        if particle is None:
+            return output
+        else:
+            return output[particle]
 
     def _make_models(self, model_info=None):
         if model_info is None:
@@ -139,27 +224,27 @@ class FitRoutine():
         models = np.array([])
 
         if 'xi' in model_info['particles']:
-            models = np.append(models, Xi(datatag='xi_E0', model_info=model_info))
+            models = np.append(models, Xi(datatag='m_xi', model_info=model_info))
 
         if 'xi_st' in model_info['particles']:
             models = np.append(models, Xi_st(
-                datatag='xi_st_E0', model_info=model_info))
+                datatag='m_xi_st', model_info=model_info))
 
         if 'lambda' in model_info['particles']:
             models = np.append(models, Lambda(
-                datatag='lam_E0', model_info=model_info))
+                datatag='m_lambda', model_info=model_info))
 
         if 'sigma' in model_info['particles']:
             models = np.append(models, Sigma(
-                datatag='sigma_E0', model_info=model_info))
+                datatag='m_sigma', model_info=model_info))
 
         if 'sigma_st' in model_info['particles']:
             models = np.append(models, Sigma_st(
-                datatag='sigma_st_E0', model_info=model_info))
+                datatag='m_sigma_st', model_info=model_info))
 
         if 'omega' in model_info['particles']:
             models = np.append(models, Omega(
-                datatag='omega', model_info=model_info))
+                datatag='m_omega', model_info=model_info))
 
         return models
 
@@ -184,7 +269,7 @@ class FitRoutine():
                 if value == 'llo':
                     orders = ['llo']
                 elif value == 'lo':
-                    orders == ['llo', 'lo']
+                    orders = ['llo', 'lo']
                 elif value == 'nlo':
                     orders = ['llo', 'lo', 'nlo']
                 elif value == 'n2lo':

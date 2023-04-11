@@ -2,7 +2,7 @@ import gvar as gv
 import numpy as np 
 p_dict = {
     'abbr': 'a09m310_o',
-    'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
+    'hyperons' : ['lambda_z','sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'meson_states' : ['piplus','kplus'],
     'simult_baryons': ['sigma_p','lambda_z','proton','xi_z'],
     'srcs'     :['S'],

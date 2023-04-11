@@ -78,4 +78,12 @@ prior = {
 # prior['m_{piplus,0}'] = gv.gvar(.25,.1)
 # prior['m_{delta,0}'] = gv.gvar(2,1)
 
-# TODO put prior routines in here, filename save options 
+# TODO put prior routines in here, filename save options
+
+tag = {
+    'sigma': 'sigma',
+    'sigma_st': 'sigma_st',
+    'xi': 'xi',
+    'xi_st': 'xi_st',
+    'lam': 'lam',
+}
