@@ -50,130 +50,68 @@ models:
       order_light: nlo
       xpt: True
       fv: True
+  lam_sigma_system:
 
+    lam:sigma:sigma_st:s_n2lo:d_n2lo:x_n2lo:l_n2lo:
+      particles : [lambda]
+      eps2a_defn : w0_imp
+      order_chiral  : n2lo
+      order_disc : n2lo
+      order_strange : n2lo
+      order_light: n2lo
+      xpt : True
+      fv : True
 
-  # lam:sigma:sigma_st:s_n2lo:d_n2lo:x_n2lo:
-  #   particles : [lam, sigma, sigma_st]
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : n2lo
-  #   order_disc : n2lo
-  #   order_strange : n2lo
-  #   xpt : True
-  #   fv : True
+    lam:sigma:sigma_st:s_n2lo:d_n2lo:x_nlo:
+      particles : [lam, sigma, sigma_st]
+      eps2a_defn : w0_imp
+      order_chiral  : nlo
+      order_disc : n2lo
+      order_strange : n2lo
+      xpt : True
+      fv : True
 
-  # lam:sigma:sigma_st:s_n2lo:d_n2lo:x_nlo:
-  #   particles : [lam, sigma, sigma_st]
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : nlo
-  #   order_disc : n2lo
-  #   order_strange : n2lo
-  #   xpt : True
-  #   fv : True
+    lam:sigma:sigma_st:s_n2lo:d_nlo:x_nlo:
+      particles : [lam, sigma, sigma_st]
+      eps2a_defn : w0_imp
+      order_chiral  : nlo
+      order_disc : nlo
+      order_strange : n2lo
+      xpt : True
+      fv : True
 
-  # lam:sigma:sigma_st:s_n2lo:d_nlo:x_nlo:
-  #   particles : [lam, sigma, sigma_st]
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : nlo
-  #   order_disc : nlo
-  #   order_strange : n2lo
-  #   xpt : True
-  #   fv : True
+    lam:sigma:sigma_st:s_nlo:d_nlo:x_nlo:
+      particles : [lam, sigma, sigma_st]
+      eps2a_defn : w0_imp
+      order_chiral  : nlo
+      order_disc : nlo
+      order_strange : nlo
+      xpt : True
+      fv : True
 
-  # lam:sigma:sigma_st:s_nlo:d_nlo:x_nlo:
-  #   particles : [lam, sigma, sigma_st]
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : nlo
-  #   order_disc : nlo
-  #   order_strange : nlo
-  #   xpt : True
-  #   fv : True
+    lam:sigma:sigma_st:s_nlo:d_nlo:x_lo:
+      particles : [lam, sigma, sigma_st]
+      eps2a_defn : w0_imp
+      order_chiral  : lo
+      order_disc : nlo
+      order_strange : nlo
+      xpt : True
+      fv : True
 
-  # lam:sigma:sigma_st:s_nlo:d_nlo:x_lo:
-  #   particles : [lam, sigma, sigma_st]
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : lo
-  #   order_disc : nlo
-  #   order_strange : nlo
-  #   xpt : True
-  #   fv : True
+    lam:sigma:sigma_st:s_nlo:d_lo:x_lo:
+      particles : [lam, sigma, sigma_st]
+      eps2a_defn : w0_imp
+      order_chiral  : lo
+      order_disc : lo
+      order_strange : nlo
+      xpt : True
+      fv : True
 
-  # lam:sigma:sigma_st:s_nlo:d_lo:x_lo:
-  #   particles : [lam, sigma, sigma_st]
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : lo
-  #   order_disc : lo
-  #   order_strange : nlo
-  #   xpt : True
-  #   fv : True
-
-  # lam:sigma:sigma_st:s_lo:d_lo:x_lo:
-  #   particles : [lam, sigma, sigma_st]
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : lo
-  #   order_disc : lo
-  #   order_strange : lo
-  #   xpt : True
-  #   fv : True
-
-  # omega:s_n2lo:d_n2lo:x_n2lo:
-  #   particles : omega
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : n2lo
-  #   order_disc : n2lo
-  #   order_strange : n2lo
-  #   xpt : True
-  #   fv : True
-
-  # omega:s_n2lo:d_n2lo:x_nlo:
-  #   particles : omega
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : nlo
-  #   order_disc : n2lo
-  #   order_strange : n2lo
-  #   xpt : True
-  #   fv : True
-
-  # omega:s_n2lo:d_nlo:x_nlo:
-  #   particles : omega
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : nlo
-  #   order_disc : nlo
-  #   order_strange : n2lo
-  #   xpt : True
-  #   fv : True
-
-  # omega:s_nlo:d_nlo:x_nlo:
-  #   particles : omega
-  #   eps2a_defn : w0_imp
-  #   order_chiral  : nlo
-  #   order_disc : nlo
-  #   order_strange : nlo
-  #   xpt : True
-  #   fv : True
-
-  # omega:s_nlo:d_nlo:x_lo:
-  #   particles : omega
-  #   eps2a_defn : w0_imp
-  #   order_chiral : lo
-  #   order_disc : nlo
-  #   order_strange : nlo
-  #   xpt : True
-  #   fv : True
-
-  # omega:s_nlo:d_lo:x_lo:
-  #   particles : omega
-  #   eps2a_defn : w0_imp
-  #   order_chiral : lo
-  #   order_disc : lo
-  #   order_strange : nlo
-  #   xpt : True
-  #   fv : True
-
-  # omega:s_lo:d_lo:x_lo:
-  #   particles : omega
-  #   eps2a_defn : w0_imp
-  #   order_chiral : lo
-  #   order_disc : lo
-  #   order_strange : lo
-  #   xpt : True
-  #   fv : True
+    lam:sigma:sigma_st:s_lo:d_lo:x_lo:
+      particles : [lam, sigma, sigma_st]
+      eps2a_defn : w0_imp
+      order_chiral  : lo
+      order_disc : lo
+      order_strange : lo
+      xpt : True
+      fv : True

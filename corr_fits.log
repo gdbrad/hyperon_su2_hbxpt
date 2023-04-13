@@ -1,0 +1,1514 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022/Arch Linux) (preloaded format=pdflatex 2023.3.10)  30 MAR 2023 20:55
+entering extended mode
+ restricted \write18 enabled.
+ file:line:error style messages enabled.
+ %&-line parsing enabled.
+**/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex
+(/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex
+LaTeX2e <2021-11-15> patch level 1
+L3 programming layer <2022-04-10> (/usr/share/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2021/10/04 v1.4n Standard LaTeX document class
+(/usr/share/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2021/10/04 v1.4n Standard LaTeX file (size option)
+)
+\c@part=\count185
+\c@section=\count186
+\c@subsection=\count187
+\c@subsubsection=\count188
+\c@paragraph=\count189
+\c@subparagraph=\count190
+\c@figure=\count191
+\c@table=\count192
+\abovecaptionskip=\skip47
+\belowcaptionskip=\skip48
+\bibindent=\dimen138
+) (/usr/share/texmf-dist/tex/latex/geometry/geometry.sty
+Package: geometry 2020/01/02 v5.9 Page Geometry
+ (/usr/share/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks16
+) (/usr/share/texmf-dist/tex/generic/iftex/ifvtex.sty
+Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
+ (/usr/share/texmf-dist/tex/generic/iftex/iftex.sty
+Package: iftex 2022/02/03 v1.0f TeX engine tests
+))
+\Gm@cnth=\count193
+\Gm@cntv=\count194
+\c@Gm@tempcnt=\count195
+\Gm@bindingoffset=\dimen139
+\Gm@wd@mp=\dimen140
+\Gm@odd@mp=\dimen141
+\Gm@even@mp=\dimen142
+\Gm@layoutwidth=\dimen143
+\Gm@layoutheight=\dimen144
+\Gm@layouthoffset=\dimen145
+\Gm@layoutvoffset=\dimen146
+\Gm@dimlist=\toks17
+) (/usr/share/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+File: l3backend-pdftex.def 2022-04-14 L3 backend support: PDF output (pdfTeX)
+\l__color_backend_stack_int=\count196
+\l__pdf_internal_box=\box50
+) (./corr_fits.aux)
+\openout1 = `corr_fits.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 8.
+LaTeX Font Info:    ... okay on input line 8.
+
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+*geometry* verbose mode - [ preamble ] result:
+* driver: pdftex
+* paper: a4paper
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* modes: landscape 
+* h-part:(L,W,R)=(97.30843pt, 650.43pt, 97.30843pt)
+* v-part:(T,H,B)=(7.73914pt, 578.15999pt, 11.60875pt)
+* \paperwidth=845.04684pt
+* \paperheight=597.50787pt
+* \textwidth=650.43pt
+* \textheight=578.15999pt
+* \oddsidemargin=25.03844pt
+* \evensidemargin=25.03844pt
+* \topmargin=-101.53085pt
+* \headheight=12.0pt
+* \headsep=25.0pt
+* \topskip=10.0pt
+* \footskip=30.0pt
+* \marginparwidth=65.0pt
+* \marginparsep=11.0pt
+* \columnsep=10.0pt
+* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumnfalse
+* \@twosidefalse
+* \@mparswitchfalse
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
+[1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 32.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 32.
+ [2]
+Overfull \hbox (96.93286pt too wide) in paragraph at lines 106--146
+ [][] 
+ []
+
+[3
+
+]
+Overfull \hbox (94.43285pt too wide) in paragraph at lines 155--193
+ [][] 
+ []
+
+[4
+
+] [5
+
+]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:262: Missing $ inserted.
+<inserted text> 
+                $
+l.262  a09m220_
+               o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:263: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.263  &
+         {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:263: Missing $ inserted.
+<inserted text> 
+                $
+l.263  &
+         {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:263: Missing } inserted.
+<inserted text> 
+                }
+l.263  &
+         {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:268: Missing $ inserted.
+<inserted text> 
+                $
+l.268  a09m310_
+               o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:269: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.269   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:269: Missing $ inserted.
+<inserted text> 
+                $
+l.269   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:269: Missing } inserted.
+<inserted text> 
+                }
+l.269   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Overfull \hbox (6.87498pt too wide) in paragraph at lines 246--282
+ [][] 
+ []
+
+[6]
+Overfull \hbox (130.26614pt too wide) in paragraph at lines 290--327
+ [][] 
+ []
+
+[7]
+Overfull \hbox (132.76619pt too wide) in paragraph at lines 336--375
+ [][] 
+ []
+
+[8
+
+]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:406: Missing $ inserted.
+<inserted text> 
+                $
+l.406  a12m220_
+               {ms}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:407: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.407   &
+          {0.555(44)}   &   {0.696(93)} & {0.6957(36)}   & {0.99(12)}   & {0...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:407: Missing $ inserted.
+<inserted text> 
+                $
+l.407   &
+          {0.555(44)}   &   {0.696(93)} & {0.6957(36)}   & {0.99(12)}   & {0...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:407: Missing } inserted.
+<inserted text> 
+                }
+l.407   &
+          {0.555(44)}   &   {0.696(93)} & {0.6957(36)}   & {0.99(12)}   & {0...
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Overfull \hbox (116.76163pt too wide) in paragraph at lines 384--426
+ [][] 
+ []
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:449: Missing $ inserted.
+<inserted text> 
+                $
+l.449  a12m220_
+               {ms}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:450: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.450   &
+          {}   &   {} & {}  \\
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:450: Missing $ inserted.
+<inserted text> 
+                $
+l.450   &
+          {}   &   {} & {}  \\
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:450: Missing } inserted.
+<inserted text> 
+                }
+l.450   &
+          {}   &   {} & {}  \\
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[9
+
+]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:482: Missing $ inserted.
+<inserted text> 
+                $
+l.482  a12m220_
+               {ms}
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:483: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.483   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:483: Missing $ inserted.
+<inserted text> 
+                $
+l.483   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:483: Missing } inserted.
+<inserted text> 
+                }
+l.483   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:485: Missing $ inserted.
+<inserted text> 
+                $
+l.485  a12m220_
+               o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:486: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.486   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:486: Missing $ inserted.
+<inserted text> 
+                $
+l.486   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:486: Missing } inserted.
+<inserted text> 
+                }
+l.486   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[10]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:541: Missing $ inserted.
+<inserted text> 
+                $
+l.541  a15m310L_
+                o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:542: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.542   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:542: Missing $ inserted.
+<inserted text> 
+                $
+l.542   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:542: Missing } inserted.
+<inserted text> 
+                }
+l.542   &
+          {}   &   {} & {}   & {}   & {}  & {}   & {}  & {}  & {}  & {}  &  \\
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+[11]
+Overfull \hbox (126.09953pt too wide) in paragraph at lines 560--599
+ [][] 
+ []
+
+[12]
+Overfull \hbox (116.0995pt too wide) in paragraph at lines 607--645
+ [][] 
+ []
+
+[13
+
+]
+Overfull \hbox (126.09953pt too wide) in paragraph at lines 655--694
+ [][] 
+ []
+
+[14
+
+]
+Overfull \hbox (116.0995pt too wide) in paragraph at lines 702--740
+ [][] 
+ []
+
+[15
+
+]
+Overfull \hbox (258.50531pt too wide) in paragraph at lines 750--845
+ [][] 
+ []
+
+
+LaTeX Warning: Float too large for page by 216.80838pt on input line 845.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[16
+
+
+]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:858: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.858   &   &   &  &
+                         \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:861: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.861  &  & & &
+                    \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:864: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.864   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:867: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.867   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:870: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.870   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:873: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.873   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:876: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.876   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:879: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.879   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:882: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.882   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:885: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.885   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:888: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.888   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:891: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.891  &  & & &
+                    \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:894: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.894   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:897: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.897  &  & & &
+                    \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:900: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.900   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:903: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.903   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:906: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.906   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:909: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.909   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:912: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.912   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:915: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.915  &  & & &
+                    \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:918: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.918   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:921: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.921   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:924: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.924   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:927: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.927   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:930: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.930   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:933: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.933   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:936: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.936   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:939: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.939   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:942: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.942   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:945: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.945   &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+
+LaTeX Warning: Float too large for page by 204.80838pt on input line 948.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[17] [18]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:985: Missing $ inserted.
+<inserted text> 
+                $
+l.985  a15m310L_
+                o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:986: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.986  &
+         {0.8108(32)}   &   {1.37(15)} & {0.9857(12)}   & {1.675(62)}   & {0...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:986: Missing $ inserted.
+<inserted text> 
+                $
+l.986  &
+         {0.8108(32)}   &   {1.37(15)} & {0.9857(12)}   & {1.675(62)}   & {0...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:986: Missing } inserted.
+<inserted text> 
+                }
+l.986  &
+         {0.8108(32)}   &   {1.37(15)} & {0.9857(12)}   & {1.675(62)}   & {0...
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Overfull \hbox (243.70401pt too wide) in paragraph at lines 957--999
+ [][] 
+ []
+
+[19
+
+]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1012: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1012   &   &   &  &
+                          \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1015: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1015  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1018: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1018   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1021: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1021   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1024: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1024   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1027: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1027   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1030: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1030   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1033: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1033   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1036: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1036   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1039: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1039   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1042: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1042   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1045: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1045  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1048: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1048   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1051: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1051  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1054: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1054   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1057: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1057   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1060: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1060   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1063: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1063   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1066: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1066   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1069: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1069  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1072: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1072   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1075: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1075   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1078: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1078   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1081: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1081   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1084: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1084   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1087: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1087   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1090: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1090   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1093: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1093   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1096: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1096   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1099: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1099   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+
+LaTeX Warning: Float too large for page by 204.80838pt on input line 1102.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[20]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1127: Missing $ inserted.
+<inserted text> 
+                $
+l.1127  a09m220_
+                o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1128: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.1128  &
+          {0.4407(32)}   &   {0.748(75)} & {0.5837(10)}   & {0.999(60)}   & ...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1128: Missing $ inserted.
+<inserted text> 
+                $
+l.1128  &
+          {0.4407(32)}   &   {0.748(75)} & {0.5837(10)}   & {0.999(60)}   & ...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1128: Missing } inserted.
+<inserted text> 
+                }
+l.1128  &
+          {0.4407(32)}   &   {0.748(75)} & {0.5837(10)}   & {0.999(60)}   & ...
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1133: Missing $ inserted.
+<inserted text> 
+                $
+l.1133  a09m310_
+                o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1134: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.1134   &
+           {0.4928(27)}   &   {0.86(11)} & {0.6028(15)}   & {0.959(98)}   & ...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1134: Missing $ inserted.
+<inserted text> 
+                $
+l.1134   &
+           {0.4928(27)}   &   {0.86(11)} & {0.6028(15)}   & {0.959(98)}   & ...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1134: Missing } inserted.
+<inserted text> 
+                }
+l.1134   &
+           {0.4928(27)}   &   {0.86(11)} & {0.6028(15)}   & {0.959(98)}   & ...
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1151: Missing $ inserted.
+<inserted text> 
+                $
+l.1151  a12m220_
+                o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1152: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.1152   &
+           {0.6186(54)}   &   {0.96(16)} & {0.7878(29)}   & {1.12(15)}   & {...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1152: Missing $ inserted.
+<inserted text> 
+                $
+l.1152   &
+           {0.6186(54)}   &   {0.96(16)} & {0.7878(29)}   & {1.12(15)}   & {...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1152: Missing } inserted.
+<inserted text> 
+                }
+l.1152   &
+           {0.6186(54)}   &   {0.96(16)} & {0.7878(29)}   & {1.12(15)}   & {...
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1166: Missing $ inserted.
+<inserted text> 
+                $
+l.1166  a15m310L_
+                 o
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1167: Extra }, or forgotten $.
+<template> \unskip \hfil }
+                          \hskip \tabcolsep \hskip -.5\arrayrulewidth \vrule...
+l.1167   &
+           {0.8036(61)}   &   {1.16(11)} & {0.9829(27)}   & {1.35(11)}   & {...
+I've deleted a group-closing symbol because it seems to be
+spurious, as in `$x}$'. But perhaps the } is legitimate and
+you forgot something else, as in `\hbox{$x}'. In such cases
+the way to recover is to insert both the forgotten and the
+deleted material, e.g., by typing `I$}'.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1167: Missing $ inserted.
+<inserted text> 
+                $
+l.1167   &
+           {0.8036(61)}   &   {1.16(11)} & {0.9829(27)}   & {1.35(11)}   & {...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1167: Missing } inserted.
+<inserted text> 
+                }
+l.1167   &
+           {0.8036(61)}   &   {1.16(11)} & {0.9829(27)}   & {1.35(11)}   & {...
+I've inserted something that you may have forgotten.
+(See the <inserted text> above.)
+With luck, this will get me unwedged. But if you
+really didn't forget anything, try typing `2' now; then
+my insertion and my current dilemma will both disappear.
+
+
+Overfull \hbox (98.15808pt too wide) in paragraph at lines 1114--1177
+ [][] 
+ []
+
+[21
+
+
+]
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1191: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1191   &   &   &  &
+                          \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1194: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1194  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1197: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1197   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1200: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1200   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1203: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1203   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1206: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1206   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1209: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1209   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1212: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1212   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1215: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1215   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1218: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1218   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1221: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1221   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1224: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1224  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1227: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1227   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1230: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1230  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1233: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1233   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1236: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1236   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1239: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1239   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1242: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1242   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1245: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1245   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1248: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1248  &  & & &
+                     \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1251: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1251   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1254: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1254   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1257: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1257   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1260: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1260   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1263: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1263   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1266: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1266   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1269: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1269   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1272: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1272   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1275: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1275   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+/home/gmoney/lqcd/hyperon-xpt-master/corr_fits.tex:1278: Extra alignment tab has been changed to \cr.
+<recently read> \endtemplate 
+                             
+l.1278   &  & & &
+                      \\
+You have given more \span or & marks than there were
+in the preamble to the \halign or \valign now in progress.
+So I'll assume that you meant to type \cr instead.
+
+
+LaTeX Warning: Float too large for page by 204.80838pt on input line 1281.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[22] (./corr_fits.aux) ) 
+Here is how much of TeX's memory you used:
+ 1042 strings out of 478238
+ 17921 string characters out of 5850456
+ 381030 words of memory out of 5000000
+ 19342 multiletter control sequences out of 15000+600000
+ 470507 words of font info for 32 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 55i,10n,62p,236b,217s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb>
+Output written on corr_fits.pdf (22 pages, 137317 bytes).
+PDF statistics:
+ 116 PDF objects out of 1000 (max. 8388607)
+ 75 compressed objects within 1 object stream
+ 0 named destinations out of 1000 (max. 500000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+

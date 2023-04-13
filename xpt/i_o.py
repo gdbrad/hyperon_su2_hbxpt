@@ -95,7 +95,7 @@ class InputOutput(object):
                 # data[ens]['m_pi'] = f[ens]['pion_E_0'][:]
                 # data[ens]['m_k'] = f[ens]['mk'][:]
                 data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][1:]
-                data[ens]['units_Fpi'] = 1/data[ens]['lam_chi'][1:]
+                data[ens]['units_Fpi'] = 1/data[ens]['lam_chi'][:]
 
                 # if units=='Fpi':
                 # #     #for data[ens]['units'] not in data[ens]['lam_chi']:
@@ -115,8 +115,8 @@ class InputOutput(object):
             for ens in self.ensembles:
                 for obs in ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi']:
                     if units=='lam_chi':
-                        data[ens].update({obs: ff[ens][obs][:] / data[ens]['lam_chi']})
-                    data[ens].update({obs : ff[ens][obs][:]})
+                        data[ens].update({obs: ff[ens][obs][:] *data[ens]['units_Fpi']})
+                    # data[ens].update({obs : ff[ens][obs][:]})
                 if ens+'_hp' in list(ff):
                     for obs in list(ff[ens+'_hp']):
                         data[ens].update({obs : ff[ens+'_hp'][obs][:]})
@@ -147,8 +147,8 @@ class InputOutput(object):
                 gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
-            for obs in dim1_obs:
-                gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
+            # for obs in dim1_obs:
+            #     gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
             #gv_data[ens]['m_proton_phys'] = phys_data[ens]

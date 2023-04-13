@@ -1,15 +1,97 @@
 import gvar as gv
 
-prior = {
+# currently not implemented prior filtering routines 
+
+def filter_prior_keys(prior, model_info, particles):
+    # Extract relevant keys from the particles
+    relevant_keys = set()
+    for particle in particles:
+        relevant_keys.add(f"m_{{{particle},0}}")
+
+        if particle != "proton" and particle != "delta":
+            relevant_keys.add(f"s_{{{particle}}}")
+        else:
+            relevant_keys.add(f"s_{{{particle},bar}}")
+
+        for p in range(1, 5):
+            relevant_keys.add(f"a_{{{particle},{p}}}")
+            relevant_keys.add(f"b_{{{particle},{p}}}")
+
+        for other_particle in particles:
+            relevant_keys.add(f"g_{{{particle},{other_particle}}}")
+
+    filtered_prior = {k: v for k, v in prior.items() if k in relevant_keys}
+    return filtered_prior
+def get_filtered_prior_keys(particles, order, prior):
+    keys = []
+    # for p in particles:
+    for k in prior.keys():
+            # if p in k:
+        keys.append(k)
+    return keys
+
+def filter_relevant_prior_keys(model_info, prior):
+    orders = ['llo', 'lo', 'nlo', 'n2lo']
+    particles = model_info['particles']
+    order_chiral = model_info['order_chiral']
+    order_disc = model_info['order_disc']
+    order_strange = model_info['order_strange']
+    order_light = model_info['order_light']
+
+    highest_order = max([order_chiral, order_disc, order_strange, order_light])
+
+    relevant_prior_keys = []
+    for order in orders:
+        if orders.index(order) > orders.index(highest_order):
+            break
+        relevant_prior_keys.extend(get_filtered_prior_keys(particles, order, prior))
+
+    # Filter priors based on the highest order and particles
+    filtered_prior = {k: v for order in orders for k, v in prior[order].items()
+                      if k in relevant_prior_keys}
+
+    return filtered_prior
+
+def recalibrate_prior(prior, data,fit_result, scale_factor):
+    excluded = {
+        'm_k', 'm_pi', 'lam_chi', 'eps2_a','m_xi','m_xi_st'
+    }
+    new_prior = prior.copy()
+    for key in fit_result.p:
+        if key not in excluded:
+        # if key in fit_result.p:
+            new_prior[key] = fit_result.p[key], scale_factor * fit_result.psdev[key]
+        else:
+            new_prior[key] = data[key]
+    return new_prior
+
+def get_prior(units=None): 
+    if units=='mev':
+        gs_baryons={
     
         # not-even leading order 
-        'm_{xi,0}' : gv.gvar(1200,100), # MeV
-        'm_{xi_st,0}' : gv.gvar(1300,100), # MeV
-        'm_{lambda,0}' : gv.gvar(1000,10000), 
-        'm_{sigma,0}' : gv.gvar(1200,10000), 
-        'm_{sigma_st,0}' : gv.gvar(1400,10000),
-        'm_{omega,0}' : gv.gvar(1650,10000),
+        'm_{xi,0}' : gv.gvar(1300,100), # MeV
+        'm_{xi_st,0}' : gv.gvar(1500,100), # MeV
+        'm_{lambda,0}' : gv.gvar(1000,100), 
+        'm_{sigma,0}' : gv.gvar(1200,100), 
+        'm_{sigma_st,0}' : gv.gvar(1400,100),
+        'm_{omega,0}' : gv.gvar(1650,100),
+        }
+    elif units =='lam_chi':
+        gs_baryons = {
+        # not-even leading order 
+        'm_{xi,0}' : gv.gvar(1,1), 
+        'm_{xi_st,0}' :  gv.gvar(1,1), 
+        'm_{lambda,0}' :  gv.gvar(1,1), 
+        'm_{sigma,0}' :  gv.gvar(1,1), 
+        'm_{sigma_st,0}' :  gv.gvar(1,1),
+        'm_{omega,0}' :  gv.gvar(1,1),
+        }
 
+    else:
+        raise ValueError(f"Invalid units: {units}")
+    prior = {
+        **gs_baryons,
         # lo
         's_{xi}' : gv.gvar(0, 10),
         's_{xi,bar}' : gv.gvar(0, 10),
@@ -95,7 +177,6 @@ prior = {
         'd_{omega,al}' : gv.gvar(0,10), 
         'd_{omega,as}' : gv.gvar(0,10),
         'd_{omega,ls}' : gv.gvar(0,10), 
-        'd_{omega,ss}' : gv.gvar(0,10)
-    
+        'd_{omega,ss}' : gv.gvar(0,10)}
+    return prior
 
-}

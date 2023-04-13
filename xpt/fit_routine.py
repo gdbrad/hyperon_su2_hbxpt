@@ -1,6 +1,7 @@
 import lsqfit
 import numpy as np
 import gvar as gv
+import pprint
 import sys
 import os
 # local modules
@@ -42,7 +43,7 @@ class FitRoutine:
             Method to create prior information.
     """
 
-    def __init__(self, prior, data, model_info,emp_bayes,empbayes_grouping):
+    def __init__(self, prior, data, model_info,phys_point_data,emp_bayes,empbayes_grouping):
 
         self.prior = prior
         self.data = data
@@ -50,6 +51,7 @@ class FitRoutine:
         self._fit = None
         self._simultaneous = False
         self._posterior = None
+        self._phys_point_data = phys_point_data
         self.emp_bayes = False #boolean
         self.empbayes_grouping = None #groups for empirical bayes prior study
         self._empbayes_fit = None
@@ -69,10 +71,6 @@ class FitRoutine:
             fitter = lsqfit.MultiFitter(models=models)
             fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False)
             self._fit = fit
-            if self.emp_bayes:
-
-                self._empbayes_fit = self._make_empbayes_fit()
-                return self._empbayes_fit
     
         return self._fit
 
@@ -81,11 +79,9 @@ class FitRoutine:
         routine adapted from @millernb
         '''
         zkeys = {}
-
         if self.empbayes_grouping == 'all':
             for param in self.prior:
                 zkeys[param] = [param]
-
         # include particle choice xi or xi_st to fill inside bracket
         elif self.empbayes_grouping == 'order':
             # vary all light quark terms together, strange terms together
@@ -109,12 +105,11 @@ class FitRoutine:
             
         elif self.empbayes_grouping == 'disc_only':
             zkeys['disc'] = ['d_{xi,a}', 'd_{xi_st,a}', 'd_{xi,s}', 'd_{xi_st,s}',
-                             'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}']
+                             'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}',
+                             'd_{xi_st,aa}','d_{xi_st,al}' ,'d_{xi_st,as}','d_{xi_st,ls}', 'd_{xi_st,ss}']
             
-
         all_keys = [k for g in zkeys for k in zkeys[g]]
         prior_keys = list(self._make_prior())
-        print(prior_keys)
         ignored_keys = set(all_keys) - set(prior_keys)
 
         # Don't determine empirical priors in param not in model
@@ -123,47 +118,46 @@ class FitRoutine:
                 if key in ignored_keys and key in zkeys[group]:
                     zkeys[group].remove(key)
 
-        print(zkeys)
-
         return zkeys
 
-    def _make_empbayes_fit(self, empbayes_grouping='disc',observable=None):
+    def _make_empbayes_fit(self, empbayes_grouping='disc_only',observable=None):
         if (self._empbayes_fit is None) or (empbayes_grouping != self.empbayes_grouping):
             self.empbayes_grouping = empbayes_grouping
+            self._counter = {'iters' : 0, 'evals' : 0}
 
             z0 = gv.BufferDict()
             for group in self._empbayes_grouping():
                 z0[group] = 1.0
 
-            print(z0)
+            def analyzer(arg):
+                self._counter['evals'] += 1
+                print("\nEvals: ", self._counter['evals'], arg,"\n")
+                print(type(arg[0]))
+                return None
+            models = self._make_models()
+            fitter = lsqfit.MultiFitter(models=models)
 
-            # Might need to change minargs default values for empbayes_fit to converge:
-            # tol=1e-8, svdcut=1e-12, debug=False, maxit=1000, add_svdnoise=False, add_priornoise=False
-            # Note: maxit != maxfev. See https://github.com/scipy/scipy/issues/3334
-            # For Nelder-Mead algorithm, maxfev < maxit < 3 maxfev?
-
-            # For debugging. Same as 'callback':
-            # https://github.com/scipy/scipy/blob/c0dc7fccc53d8a8569cde5d55673fca284bca191/scipy/optimize/optimize.py#L651
-
-            fit, z = lsqfit.empbayes_fit(z0, fitargs=self._make_fitargs, maxit=200, analyzer=None)
-            print(z)
+            fit, z = fitter.empbayes_fit(z0, fitargs=self._make_fitargs, maxit=20, analyzer=analyzer,tol=0.1)
             self._empbayes_fit = fit
 
         return self._empbayes_fit
 
     def _make_fitargs(self, z):
+        '''
+        preparing fit args that will be passed to fitter.empbayes_fit
+        '''
         data = self.data
-        prior = self._make_prior()
+        prior = self._make_prior(z=z)
 
         # Ideally:
         # Don't bother with more than the hundredth place
         # Don't let z=0 (=> null GBF)
         # Don't bother with negative values (meaningless)
         # But for some reason, these restrictions (other than the last) cause empbayes_fit not to converge
-        multiplicity = {}
-        for key in z:
-            multiplicity[key] = 0
-            z[key] = np.abs(z[key])
+        # multiplicity = {}
+        # for key in z:
+        #     multiplicity[key] = 0
+        #     z[key] = np.abs(z[key])
 
         # Helps with convergence (minimizer doesn't use extra digits -- bug in lsqfit?)
         def sig_fig(x): return np.around(
@@ -180,7 +174,7 @@ class FitRoutine:
                     z[group] = sig_fig(capped(z[group], zmin, zmax))
                     prior[param] = gv.gvar(0, 1) * z[group]
 
-        return dict(prior=prior,data=data)
+        return dict(data=data,prior=prior)
     
     
     @property
@@ -202,12 +196,27 @@ class FitRoutine:
                 if param in self.fit.p:
                     output[param] = self.fit.p[param]
             return output  
+        
+    @property
+    def phys_point_data(self):
+        return self._get_phys_point_data()
+
+    # need to convert to/from lattice units
+    def _get_phys_point_data(self, parameter=None):
+        if parameter is None:
+            return self._phys_point_data
+        else:
+            return self._phys_point_data[parameter]
 
     def get_fitfcn(self,p=None,data=None,particle=None):
         output = {}
         if p is None:
             p = {}
             p.update(self.posterior)
+        if data is None:
+            data = self.phys_point_data
+            
+        p.update(data)
         for mdl in self._make_models(model_info=self.model_info):
             part = mdl.datatag
             output[part] = mdl.fitfcn(p)
@@ -248,7 +257,7 @@ class FitRoutine:
 
         return models
 
-    def _make_prior(self, data=None,scale_data=None):
+    def _make_prior(self, data=None,z=None,scale_data=None):
         '''
         Only need priors for LECs/data needed in fit.
         verbosely separates all parameters that appear in the hyperon exttrapolation formulae 
@@ -289,6 +298,14 @@ class FitRoutine:
             new_prior['m_k'] = data['m_k']
         for key in ['m_pi', 'lam_chi', 'eps2_a']:
             new_prior[key] = data[key]
+        if z is None:
+            return new_prior
+        zkeys = self._empbayes_grouping()
+
+        for k in new_prior:
+            for group in zkeys:
+                if k in zkeys[group]:
+                    new_prior[k] = gv.gvar(0, np.exp(z[group]))
         return new_prior
 
     def _get_prior_keys(self, particle='all', order='all', lec_type='all'):
@@ -619,9 +636,6 @@ class Xi_st(lsqfit.MultiFitterModel):
 class Lambda(lsqfit.MultiFitterModel):
     def __init__(self, datatag, model_info):
         super(Lambda, self).__init__(datatag)
-
-        # override build data and build prior methods in lsqfit
-        # two models, Xi and Xi*, models need to know part of data to each model use datatag
         self.model_info = model_info
 
     # fit_data from i_o module
@@ -661,7 +675,7 @@ class Lambda(lsqfit.MultiFitterModel):
             output += (p['m_{lambda,0}'] *
                        (p['d_{lambda,s}'] * xdata['d_eps2_s']))
 
-        if self.model_info['order_chiral'] in ['lo', 'nlo', 'n2lo']:
+        if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
             output += (p['s_{lambda}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
         return output
@@ -689,7 +703,7 @@ class Lambda(lsqfit.MultiFitterModel):
                 (p['d_{lambda,ss}'] * xdata['d_eps2_s']**2)
             )
 
-        if self.model_info['order_chiral'] in ['n2lo']:
+        if self.model_info['order_light'] in ['n2lo']:
             output += (
                 xdata['eps_pi']**4 * p['b_{lambda,4}']*xdata['lam_chi'])
 
