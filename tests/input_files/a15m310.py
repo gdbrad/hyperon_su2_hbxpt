@@ -3,24 +3,22 @@ import numpy as np
 p_dict = {
     'abbr' : 'a15m310', #CHANGE THIS
     'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
-    'meson_states' : ['piplus','kplus'],
-    'simult_baryons': ['sigma_p','lambda_z','proton','xi_z'],
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
     'bs_seed' : 'a12m400',
 
    't_range' : {
-        'sigma' : [5,15],
-        'sigma_st' : [5,15],
-        'xi' :  [5,15],
-        'xi_st' : [5,15],
-        'proton' :   [5,15],
-        'delta' : [5,15],
-        'lam' : [5,15],
+        'sigma' : [4,14],
+        'sigma_st' : [4,14],
+        'xi' :  [4,14],
+        'xi_st' : [4,14],
+        'proton' :   [4,14],
+        'delta' : [4,14],
+        'lam' : [4,14],
         'pi' : [5,30],
         'kplus': [8,28],
-        'hyperons':   [5,15],
-        'all':   [5,15],
+        'hyperons':   [4,14],
+        'all':   [4,14],
 
 
     },
@@ -37,6 +35,16 @@ p_dict = {
         'mesons':2,
 	    'hyperons'   :2,
         'all':2
+    },
+
+     'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
     },
     
     'make_plots' : True,
@@ -70,20 +78,3 @@ prior = {
     'xi_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
     'xi_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
     }
-
-
-# prior = {}
-# prior['m_{kplus,0}'] = gv.gvar(0.35,.1)
-# prior['m_{eta,0}'] = gv.gvar(.3,.2)
-# prior['m_{piplus,0}'] = gv.gvar(.25,.1)
-# prior['m_{delta,0}'] = gv.gvar(2,1)
-
-# TODO put prior routines in here, filename save options
-
-tag = {
-    'sigma': 'sigma',
-    'sigma_st': 'sigma_st',
-    'xi': 'xi',
-    'xi_st': 'xi_st',
-    'lam': 'lam',
-}

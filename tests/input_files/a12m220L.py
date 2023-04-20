@@ -42,6 +42,8 @@ p_dict = {
         'xi' :  'xi',
         'xi_st' : 'xi_st',
         'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
     },
     
     'make_plots' : True,

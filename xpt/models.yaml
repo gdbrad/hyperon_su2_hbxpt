@@ -1,15 +1,35 @@
 models:
 
   xi_system:
+    xi:xi_st:d_n2lo:l_nlo:
+      name: xi:xi_st:d_n2lo:l_nlo
+      particles: [xi, xi_st]
+      eps2a_defn: w0_imp
+      order_chiral: null
+      order_disc: n2lo
+      order_strange: null
+      order_light: lo
+      xpt: False
+      fv: True
+      fit_phys_units: True
+      fit_fpi_units : False
+
+
     xi:xi_st:s_n2lo:d_n2lo:x_n2lo:l_n2lo:w0imp:fv:xpt:
+      name: xi:xi_st:s_n2lo:d_n2lo:x_n2lo:l_n2lo
       particles: [xi, xi_st]
       eps2a_defn: w0_imp
       order_chiral: n2lo
       order_disc: n2lo
       order_strange: n2lo
       order_light: n2lo
-      xpt: True
+      xpt: False
       fv: True
+      fit_phys_units: True
+      fit_fpi_units : False
+
+    
+
 
     s_n2lo:d_n2lo:x_n2lo:l_nlo:
       particles: [xi, xi_st]
@@ -48,8 +68,10 @@ models:
       order_disc: nlo
       order_strange: nlo
       order_light: nlo
-      xpt: True
+      xpt: False
       fv: True
+      fit_phys_units: True
+      fit_fpi_units : False
   lam_sigma_system:
 
     lam:sigma:sigma_st:s_n2lo:d_n2lo:x_n2lo:l_n2lo:

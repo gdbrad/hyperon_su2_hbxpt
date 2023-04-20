@@ -22,7 +22,6 @@ from functools import partial
 
 def analyze_hyperon_corrs(file_path, fit_params_path,model_type:str,bs:bool=False, bs_file:str=None, bs_path:str=None, bs_N:int=None, bs_seed:str=None):
     sys.path.append(os.path.dirname(os.path.abspath(fit_params_path)))
-
     fp = importlib.import_module(fit_params_path.split('/')[-1].split('.py')[0])
     p_dict = fp.p_dict
     prior = fp.prior
@@ -32,21 +31,20 @@ def analyze_hyperon_corrs(file_path, fit_params_path,model_type:str,bs:bool=Fals
         'xi_st': ld.get_raw_corr(file_path, p_dict['abbr'], particle='xi_star_z'),
         'sigma': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_p'),
         'sigma_st': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_star_p'),
+        'proton': ld.get_raw_corr(file_path, p_dict['abbr'], particle='proton'),
+        'delta': ld.get_raw_corr(file_path,p_dict['abbr'],particle='delta_pp')
     }
-    bs_M = corrs['lam']['SS'].shape[0]
+    bs_M = corrs['lam']['SS'].shape[0] #this could be any of the other corrs
 
-    all_baryons = corr_fit_analysis(t_range=p_dict
-            ['t_range'],simult=True,t_period=64,states=p_dict['hyperons'],p_dict=p_dict, 
-            n_states=p_dict['n_states'],prior=prior, corr_gv = corrs,model_type=model_type)
+    all_baryons = corr_fit_analysis(t_range=p_dict['t_range'],simult=True,t_period=64,
+    states=p_dict['hyperons'],p_dict=p_dict, n_states=p_dict['n_states'],prior=prior, corr_gv = corrs,model_type=model_type)
 
     hyperon_fit = all_baryons.get_fit()
 
     print(hyperon_fit)
     # return my_fit
-
+    # run bootstrapping routine -> bootstrapped h5 file based on baryon fit posterior
     if bs:
-
-
         def fast_resample_correlator(corr, bs_seed, bs_N):
             bs_M = corrs['lam']['SS'].shape[0]
             bs_list = np.random.randint(low=0, high=bs_M, size=(bs_N, bs_M))
@@ -192,7 +190,6 @@ class corr_fit_analysis(object):
 
         models = self._get_models(model_type=model_type)
         fit = self.get_fit(t_range=t_range, n_states=n_states)
-        print(models,'model')
 
         output = {model.datatag : model.fitfcn(p=fit.p, t=t) for model in models}
         return output
@@ -204,7 +201,7 @@ class corr_fit_analysis(object):
         if dt is None:
             dt = 1
         eff_mass = {}
-        if len(corr_gv.keys()) == 10:
+        if len(corr_gv.keys()) == 14:
             for key in corr_gv:
                 eff_mass[key] = 1/dt * np.log(corr_gv[key] / np.roll(corr_gv[key], -1))
         else:
@@ -214,15 +211,16 @@ class corr_fit_analysis(object):
                     eff_mass[corr][key] = 1/dt * np.log(corr_gv[corr][key] / np.roll(corr_gv[corr][key], -1))
                 
         return eff_mass
-    
+
     def plot_effective_mass(self, t_plot_min=None, model_type=None,
-                            t_plot_max=None, show_plot=True, show_fit=True,fig_name=None):
+                            t_plot_max=None, show_plot=True, show_fit=True, fig_name=None):
         if t_plot_min is None:
             t_plot_min = self.t_min
         if t_plot_max is None:
             t_plot_max = self.t_max
-        markers = ["^", "v"]
-        colors = np.array(['red', 'blue', 'green','magenta','yellow','darkblue','slateblue'])
+        markers = ["o", "s"]
+        colors = np.array(['tab:red', 'tab:blue', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown',
+                        'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'])
         t = np.arange(t_plot_min, t_plot_max)
         effective_mass = {}
 
@@ -231,12 +229,12 @@ class corr_fit_analysis(object):
 
         effective_mass = self.compute_eff_mass(self.corr_gv)
         print(effective_mass)
-        
+
         y = {}
         y_err = {}
         lower_quantile = np.inf
         upper_quantile = -np.inf
-        for i,baryon in enumerate(effective_mass.keys()):
+        for i, baryon in enumerate(effective_mass.keys()):
             y[baryon] = {}
             y_err[baryon] = {}
             for j, key in enumerate(effective_mass[baryon].keys()):
@@ -245,47 +243,53 @@ class corr_fit_analysis(object):
                 lower_quantile = np.min([np.nanpercentile(y[baryon][key], 25), lower_quantile])
                 upper_quantile = np.max([np.nanpercentile(y[baryon][key], 75), upper_quantile])
 
-                plt.errorbar(x=t, y=y[baryon][key], xerr=0.0, yerr=y_err[baryon][key], fmt=markers[j%len(markers)], capsize=4.0,
-                    color = colors[i%len(colors)], capthick=1.0, alpha=0.6, elinewidth=5.0, label=baryon+'_'+key)
+                plt.errorbar(x=t, y=y[baryon][key], xerr=0.0, yerr=y_err[baryon][key], fmt=markers[j % len(markers)], capsize=4.0,
+                            color=colors[i % len(colors)], capthick=1.0, alpha=0.3, elinewidth=2.0,
+                            label=baryon + '_' + key, markersize=5, markeredgecolor='black')
             delta_quantile = upper_quantile - lower_quantile
-            plt.ylim(lower_quantile - 0.5*delta_quantile,
-                    upper_quantile + 0.5*delta_quantile)
+            plt.ylim(lower_quantile - 0.5 * delta_quantile,
+                    upper_quantile + 0.5 * delta_quantile)
 
         if show_fit:
-            t = np.linspace(t_plot_min-2, t_plot_max+2)
-            dt = (t[-1] - t[0])/(len(t) - 1)
+            t = np.linspace(t_plot_min - 2, t_plot_max + 2)
+            dt = (t[-1] - t[0]) / (len(t) - 1)
             fit_data_gv = self._generate_data_from_fit(model_type=model_type, t=t)
-            print(fit_data_gv,'fit_data')
             eff_mass_fit = {}
             for j, key in enumerate(fit_data_gv.keys()):
                 eff_mass_fit = self.compute_eff_mass(fit_data_gv, dt)[key][1:-1]
 
-                pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-                plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j%len(colors)])
-                plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j%len(colors)])
-                plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),
-                                 facecolor=colors[j%len(colors)], alpha = 0.10, rasterized=True)
-            plt.title("Simultaneous fit to %d baryons for $N_{states} = $%s" %(len(effective_mass),self.n_states['all']), fontsize = 24)
+                pm = lambda x, k: gv.mean(x) + k * gv.sdev(x)
+                plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j % len(colors)])
+                plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j % len(colors)])
+                plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),facecolor=colors[j % len(colors)], alpha=0.10, rasterized=True)
+            plt.title("Simultaneous fit to %d baryons for $N_{states} = $%s" % (len(effective_mass), self.n_states['all']), fontsize=18)
 
-        plt.xlim(t_plot_min-0.5, t_plot_max-.5)
-        plt.ylim(0.4,1.4)
-         # Get unique markers when making legend
-        handles, labels = plt.gca().get_legend_handles_labels()
-        temp = {}
-        for j, handle in enumerate(handles):
-            temp[labels[j]] = handle
+            plt.xlim(t_plot_min - 0.5, t_plot_max - 0.5)
+            plt.ylim(0.3, 1.3)
 
-        plt.legend([temp[label] for label in sorted(temp.keys())], [label for label in sorted(temp.keys())])
-        # plt.legend()
-        plt.grid(True)
-        plt.xlabel('$t$', fontsize = 24)
-        plt.ylabel('$M^{eff}_{baryon}$', fontsize = 24)
-        fig = plt.gcf()
-        # plt.savefig(fig_name)
-        if show_plot == True: plt.show()
-        else: plt.close()
+            # Get unique markers when making legend
+            handles, labels = plt.gca().get_legend_handles_labels()
+            temp = {}
+            for j, handle in enumerate(handles):
+                temp[labels[j]] = handle
 
-        return fig
+            legend = plt.legend([temp[label] for label in sorted(temp.keys())], [label for label in sorted(temp.keys())], fontsize='x-small')
+            legend.set_bbox_to_anchor((1.05, 1))
+
+            plt.grid(True)
+            plt.xlabel('$t$', fontsize=24)
+            plt.ylabel('$M^{eff}_{baryon}$', fontsize=24)
+            fig = plt.gcf()
+            fig.set_size_inches(12, 7)
+
+            if show_plot:
+                plt.show()
+            else:
+                plt.close()
+
+            return fig
+
+               
 
     def plot_stability(self, model_type=None,corr=None, t_start=None, t_end=None, t_middle=None,
                        vary_start=True, show_plot=False, n_states_array=None,fig_name=None):
@@ -515,7 +519,6 @@ class corr_fit_analysis(object):
     def __str__(self,bs=None):
         output = "Model Type:" + str(self.model_type) 
         output = output+"\n"
-        # output = "delta_GMO fit type:" + str(self.gmo_type) 
         output = output+"\n"
         if bs:
             output = output +"\t bs: True" 
@@ -525,7 +528,6 @@ class corr_fit_analysis(object):
         output = output+"\n"
         # if self.corr_gv is not None:
         output = output + "\t t_{corr} = "+str(self.t_range[self.model_type])
-        # output += ma.GMO()
         output = output+"\n"
         output += "Fit results: \n"
 

@@ -2,9 +2,6 @@ import gvar as gv
 import numpy as np
 p_dict = {
     'abbr' : 'a12m260',
-    'part' : ['delta_pp', 'kplus', 'lambda_z', 'omega_m', 'piplus', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
-    'particles' : ['proton'],
-    'meson_states' : ['piplus','kplus'],
     'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
@@ -35,6 +32,16 @@ p_dict = {
         'hyperons': 2,
         'all':2
 
+    },
+
+    'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
     },
     
     'make_plots' : True,

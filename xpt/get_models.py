@@ -1,13 +1,6 @@
 class Model:
     def __init__(self, model_info):
         self.model_info = model_info
-        self.name = self.get_model_name_from_info()
-
-    def get_model_name_from_info(self):
-        model_info = self.model_info
-        # Implement the same logic as before
-        # ...
-        return name
 
     @classmethod
     def from_name(cls, name):

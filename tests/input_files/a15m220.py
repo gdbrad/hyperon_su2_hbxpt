@@ -3,8 +3,6 @@ import numpy as np
 p_dict = {
     'abbr' : 'a15m220', #CHANGE THIS
     'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
-    'meson_states' : ['piplus','kplus'],
-    'simult_baryons': ['sigma_p','lambda_z','proton','xi_z'],
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
     'bs_seed' : 'a12m400',
@@ -45,6 +43,8 @@ p_dict = {
         'xi' :  'xi',
         'xi_st' : 'xi_st',
         'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
     },
     
     'make_plots' : True,
@@ -78,12 +78,3 @@ prior = {
     'xi_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
     'xi_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
     }
-
-
-# prior = {}
-# prior['m_{kplus,0}'] = gv.gvar(0.35,.1)
-# prior['m_{eta,0}'] = gv.gvar(.3,.2)
-# prior['m_{piplus,0}'] = gv.gvar(.25,.1)
-# prior['m_{delta,0}'] = gv.gvar(2,1)
-
-# TODO put prior routines in here, filename save options 

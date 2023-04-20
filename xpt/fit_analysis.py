@@ -29,13 +29,11 @@ mpl.rcParams['text.usetex'] = True
 #internal xpt modules
 import xpt.fit_routine as fit
 import xpt.i_o
-# f = open('models.yaml', 'r')
-# models = yaml.load(f,Loader=yaml.FullLoader)
-#     #print(keys)
+
 
 class fit_analysis(object):
     
-    def __init__(self, phys_point_data, collection=None,data=None, model_info=None, prior=None):
+    def __init__(self, phys_point_data, data=None, model_info=None, prior=None):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
         with h5py.File(project_path+'/data/hyperon_bs_data.h5', 'r') as f:
@@ -47,8 +45,6 @@ class fit_analysis(object):
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
        
-        #data,ensembles = i_o.InputOutput.get_data(scheme='w0_imp')
-
         self.ensembles = ensembles
         self.model_info = model_info
         self.data = data
@@ -56,216 +52,127 @@ class fit_analysis(object):
         self._input_prior = prior
         self._phys_point_data = phys_point_data
         self._fit = {}
-        self.fitter = fit.FitRoutine(prior=prior,data=data, model_info=model_info)
-
-    
+        self.fitter = fit.FitRoutine(prior=prior,data=data, model_info=model_info,
+                    phys_point_data=phys_point_data, emp_bayes=None,empbayes_grouping=None)
+        self.fit = self.fitter.fit
       
-        # def __str__(self):
-        #     output = "Model: %s" %(self.model) 
-        #     output += '\nError Budget:\n'
-        #     max_len = np.max([len(key) for key in self.error_budget[obs]])
-        #     for key in {k: v for k, v in sorted(self.error_budget[obs].items(), key=lambda item: item[1], reverse=True)}:
-        #         output += '  '
-        #         output += key.ljust(max_len+1)
-        #         output += '{: .1%}\n'.format((self.error_budget[obs][key]/self..sdev)**2).rjust(7)
+    def __str__(self):
+        output = "Model: %s" %(self.model)
+        output += '\n---\n'
+        fit_str = self.fit.format(pstyle='m')
+        output+= fit_str
+        output+= str(self.extrapolated_mass)
+        # output += '\nError Budget:\n'
+        # max_len = np.max([len(key) for key in self.error_budget])
+        # for key in {k: v for k, v in sorted(self.error_budget.items(), key=lambda item: item[1], reverse=True)}:
+        #     output += '  '
+        #     output += key.ljust(max_len+1)
+        #     for particle in ['m_'+ p for p in self.model_info['particles']]:
 
-            
-        #     return output
+        #         output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
 
-    ## It is particularly useful for analyzing the impact of the a priori uncertainties encoded in the prior
+        return output
     @property
     def error_budget(self):
-        output = ''
-    
-        output += '\n'
-        output += str(self._get_error_budget(particle='proton'))
-        return output
+        '''
+        useful for analyzing the impact of the a priori uncertainties encoded in the prior
+        '''
+        return self._get_error_budget()
 
-    def _get_error_budget(self, **kwargs):
+    def _get_error_budget(self, verbose=True,**kwargs):
         '''
         hardcoded list of chiral expansion parameters associated with each hyperon,
-        calculates a parameters relative contribution to the total error inherent in the mass expansion
+        calculates a parameter's relative contribution to the total error inherent 
+        in the mass expansion
         '''
-        
         output = None
-        
-
-        #use above dict to fill in values where particle name goes.. leave hardcoded for now
-        # strange_keys = [
-        # 'd_{lambda,s}','d_{sigma,s}', 'd_{sigma_st,s}', 'd_{xi,s}', 'd_{xi_st,s}',
-        # 'd_{lambda,as}', 'd_{lambda,ls}', 'd_{lambda,ss}', 'd_{sigma,as}', 'd_{sigma,ls}', 'd_{sigma,ss}',
-        # 'd_{sigma_st,as}', 'd_{sigma_st,ls}', 'd_{sigma_st,ss}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}',
-        # 'd_{xi_st,as}', 'd_{xi_st,ls}', 'd_{xi_st,ss}']
-        
-        # chiral_keys = [
-        # 's_{lambda}', 's_{sigma}', 's_{sigma,bar}', 's_{xi}', 's_{xi,bar}', 
-        # 'g_{lambda,sigma}', 'g_{lambda,sigma_st}', 'g_{sigma,sigma}', 'g_{sigma_st,sigma}', 
-        # 'g_{sigma_st,sigma_st}', 'g_{xi,xi}', 'g_{xi_st,xi}', 'g_{xi_st,xi_st}', 'b_{lambda,4}', 
-        # 'b_{sigma,4}', 'b_{sigma_st,4}', 'b_{xi,4}', 'b_{xi_st,4}', 'a_{lambda,4}', 'a_{sigma,4}', 
-        # 'a_{sigma_st,4}', 'a_{xi,4}', 'a_{xi_st,4}'] 
-        
-        # disc_keys = [
-        # 'm_{lambda,0}', 'm_{sigma,0}', 'm_{sigma_st,0}', 'm_{xi,0}', 'm_{xi_st,0}', 'd_{lambda,a}', 'd_{sigma,a}',  
-        # 'd_{sigma_st,a}', 'd_{xi,a}',  'd_{xi_st,a}', 'd_{lambda,aa}', 'd_{lambda,al}', 
-        # 'd_{sigma,aa}', 'd_{sigma,al}',  'd_{sigma_st,aa}', 'd_{sigma_st,al}', 
-        # 'd_{xi,aa}', 'd_{xi,al}',  'd_{xi_st,aa}', 'd_{xi_st,al}']
-
         strange_keys = [
-            'd_{proton,s}','d_{proton,as}', 'd_{proton,ls}','d_{proton,ss}'
-        ]
-
+        'd_{lambda,s}','d_{sigma,s}', 'd_{sigma_st,s}', 'd_{xi,s}', 'd_{xi_st,s}',
+        'd_{lambda,as}', 'd_{lambda,ls}', 'd_{lambda,ss}', 'd_{sigma,as}', 'd_{sigma,ls}', 'd_{sigma,ss}',
+        'd_{sigma_st,as}', 'd_{sigma_st,ls}', 'd_{sigma_st,ss}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}',
+        'd_{xi_st,as}', 'd_{xi_st,ls}', 'd_{xi_st,ss}']
+        
         chiral_keys = [
-            'g_{proton,proton}', 'g_{proton,delta}','m_{delta,0}', 'a_{proton,4}', 'g_{proton,4}'
-        ]
-
+        's_{lambda}', 's_{sigma}', 's_{sigma,bar}', 's_{xi}', 's_{xi,bar}', 
+        'g_{lambda,sigma}', 'g_{lambda,sigma_st}', 'g_{sigma,sigma}', 'g_{sigma_st,sigma}', 
+        'g_{sigma_st,sigma_st}', 'g_{xi,xi}', 'g_{xi_st,xi}', 'g_{xi_st,xi_st}', 'b_{lambda,4}', 
+        'b_{sigma,4}', 'b_{sigma_st,4}', 'b_{xi,4}', 'b_{xi_st,4}', 'a_{lambda,4}', 'a_{sigma,4}', 
+        'a_{sigma_st,4}', 'a_{xi,4}', 'a_{xi_st,4}'] 
+        
         disc_keys = [
-            'd_{proton,a}', 'd_{proton,aa}', 'd_{proton,al}', 'd_{proton,all}', 'd_{proton,aal}'
-        ]
+        'd_{lambda,a}', 'd_{sigma,a}',  
+        'd_{sigma_st,a}', 'd_{xi,a}',  'd_{xi_st,a}', 'd_{lambda,aa}', 'd_{lambda,al}', 
+        'd_{sigma,aa}', 'd_{sigma,al}',  'd_{sigma_st,aa}', 'd_{sigma_st,al}', 
+        'd_{xi,aa}', 'd_{xi,al}',  'd_{xi_st,aa}', 'd_{xi_st,al}']
 
         light_keys = [
-            'm_{proton,0}', 'b_{proton,2}', 'b_{proton,4}', 'b_{proton,6}'
+            'm_{lambda,0}', 'm_{sigma,0}', 'm_{sigma_st,0}', 'm_{xi,0}', 'm_{xi_st,0}'
         ]
-        
         phys_keys = list(self.phys_point_data)
-        stat_keys = ['lam_chi','eps2_a','m_lambda','m_pi','m_k']
-        
-        mdls = fit.fit_routine(prior=self.prior, data=self.data, model_info=self.model_info)
+        stat_keys = ['lam_chi']# Since the input data is correlated, only need a single variable as a proxy for all
 
-        # if verbose:
-        #     if output is None:
-        #         output = ''
+        if verbose:
+            if output is None:
+                output = ''
 
-        result = {}
-        result['disc'] = mdls.fit.p.partialsdev(
-            [self.prior[key] for key in disc_keys if key in self.prior]
-        )
-        result['chiral'] = mdls.fit.p.partialsdev(
-            [self.prior[key] for key in chiral_keys if key in self.prior]
-        )
-        result['strange'] = mdls.fit.p.partialsdev(
-            [self.prior[key] for key in strange_keys if key in self.prior]
-        )
-        result['light'] = mdls.fit.p.partialsdev(
-            [self.prior[key] for key in light_keys if key in self.prior]
-        )
-        result['pp_input'] = mdls.fit.p.partialsdev(
-            [self.phys_point_data[key] for key in phys_keys]
-        )
-        # output['stat'] = value.partialsdev(
-        #     [self._get_prior(stat_keys), self.fitter.y]
-        #     #self.fitter['w0'].y
-        # )
-        return result
+            inputs = {}
+            inputs.update({str(param)+' [disc]': self._input_prior[param] for param in disc_keys if param in self._input_prior})
+            inputs.update({str(param)+' [xpt]': self._input_prior[param] for param in chiral_keys if param in self._input_prior})
+            inputs.update({str(param)+ '[strange]': self._input_prior[param] for param in strange_keys if param in self._input_prior})
+            inputs.update({str(param)+' [pp]': self.phys_point_data[param] for param in list(phys_keys)})
+            inputs.update({'x [stat]' : self._input_prior[param] for param in stat_keys if param in self._input_prior})# , 'y [stat]' : self.fitter.fit.y})
 
-        # # xpt/chiral contributions
-        # inputs.update({str(param)+' [disc]' : self._input_prior[param] for param in disc_keys if param in self._input_prior})
-        # inputs.update({str(param)+' [xpt]' : self._input_prior[param] for param in chiral_keys if param in self._input_prior})
-        # inputs.update({str(param)+ '[strange]' : self._input_prior[param] for param in strange_keys if param in self._input_prior})
+            if kwargs is None:
+                kwargs = {}
+            kwargs.setdefault('percent', False)
+            kwargs.setdefault('ndecimal', 10)
+            kwargs.setdefault('verify', True)
 
-        # # phys point contributions
-        # inputs.update({str(param)+' [pp]' : self.phys_point_data[param] for param in list(phys_keys)})
+            print(gv.fmt_errorbudget(outputs=self.extrapolated_mass, inputs=inputs, verify=True))
+        else:
+            output = {}
+            for particle in ['m_'+ p for p in self.model_info['particles']]:
 
-        inputs.update({str(param): self._input_prior[param] for param in disc_keys if param in self._input_prior})
-        inputs.update({str(param): self._input_prior[param] for param in chiral_keys if param in self._input_prior})
-        inputs.update({str(param): self._input_prior[param] for param in strange_keys if param in self._input_prior})
+                output['disc'] = self.extrapolated_mass[particle].partialsdev(
+                            [self.prior[key] for key in disc_keys if key in self.prior])
+                
+                output['chiral'] = self.extrapolated_mass[particle].partialsdev(
+                            [self.prior[key] for key in chiral_keys if key in self.prior])
+                
+                output['pp'] = self.extrapolated_mass[particle].partialsdev(
+                            [self.phys_point_data[key] for key in phys_keys if key in phys_keys])
+                
+                output['stat'] = self.extrapolated_mass[particle].partialsdev(
+                            [self._get_prior(stat_keys),self.fitter.fit.y])
+        return output
 
-        # phys point contributions
-        inputs.update({str(param): self.phys_point_data[param] for param in list(phys_keys)})
-        #del inputs['lam_chi [pp]']
+    @property
+    def fit_info(self):
+        fit_info = {}
+        fit_info = {
+            'name' : self.model,
+            'logGBF' : self.fit.logGBF,
+            'chi2/df' : self.fit.chi2 / self.fit.dof,
+            'Q' : self.fit.Q,
+            'phys_point' : self.phys_point_data,
+            'error_budget' : self.error_budget,
+            'prior' : self.prior,
+            'posterior' : self.posterior
+        }
+        return fit_info
 
-        #stat contribtions
-        inputs.update({'x [stat]' : self._input_prior[param] for param in stat_keys if param in self._input_prior})# , 'y [stat]' : self.fitter.fit.y})
-        print(inputs.values())
-
-        if kwargs is None:
-            kwargs = {}
-        kwargs.setdefault('percent', False)
-        kwargs.setdefault('ndecimal', 10)
-        kwargs.setdefault('verify', True)
-        
-        #output = {}
-
-        #output = {}
-        extrapolated_mass = {}
-        for particle in self.model_info['particles']:
-            extrapolated_mass[particle] = self.fitfcn(p=self.posterior, data=self.phys_point_data, particle=particle)
-        #print(inputs.keys())
-        #print(extrapolated_mass)
-
-        #value = extrapolated_mass.partialsdev([self.prior[key] for key in disc_keys if key in self.prior])
-        #for keys in disc_keys:
-        print(gv.fmt_errorbudget(outputs=extrapolated_mass, inputs=inputs, verify=True))
-        output = {}
-
-        output['disc'] = extrapolated_mass[particle].partialsdev(
-                    [self.prior[particle] for key in disc_keys if key in self.prior])
-        output['pp'] = extrapolated_mass[particle].partialsdev(
-                    [self.prior for key in phys_keys if key in self.prior])
-
-        output['stat'] = extrapolated_mass[particle].partialsdev(
-                    [self.prior for key in stat_keys if key in self.prior])
-
-        output['chiral'] = extrapolated_mass[particle].partialsdev(
-                    [self.prior for key in chiral_keys if key in self.prior])
-        
-        
-        print(output)
-        #         #elif observable == 't0':
-        # #output += 'observable: ' + observable + '\n' + gv.fmt_errorbudget(outputs={'t0' : self.sqrt_t0}, inputs=inputs, **kwargs) + '\n---\n'
-
-        #print(value)
-
-        # output['disc'] = value.partialsdev([self.prior[key] for key in disc_keys if key in self.prior]
-        # )
-        # output['chiral'] = value.partialsdev([self.prior[key] for key in chiral_keys if key in self.prior]
-        # )
-        # output['strange'] = value.partialsdev([self.prior[key] for key in strange_keys if key in self.prior]
-        # )
-        # output['pp_input'] = value.partialsdev([self.phys_point_data[key] for key in phys_keys]
-        # )
-        # output['stat'] = value.partialsdev([self.prior[key] for key in stat_keys if key in self.prior]
-        # )
-
-        
-
-        # #     #output += '\n' + gv.fmt_errorbudget(outputs=outputs, inputs=inputs, **kwargs) + '\n---\n'
-        # #     # elif== 't0':
-        # #     #     output +=  ' ++ '\n' + gv.fmt_errorbudget(outputs={'t0' : self.sqrt_t0}, inputs=inputs, **kwargs) + '\n---\n'
-
-
-
-        #return output
-
-    # @property
-    # def fit_info(self):
-    #     #fit_info = {}
-    #     fit_info = {
-    #         'name' : self.model,
-    #         #'w0_imp' : self.w0,
-    #         'logGBF' : self.fitter.logGBF,
-    #         'chi2/df' : self.fitter.chi2 / self.fitter.dof,
-    #         'Q' : self.fit.Q,
-    #         'phys_point' : self.phys_point_data,
-    #         #'error_budget' : self.error_budget['w0'],
-    #         'prior' : self.prior,
-    #         'posterior' : self.posterior
-    #     }
-    #     return fit_info
-
-    # Returns names of LECs in prior/posterior
     @property
     def extrapolated_mass(self):
-        extrapolated_mass = {}
-        for particle in self.model_info['particles']:
-            extrapolated_mass[particle] = self.fitfcn(p=self.posterior, data=self.phys_point_data, particle=particle)
-        print(extrapolated_mass)
+        '''returns mass of a hyperon extrapolated to the physical point'''
+        mdls = fit.FitRoutine(prior=self.prior,data=self.data, model_info=self.model_info,
+                    phys_point_data=self.phys_point_data, emp_bayes=None,empbayes_grouping=None)
+                              
+        extrapolated_mass = mdls.get_fitfcn(p=self.posterior, data=self.phys_point_data)
         return extrapolated_mass
-
 
     @property
     def fit_keys(self):
         output = {}
-        
         keys1 = list(self._input_prior.keys())
         keys2 = list(self.fitter.fit.p.keys())
         output = np.intersect1d(keys1, keys2)
@@ -277,6 +184,7 @@ class fit_analysis(object):
 
     @property
     def phys_point_data(self):
+        '''returns dict of physial constants from the PDG'''
         return self._get_phys_point_data()
 
     # need to convert to/from lattice units
@@ -288,13 +196,10 @@ class fit_analysis(object):
 
     @property
     def posterior(self):
+        '''Returns dictionary with keys fit parameters'''
         return self._get_posterior()
 
-    # # Returns dictionary with keys fit parameters, entries gvar results
-
     def _get_posterior(self,param=None):
-        #output = {}
-        #return self.fit.p
         if param == 'all':
             return self.fitter.fit.p
         elif param is not None:
@@ -313,7 +218,7 @@ class fit_analysis(object):
     def _get_prior(self, param=None):
         output = {}
         if param is None:
-            output = {param : self.fitter.fit.prior}
+            output = {param : self.fitter.fit.prior[param] for param in self.fit_keys}
         elif param == 'all':
             output = self.fitter.fit.prior
         else:
@@ -361,22 +266,6 @@ class fit_analysis(object):
                 
             extrapolated_values[ens_j] = self.fitfcn(p=posterior, data={}, particle=None)
         return extrapolated_values
-
-    def fitfcn(self, p, data=None, particle=None):
-        output = {}
-        # if p is None:
-        #     p = self.posterior
-
-        for mdl in self.fitter._make_models():
-            part = mdl.datatag
-            output[part] = mdl.fitfcn(p,data)
-
-        if particle is None:
-            return output
-        else:
-            return output[particle]
-
-
 
     def shift_latt_to_phys(self, ens=None, phys_params=None):
         value_shifted = {}

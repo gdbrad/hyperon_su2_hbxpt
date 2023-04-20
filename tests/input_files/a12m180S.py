@@ -2,33 +2,40 @@ import gvar as gv
 import numpy as np
 p_dict = {
     'abbr' : 'a12m180S',
-    'part' : ['delta_pp', 'kplus', 'lambda_z', 'omega_m', 'piplus', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
-    'particles' : ['proton'],
-    'meson_states' : ['piplus','kplus'],
-    'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
+    'hyperons' : ['lambda_z', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
 
    't_range' : {
-        'sigma' : [7,16],
-        'xi' :  [7,16],
-        'xi_st' : [7,16],
-        'sigma_st' : [7,16],
-        'proton' :   [7,16],
-        'delta' : [7,16],
-        'lam' : [7,16],
+        'sigma' : [10,20],
+        'proton' : [10,20],
+        'delta' : [10,20],
+        'xi' :  [10,20],
+        'xi_st' : [10,20],
+        'sigma_st' : [10,20],
+        'lam' : [10,20],
         'pi' : [5,30],
         'kplus': [8,28],
-        'hyperons':   [7,16],
-        'all':   [7,16]
+        'hyperons':   [10,20],
+        'all':   [10,20]
+    },
+
+    'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
     },
     'n_states' : {
         'sigma' : 2,
+        'delta': 2,
+        'proton': 2,
         'sigma_st':2,
         'xi' :2,
         'xi_st':2,
-        'delta':2,
-        'proton':2,
         'lam':2,
         'pi' : 2,
         'kplus': 2,
@@ -43,8 +50,7 @@ p_dict = {
     'show_all' : True,
     'show_many_states' : False, # This doesn't quite work as expected: keep false
     'use_prior' : True
-    }
-
+}
 prior = gv.BufferDict()
 prior = {
     'sigma_E': np.array(['0.73(22)', '0.8(3.2)', '0.9(3.2)', '1.0(3.2)'], dtype=object),

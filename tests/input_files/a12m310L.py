@@ -10,17 +10,17 @@ p_dict = {
     'snks'     :['SS','PS'],
 
    't_range' : {
-        'sigma' : [5,17],
-        'xi' :  [5,17],
-        'xi_st' : [5,17],
-        'sigma_st' : [5,17],
-        'proton' :   [5,17],
-        'delta' : [5,17],
-        'lam' : [5,17],
+        'sigma' : [5,18],
+        'xi' :  [5,18],
+        'xi_st' : [5,18],
+        'sigma_st' : [5,18],
+        'proton' :   [5,18],
+        'delta' : [5,18],
+        'lam' : [5,18],
         'pi' : [5,30],
         'kplus': [8,28],
-        'hyperons':   [5,17],
-        'all':   [5,17]
+        'hyperons':   [5,18],
+        'all':   [5,18]
     },
     'n_states' : {
         'sigma' : 2,
@@ -36,6 +36,15 @@ p_dict = {
         'all':2
 
     },
+     'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
+    },
     
     'make_plots' : True,
     'save_prior' : False,
@@ -48,8 +57,8 @@ p_dict = {
 prior = gv.BufferDict()
 prior = {
     'sigma_E': np.array(['0.73(22)', '0.8(3.2)', '0.9(3.2)', '1.0(3.2)'], dtype=object),
-    'sigma_z_PS': np.array(['0.0(3.3)e-06', '0.0(3.3)e-06', '0.0(3.3)e-06', '0.0(3.3)e-06'],dtype=object),
-    'sigma_z_SS': np.array(['4.4(4.4)e-07', '4.4(4.4)e-07', '4.4(4.4)e-07', '4.4(4.4)e-07'],dtype=object),
+    'sigma_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-06', '0.0(3.3)e-06'],dtype=object),
+    'sigma_z_SS': np.array(['4.4(4.4)e-05', '4.4(4.4)e-05', '4.4(4.4)e-07', '4.4(4.4)e-07'],dtype=object),
     'sigma_st_E': np.array(['0.8(30)', '0.9(32)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
     'sigma_st_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
     'sigma_st_z_SS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),

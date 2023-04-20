@@ -22,10 +22,7 @@ class fitter(object):
         self.prior = self._make_prior(prior)
         effective_mass = {}
         self.effective_mass = effective_mass
-        # self.fits = {}
-        # self.extrapolate = None
-        # self.y = {datatag : self.data['eps_'+datatag] for datatag in self.model_info['particles']}
-        
+    
     def __str__(self):
         output = "Model Type:" + str(self.model_type) 
         output = output+"\n"
@@ -36,32 +33,6 @@ class fitter(object):
 
         output += str(self.get_fit())
         return output
-
-
-    def _generate_data_from_fit(self, t,fit=None, t_start=None, t_end=None, model_type=None, n_states=None):
-        if model_type is None:
-            return None
-
-        if t_start is None:
-            t_start = self.t_range[model_type][0]
-        if t_end is None:
-            t_end = self.t_range[model_type][1]
-        if n_states is None:
-            n_states = self.n_states
-
-        # Make
-        t_range = {key : self.t_range[key] for key in list(self.t_range.keys())}
-        t_range[model_type] = [t_start, t_end]
-
-        # models = self._get_models(model_type=model_type)
-        if fit is None:
-
-            fit = self.get_fit(t_range=t_range, n_states=n_states)
-
-        # datatag[-3:] converts, eg, 'nucleon_dir' -> 'dir'
-        output = {model.datatag : model.fitfcn(p=fit.p, t=t) for model in models}
-        return output
-
 
     def get_fit(self):
         if self.fit is not None:
@@ -103,8 +74,6 @@ class fitter(object):
                 for corr in self.raw_corrs:
                     for sink in list(['SS','PS']):
                         datatag = self.p_dict['tag'][corr]
-                        # t_range = self.p_dict['t_range'][corr]
-                        # n_states = self.p_dict['n_states'][corr]
                         param_keys = {
                             'E0'      : datatag+'_E0',
                             'log(dE)' : datatag+'_log(dE)',
@@ -119,12 +88,11 @@ class fitter(object):
     # data array needs to match size of t array
     def _make_data(self):
         data = {}
-        for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st']:
+        for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
             for sinksrc in list(['SS','PS']):
                 data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
         return data
 
-    
     def _make_prior(self,prior):
         resized_prior = {}
 
@@ -134,7 +102,7 @@ class fitter(object):
 
         new_prior = resized_prior.copy()
         if self.simult:
-            for corr in ['sigma','lam','xi','xi_st','sigma_st']:
+            for corr in ['sigma','lam','xi','xi_st','sigma_st','proton','delta']:
                 new_prior[corr+'_E0'] = resized_prior[corr+'_E'][0]
                 new_prior.pop(corr+'_E', None)
                 new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))

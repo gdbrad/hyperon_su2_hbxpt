@@ -38,6 +38,15 @@ p_dict = {
 	    'hyperons'   :2,
         'all':2
     },
+    'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
+    },
     
     'make_plots' : True,
     'save_prior' : False,
@@ -70,20 +79,3 @@ prior = {
     'xi_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
     'xi_z_SS': np.array(['0.000012(12)', '0.000012(12)', '0.000012(12)', '0.000012(12)'],dtype=object),
     }
-
-
-# prior = {}
-# prior['m_{kplus,0}'] = gv.gvar(0.35,.1)
-# prior['m_{eta,0}'] = gv.gvar(.3,.2)
-# prior['m_{piplus,0}'] = gv.gvar(.25,.1)
-# prior['m_{delta,0}'] = gv.gvar(2,1)
-
-# TODO put prior routines in here, filename save options
-
-tag = {
-    'sigma': 'sigma',
-    'sigma_st': 'sigma_st',
-    'xi': 'xi',
-    'xi_st': 'xi_st',
-    'lam': 'lam',
-}

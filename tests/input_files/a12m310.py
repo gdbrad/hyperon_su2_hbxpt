@@ -2,25 +2,22 @@ import gvar as gv
 import numpy as np
 p_dict = {
     'abbr' : 'a12m310',
-    'part' : ['delta_pp', 'kplus', 'lambda_z', 'omega_m', 'piplus', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
-    'particles' : ['proton'],
-    'meson_states' : ['piplus','kplus'],
     'hyperons' : ['delta_pp', 'lambda_z', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
 
    't_range' : {
-        'sigma' : [5,17],
-        'xi' :  [5,17],
-        'xi_st' : [5,17],
-        'sigma_st' : [5,17],
-        'proton' :   [5,17],
-        'delta' : [5,17],
-        'lam' : [5,17],
+        'sigma' : [5,16],
+        'xi' :  [5,16],
+        'xi_st' : [5,16],
+        'sigma_st' : [5,16],
+        'proton' :   [5,16],
+        'delta' : [5,16],
+        'lam' : [5,16],
         'pi' : [5,30],
         'kplus': [8,28],
-        'hyperons':   [5,17],
-        'all':   [5,17]
+        'hyperons':   [5,16],
+        'all':   [5,16]
     },
     'n_states' : {
         'sigma' : 2,
@@ -36,6 +33,16 @@ p_dict = {
         'all':2
 
     },
+
+     'tag':{
+        'sigma' : 'sigma',
+        'sigma_st' : 'sigma_st',
+        'xi' :  'xi',
+        'xi_st' : 'xi_st',
+        'lam' : 'lam',
+        'proton': 'proton',
+        'delta' : 'delta'
+    },
     
     'make_plots' : True,
     'save_prior' : False,
@@ -48,8 +55,8 @@ p_dict = {
 prior = gv.BufferDict()
 prior = {
     'sigma_E': np.array(['0.73(22)', '0.8(3.2)', '0.9(3.2)', '1.0(3.2)'], dtype=object),
-    'sigma_z_PS': np.array(['0.0(3.3)e-06', '0.0(3.3)e-06', '0.0(3.3)e-06', '0.0(3.3)e-06'],dtype=object),
-    'sigma_z_SS': np.array(['4.4(4.4)e-07', '4.4(4.4)e-07', '4.4(4.4)e-07', '4.4(4.4)e-07'],dtype=object),
+    'sigma_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-06', '0.0(3.3)e-06'],dtype=object),
+    'sigma_z_SS': np.array(['4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-07', '4.4(4.4)e-07'],dtype=object),
     'sigma_st_E': np.array(['0.8(30)', '0.9(32)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
     'sigma_st_z_PS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
     'sigma_st_z_SS': np.array(['0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05', '0.0(3.3)e-05'],dtype=object),
