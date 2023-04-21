@@ -26,7 +26,7 @@ mpl.rcParams['text.usetex'] = True
 
 class InputOutput(object):
 
-    def __init__(self):
+    def __init__(self,fit_collection=None):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
 
         # bootstrapped hyperon correlator data
@@ -46,7 +46,7 @@ class InputOutput(object):
         ensembles.remove('a12m310XL')
         ensembles.remove('a12m220S')
         ensembles.remove('a12m180L')
-
+        self.fit_collection = fit_collection
         self.ensembles = ensembles
         self.project_path = project_path
 
@@ -87,9 +87,11 @@ class InputOutput(object):
                 data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L']
-                data[ens]['m_pi'] = f[ens]['mpi'][:]
-                data[ens]['m_k'] = f[ens]['mk'][:]
+                data[ens]['m_pi'] = f[ens]['mpi'][1:]
+                data[ens]['m_k'] = f[ens]['mk'][1:]
                 data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][1:]
+                data[ens]['Fpi'] = f[ens]['Fpi'][1:] 
+                data[ens]['eps_pi'] = data[ens]['m_pi'] / data[ens]['lam_chi']
                 data[ens]['units_Fpi'] = 1/data[ens]['lam_chi'][:]
 
                 if units=='Fpi':
@@ -132,19 +134,19 @@ class InputOutput(object):
         # if div_lam_chi is True:
         #     dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi']
         # else:
-        dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_omega','m_k','m_pi','lam_chi']
+        dim1_obs = ['m_lambda', 'm_sigma', 'eps_pi','m_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_omega','m_k','lam_chi']
         for ens in self.ensembles:
             gv_data[ens] = {}
             for obs in dim1_obs:
-                gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
+                # gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
+                gv_data[ens][obs] = bs_data[ens][obs]
+
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in dim1_obs:
                 gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
-            #gv_data[ens]['m_proton_phys'] = phys_data[ens]
-
-
+    
         ensembles = list(gv_data)
         output = {}
         for param in gv_data[self.ensembles[0]]:

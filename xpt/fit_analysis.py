@@ -33,7 +33,7 @@ import xpt.i_o
 
 class fit_analysis(object):
     
-    def __init__(self, phys_point_data, data=None, model_info=None, prior=None):
+    def __init__(self, phys_point_data, data=None, model_info=None, prior=None,verbose=None):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
         with h5py.File(project_path+'/data/hyperon_bs_data.h5', 'r') as f:
@@ -47,6 +47,7 @@ class fit_analysis(object):
        
         self.ensembles = ensembles
         self.model_info = model_info
+        self.verbose = verbose # print all data points
         self.data = data
         self.fitter = {}
         self._input_prior = prior
@@ -57,9 +58,12 @@ class fit_analysis(object):
         self.fit = self.fitter.fit
       
     def __str__(self):
-        output = "Model: %s" %(self.model)
-        output += '\n---\n'
-        fit_str = self.fit.format(pstyle='m')
+        # output = "Model: %s" %(self.model)
+        output = '\n---\n'
+        if self.verbose:
+            fit_str = self.fit.format(maxline=True,pstyle='vv')
+        else:
+            fit_str = self.fit.format(pstyle='m')
         output+= fit_str
         output+= str(self.extrapolated_mass)
         # output += '\nError Budget:\n'
@@ -225,6 +229,102 @@ class fit_analysis(object):
             output = self.fitter.fit.prior[param]
 
         return output
+    
+    def fitfcn(self, p=None, data=None, particle=None):
+        output = {}
+        if p is None:
+            p = {}
+            p.update(self.posterior)
+        if data is None:
+            data = self.phys_point_data
+            
+        p.update(data)
+
+        for mdl in self.fitter._make_models():
+            part = mdl.datatag
+            output[part] = mdl.fitfcn(p)
+
+        if particle is None:
+            return output
+        else:
+            return output[particle]
+    
+    # def plot_fit(self,xparam=None, yparam=None):
+    #     if yparam is None:
+    #         yparam = 'm_xi'
+    #     x_fit = {}
+    #     y_fit = {}
+    #     c = {}
+    #     colors = {
+    #         '06' : '#6A5ACD',
+    #         '09' : '#51a7f9',
+    #         '12' : '#70bf41',
+    #         '15' : '#ec5d57',
+    #     }
+
+    #     baryon_latex = {
+    #         'sigma': '\Sigma',
+    #         'sigma_st': '\Sigma^*',
+    #         'xi': '\Xi',
+    #         'xi_st': '\Xi^*',
+    #         'lam': '\Lambda'
+    #     }
+    #     print(self.fit.p)
+
+    #     for i in range(len(self.ensembles)):
+    #         for j, param in enumerate([xparam, yparam]):
+    #             if param in baryon_latex.keys():
+    #                 value = self.fit.y[yparam][i]
+    #                 latex_baryon = baryon_latex[param]
+    #                 label = f'$m_{{{latex_baryon}}}(MeV)$'
+
+    #             elif param == 'eps_pi':
+    #                 value = self.posterior['eps_pi'][i]
+    #                 label = '$\epsilon_\pi$'
+    #                 #min,max linspace
+
+    #             elif param == 'eps2_a':
+    #                 value = self.fit.p['eps2_a'][i]
+    #                 label = '$\epsilon_a^2$'
+    #             if j == 0:
+    #                 x_fit[i] = value
+    #                 xlabel = label
+    #             elif j == 1:
+    #                 y_fit[i] = value
+    #                 ylabel = label
+    #     min_max = lambda arr : (np.nanmin(arr), np.nanmax(arr))
+    #     min_val, max_val = min_max(self.data['eps2_a'])
+
+    #     eps2_a = np.linspace(gv.mean(min_val), gv.mean(max_val))
+
+    #     posterior = {}
+    #     posterior.update(self.fit.p)
+    #     eps2_a = posterior['eps2_a']
+    #     print(eps2_a,'eps')
+
+    #     # y_fit = self.fitfcn(particle=yparam)
+
+    #     pm = lambda g, k : gv.mean(g) + k *gv.sdev(g)
+    #     y_fit = self.fit.y[yparam]
+
+    #     plt.fill_between(gv.mean(eps2_a), pm(y_fit, -1), pm(y_fit, +1))
+    #     plt.show()
+    #     print(y_fit,value)
+
+    #     for i in range(len(self.ensembles)):
+    #         plt.errorbar(gv.mean(x_fit[i]), gv.mean(y_fit[i]),
+    #                     xerr=gv.sdev(x_fit[i]), yerr=gv.sdev(y_fit[i]),
+    #                     marker='o', mec='w', zorder=3, linestyle='')
+
+    #         plt.grid()
+    #     plt.xlabel(xlabel, fontsize=24)
+    #     plt.ylabel(ylabel, fontsize=24)
+    #     plt.axvline(gv.mean(self.phys_point_data['m_'+yparam]), ls='--', label='phys. point')
+
+    #     fig = plt.gcf()
+    #     plt.close()
+    #     return fig
+
 
     @property
     def hyp_mass(self):
