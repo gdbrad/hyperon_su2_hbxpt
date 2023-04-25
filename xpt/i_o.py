@@ -138,8 +138,8 @@ class InputOutput(object):
         for ens in self.ensembles:
             gv_data[ens] = {}
             for obs in dim1_obs:
-                # gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
-                gv_data[ens][obs] = bs_data[ens][obs]
+                gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
+                # gv_data[ens][obs] = bs_data[ens][obs]
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in dim1_obs:

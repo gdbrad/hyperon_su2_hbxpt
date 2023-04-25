@@ -56,9 +56,14 @@ class FitRoutine:
         self.empbayes_grouping = None #groups for empirical bayes prior study
         self._empbayes_fit = None
         # this is manually reconstructing the gvar to decorrelate x and y data
-        self.y = {datatag : gv.gvar([gv.mean(g) for g in self.data['m_'+datatag]], [gv.var(g) for g in data['m_'+datatag]])
-                                    for datatag in self.model_info['particles']}
-
+        self.y = {}
+        for datatag in self.model_info['particles']:
+            mean_values = [gv.mean(g) for g in self.data['m_'+datatag]]
+            cov_values = [gv.evalcov(g)[0][0] for g in data['m_'+datatag]]
+            # print(cov_values)
+            cov_matrix = np.diag(cov_values)
+            self.y[datatag] = gv.gvar(mean_values, cov_matrix)
+    
     def __str__(self):
         return str(self.fit)
 
@@ -423,7 +428,6 @@ class Xi(lsqfit.MultiFitterModel):
         super(Xi, self).__init__(datatag)
         self.model_info = model_info
 
-    # fit_data from i_o module
     def fitfcn(self, p, data=None):
         if data is not None:
             for key in data.keys():
@@ -451,7 +455,7 @@ class Xi(lsqfit.MultiFitterModel):
         return output
 
     def fitfcn_lo_ct(self, p, xdata):
-        ''''taylor extrapolation to O(m_pi^2) without terms coming from xpt expressions'''
+        ''''pure taylor extrapolation to O(m_pi^2)'''
         output = 0
         if self.model_info['fit_phys_units']: # lam_chi dependence ON #
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
