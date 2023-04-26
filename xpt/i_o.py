@@ -28,7 +28,13 @@ class InputOutput(object):
 
     def __init__(self,fit_collection=None):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
-
+        
+        if fit_collection is None:
+            name = str(datetime.datetime.now())
+            for c in [' ', ':', '.', '-']:
+                name = name.replace(c, '_')
+        else:
+            name = fit_collection
         # bootstrapped hyperon correlator data
         with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
@@ -49,19 +55,6 @@ class InputOutput(object):
         self.fit_collection = fit_collection
         self.ensembles = ensembles
         self.project_path = project_path
-
-    # def get_scale_setting_data(self): 
-    #     bs_data = {}
-
-    #     with h5py.File(self.project_path+'/data/scale_setting.h5', 'r') as f: 
-    #         for ens in f:
-    #             bs_data[ens] = {}
-    #             bs_data[ens]['m_omega'] = f[ens]['omega_E_0'][:]
-    #             bs_data[ens]['m_pi'] = f[ens]['pion_E_0'][:]
-    #             bs_data[ens]['m_k'] = f[ens]['kaon_E_0'][:]
-    #             bs_data[ens]['mres-L'] = f[ens]['mres-L'][:]
-    #             bs_data[ens]['mres-S'] = f[ens]['mres-S'][:]
-    #     return bs_data
 
     # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
     def _get_bs_data(self, scheme=None, units=None):
@@ -109,10 +102,10 @@ class InputOutput(object):
         with h5py.File(self.project_path+'/data/hyperon_data.h5', 'r') as f:
             for ens in self.ensembles:
                 for obs in list(f[ens]):
-                    data[ens].update({obs: f[ens][obs][:]})
+                    data[ens].update({obs: f[ens][:]})
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
-                        data[ens].update({obs : f[ens+'_hp'][obs][:]})
+                        data[ens].update({obs : f[ens+'_hp'][:]})
 
         # with h5py.File(self.project_path+'/data/scale_setting.h5', 'r') as f: 
         #     for ens in self.ensembles:
@@ -138,12 +131,12 @@ class InputOutput(object):
         for ens in self.ensembles:
             gv_data[ens] = {}
             for obs in dim1_obs:
-                gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
-                # gv_data[ens][obs] = bs_data[ens][obs]
+                gv_data[ens] = bs_data[ens] - np.mean(bs_data[ens]) + bs_data[ens][0]
+                # gv_data[ens] = bs_data[ens]
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in dim1_obs:
-                gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
+                gv_data[ens] = gv_data[ens] *bs_data[ens]['units_MeV']
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
     
@@ -206,6 +199,93 @@ class InputOutput(object):
         for key in ['m_pi', 'm_k', 'lam_chi', 'eps2_a']:
             new_prior[key] = data[key]
         return new_prior
+    
+    def pickle_out(self,fit_info):
+        model = fit_info['name']
+        if not os.path.exists(self.project_path +'/results/'+ self.collection['name'] +'/pickles/'):
+            os.makedirs(self.project_path +'/results/'+ self.collection['name'] +'/pickles/')
+        filename = self.project_path +'/results/'+ self.collection['name'] +'/pickles/'+'_'+ model +'.p'
+
+        output = {}
+
+        output['logGBF'] = gv.gvar(fit_info['logGBF'])
+        output['chi2/df'] = gv.gvar(fit_info['chi2/df'])
+        output['Q'] = gv.gvar(fit_info['Q'])
+
+        for key in fit_info['prior'].keys():
+            output['prior:'+key] = fit_info['prior'][key]
+
+        for key in fit_info['posterior'].keys():
+            output['posterior:'+key] = fit_info['posterior'][key]
+
+        for key in fit_info['phys_point'].keys():
+            # gvar can't handle integers -- entries not in correlation matrix
+            output['phys_point:'+key] = fit_info['phys_point'][key]
+
+        for key in fit_info['error_budget']:
+            output['error_budget:'+key] = gv.gvar(fit_info['error_budget'][key])
+
+        gv.dump(output, filename)
+        return None
+    
+    def _unpickle_fit_info(self, mdl_key):
+        filepath = self.project_path +'/results/'+ self.collection['name'] +'/pickles/'+ mdl_key +'.p'
+        if os.path.isfile(filepath):
+            return gv.load(filepath)
+        else:
+            return None
+        
+    def get_fit_collection(self):
+        if os.path.exists(self.project_path +'/results/'+ self.collection['name'] +'/pickles/'):
+            output = {}
+
+            pickled_models = []
+            for file in os.listdir(self.project_path +'/results/'+ self.collection['name'] +'/pickles/'):
+                if(file.endswith('.p')):
+                    pickled_models.append(file.split('.')[0])
+
+            for mdl_key in pickled_models:
+                fit_info_mdl_key = self._unpickle_fit_info(mdl_key=mdl_key)
+                model = mdl_key.split('_', 1)[1]
+
+                obs = mdl_key.split('_')[0]
+                if obs not in output:
+                    output[obs] = {}
+
+                output[obs][model] = {}
+                output[obs][model]['name'] = model
+                if obs == 'w0':
+                    output[obs][model]['w0'] = fit_info_mdl_key['w0']
+                elif obs == 't0':
+                    output[obs][model]['sqrt_t0'] = fit_info_mdl_key['sqrt_t0']
+                output[obs][model]['logGBF'] = fit_info_mdl_key['logGBF'].mean
+                output[obs][model]['chi2/df'] = fit_info_mdl_key['chi2/df'].mean
+                output[obs][model]['Q'] = fit_info_mdl_key['Q'].mean
+                output[obs][model]['prior'] = {}
+                output[obs][model]['posterior'] = {}
+                output[obs][model]['phys_point'] = {}
+                output[obs][model]['error_budget'] = {}
+
+                for key in fit_info_mdl_key.keys():
+                    if key.startswith('prior'):
+                        output[obs][model]['prior'][key.split(':')[-1]] = fit_info_mdl_key[key]
+                    elif key.startswith('posterior'):
+                        output[obs][model]['posterior'][key.split(':')[-1]] = fit_info_mdl_key[key]
+                    elif key.startswith('phys_point'):
+                        output[obs][model]['phys_point'][key.split(':')[-1]] = fit_info_mdl_key[key]
+                    elif key.startswith('error_budget'):
+                        output[obs][model]['error_budget'][key.split(':')[-1]] = fit_info_mdl_key[key].mean
+
+            return output
+        
+    def save_fit_info(self, fit_info):
+        self._pickle_fit_info(fit_info)
+        return None
+    
+
+
+
+        
 
 
 

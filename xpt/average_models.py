@@ -14,5 +14,6 @@ import i_o
 class Model_Average():
     def __init__(self,fit_collection):
         self.fit_collection = fit_collection
-        self.fit_results = i_o.
+        self.fit_results = i_o.get_fit_collection()
+        
         

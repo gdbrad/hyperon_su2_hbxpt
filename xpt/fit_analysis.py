@@ -66,14 +66,14 @@ class fit_analysis(object):
             fit_str = self.fit.format(pstyle='m')
         output+= fit_str
         output+= str(self.extrapolated_mass)
-        # output += '\nError Budget:\n'
-        # max_len = np.max([len(key) for key in self.error_budget])
-        # for key in {k: v for k, v in sorted(self.error_budget.items(), key=lambda item: item[1], reverse=True)}:
-        #     output += '  '
-        #     output += key.ljust(max_len+1)
-        #     for particle in ['m_'+ p for p in self.model_info['particles']]:
+        output += '\nError Budget:\n'
+        max_len = np.max([len(key) for key in self.error_budget.keys()])
+        for key in {k: v for k, v in sorted(self.error_budget.items(), key=lambda item: item[1], reverse=True)}:
+            output += '  '
+            output += key.ljust(max_len+1)
+            for particle in [p for p in self.model_info['particles']]:
+                output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
 
-        #         output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
 
         return output
     @property
@@ -83,7 +83,7 @@ class fit_analysis(object):
         '''
         return self._get_error_budget()
 
-    def _get_error_budget(self, verbose=True,**kwargs):
+    def _get_error_budget(self, verbose=False,**kwargs):
         '''
         hardcoded list of chiral expansion parameters associated with each hyperon,
         calculates a parameter's relative contribution to the total error inherent 
@@ -113,7 +113,7 @@ class fit_analysis(object):
             'm_{lambda,0}', 'm_{sigma,0}', 'm_{sigma_st,0}', 'm_{xi,0}', 'm_{xi_st,0}'
         ]
         phys_keys = list(self.phys_point_data)
-        stat_keys = ['lam_chi']# Since the input data is correlated, only need a single variable as a proxy for all
+        stat_keys = 'lam_chi'# Since the input data is correlated, only need a single variable as a proxy for all
 
         if verbose:
             if output is None:
@@ -134,20 +134,19 @@ class fit_analysis(object):
 
             print(gv.fmt_errorbudget(outputs=self.extrapolated_mass, inputs=inputs, verify=True))
         else:
-            output = {}
-            for particle in ['m_'+ p for p in self.model_info['particles']]:
-
-                output['disc'] = self.extrapolated_mass[particle].partialsdev(
+            if output is None:
+                output = {}
+            for particle in self.model_info['particles']:
+                output[particle+'_disc'] = self.extrapolated_mass[particle].partialsdev(
                             [self.prior[key] for key in disc_keys if key in self.prior])
                 
-                output['chiral'] = self.extrapolated_mass[particle].partialsdev(
+                output[particle+'_chiral'] = self.extrapolated_mass[particle].partialsdev(
                             [self.prior[key] for key in chiral_keys if key in self.prior])
                 
-                output['pp'] = self.extrapolated_mass[particle].partialsdev(
+                output[particle+'_pp'] = self.extrapolated_mass[particle].partialsdev(
                             [self.phys_point_data[key] for key in phys_keys if key in phys_keys])
-                
-                output['stat'] = self.extrapolated_mass[particle].partialsdev(
-                            [self._get_prior(stat_keys),self.fitter.fit.y])
+                output[particle+'_stat'] = self.extrapolated_mass[particle].partialsdev(
+                        [self._get_prior(stat_keys),self.fitter.fit.p['eps2_a']])
         return output
 
     @property
