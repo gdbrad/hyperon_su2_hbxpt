@@ -109,11 +109,11 @@ class fit_analysis(object):
         'd_{sigma,aa}', 'd_{sigma,al}',  'd_{sigma_st,aa}', 'd_{sigma_st,al}', 
         'd_{xi,aa}', 'd_{xi,al}',  'd_{xi_st,aa}', 'd_{xi_st,al}']
 
-        light_keys = [
+        stat_keys_y = [
             'm_{lambda,0}', 'm_{sigma,0}', 'm_{sigma_st,0}', 'm_{xi,0}', 'm_{xi_st,0}'
         ]
         phys_keys = list(self.phys_point_data)
-        stat_keys = 'lam_chi'# Since the input data is correlated, only need a single variable as a proxy for all
+        stat_keys_x = 'lam_chi'# Since the input data is correlated, only need a single variable as a proxy for all
 
         if verbose:
             if output is None:
@@ -124,7 +124,9 @@ class fit_analysis(object):
             inputs.update({str(param)+' [xpt]': self._input_prior[param] for param in chiral_keys if param in self._input_prior})
             inputs.update({str(param)+ '[strange]': self._input_prior[param] for param in strange_keys if param in self._input_prior})
             inputs.update({str(param)+' [pp]': self.phys_point_data[param] for param in list(phys_keys)})
-            inputs.update({'x [stat]' : self._input_prior[param] for param in stat_keys if param in self._input_prior})# , 'y [stat]' : self.fitter.fit.y})
+            inputs.update({'x [stat]' : self._input_prior[param] for param in stat_keys_x if param in self._input_prior})
+            inputs.update({'y [stat]' : self._input_prior[param] for param in stat_keys_y if param in self.fit.y})
+            # , 'y [stat]' : self.fitter.fit.y})
 
             if kwargs is None:
                 kwargs = {}
@@ -145,8 +147,12 @@ class fit_analysis(object):
                 
                 output[particle+'_pp'] = self.extrapolated_mass[particle].partialsdev(
                             [self.phys_point_data[key] for key in phys_keys if key in phys_keys])
-                output[particle+'_stat'] = self.extrapolated_mass[particle].partialsdev(
-                        [self._get_prior(stat_keys),self.fitter.fit.p['eps2_a']])
+                
+                output[particle+'_stat_x'] = self.extrapolated_mass[particle].partialsdev(
+                        [self._get_prior(stat_keys_x),self.fitter.fit.y[particle]]) 
+                
+                output[particle+'_stat_y'] = self.extrapolated_mass[particle].partialsdev(
+                        [self._get_prior(stat_keys_y),self.fitter.fit.y[particle]]) 
         return output
 
     @property

@@ -56,13 +56,13 @@ class FitRoutine:
         self.empbayes_grouping = None #groups for empirical bayes prior study
         self._empbayes_fit = None
         # this is manually reconstructing the gvar to decorrelate x and y data
-        self.y = {}
-        for datatag in self.model_info['particles']:
-            mean_values = [gv.mean(g) for g in self.data['m_'+datatag]]
-            cov_values = [gv.evalcov(g)[0][0] for g in data['m_'+datatag]]
-            # print(cov_values)
-            cov_matrix = np.diag(cov_values)
-            self.y[datatag] = gv.gvar(mean_values, cov_matrix)
+        y_particles = ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']
+        data_subset = {part : self.data['m_'+part] for part in y_particles}
+        self.y = gv.gvar(dict(gv.mean(data_subset)),dict(gv.evalcov(data_subset)))
+        # x_data_subset = {
+        # key: value for key, value in self.data.items() if key not in data_subset
+        # }
+        # self.x = x_data_subset
     
     def __str__(self):
         return str(self.fit)
@@ -71,6 +71,7 @@ class FitRoutine:
     def fit(self):
         models = self._make_models()
         prior = self._make_prior()
+        print(prior)
         data = self.y
         fitter = lsqfit.MultiFitter(models=models)
         fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False)
@@ -178,8 +179,7 @@ class FitRoutine:
                     prior[param] = gv.gvar(0, 1) * z[group]
 
         return dict(data=data,prior=prior)
-    
-    
+
     @property
     def posterior(self):
         return self._get_posterior()
@@ -735,6 +735,7 @@ class Lambda(lsqfit.MultiFitterModel):
                 p[key] = data[key]
 
         xdata = {}
+        # xdata['m_k'] = p['m_k']
         if self.model_info['fit_phys_units']:
             xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
         elif self.model_info['fit_fpi_units']:
@@ -830,7 +831,6 @@ class Lambda(lsqfit.MultiFitterModel):
     def builddata(self, data):
         return data[self.datatag]
 
-
 class Sigma(lsqfit.MultiFitterModel):
     '''
     SU(2) hbxpt extrapolation multifitter class for the Sigma baryon
@@ -844,6 +844,7 @@ class Sigma(lsqfit.MultiFitterModel):
             for key in data.keys():
                 p[key] = data[key]
         xdata = {}
+        # xdata['m_k'] = p['m_k']
         xdata['lam_chi'] = p['lam_chi']
         if self.model_info['fit_phys_units']:
             xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
@@ -943,17 +944,21 @@ class Sigma(lsqfit.MultiFitterModel):
     def builddata(self, data):
         return data[self.datatag]
 
-
 class Sigma_st(lsqfit.MultiFitterModel):
+    '''
+    SU(2) hbxpt extrapolation multifitter class for the sigma* baryon
+    '''
     def __init__(self, datatag, model_info):
         super(Sigma_st, self).__init__(datatag)
         self.model_info = model_info
 
     def fitfcn(self, p, data=None):
+        '''extrapolation formulae'''
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
         xdata = {}
+        # xdata['m_k'] = p['m_k']
         xdata['lam_chi'] = p['lam_chi']
         xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
         xdata['eps_lambda'] = (
@@ -964,7 +969,6 @@ class Sigma_st(lsqfit.MultiFitterModel):
         xdata['eps2_a'] = p['eps2_a']
         xdata['d_eps2_s'] = (2 * p['m_k']**2 - p['m_pi'] **
                              2) / p['lam_chi']**2 - 0.3513
-
        # not-even leading order
         output = p['m_{sigma_st,0}']
         output += self.fitfcn_lo_ct(p, xdata)
