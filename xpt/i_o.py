@@ -150,7 +150,7 @@ class InputOutput(object):
         '''
         data_phys_point = {
             'eps2_a' : gv.gvar(0),
-            'a' : gv.gvar(0),
+            # 'a' : gv.gvar(0),
             'alpha_s' : gv.gvar(0.0),
             'L' : gv.gvar(np.infty),
             'hbarc' : gv.gvar(197.3269804, 0), # MeV-fm

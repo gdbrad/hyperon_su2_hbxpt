@@ -71,7 +71,6 @@ class FitRoutine:
     def fit(self):
         models = self._make_models()
         prior = self._make_prior()
-        print(prior)
         data = self.y
         fitter = lsqfit.MultiFitter(models=models)
         fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False)
@@ -461,8 +460,9 @@ class Xi(lsqfit.MultiFitterModel):
             if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
                 output += (p['s_{xi}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
-            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-                output += p['m_{xi,0}']*(p['d_{xi,s}'] * xdata['d_eps2_s'])
+            if self.model_info['order_strange'] is not None:
+                if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo'] and 'd_{xi,s}' in p:
+                    output += p['m_{xi,0}']*(p['d_{xi,s}'] * xdata['d_eps2_s'])
 
         elif self.model_info['fit_fpi_units']: # lam_chi dependence OFF #
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
@@ -610,9 +610,10 @@ class Xi_st(lsqfit.MultiFitterModel):
             if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
                 output += (p['s_{xi,bar}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
-            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-                output += (p['m_{xi_st,0}']*(p['d_{xi_st,s}'] * xdata['d_eps2_s']))
-
+            if self.model_info['order_strange'] is not None:
+                if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo'] and 'd_{xi_st,s}' in p:
+                    output += p['m_{xi_st,0}']*(p['d_{xi_st,s}'] * xdata['d_eps2_s'])
+                    
         elif self.model_info['fit_fpi_units']: # lam_chi dependence ON #
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
                 output += (p['d_{xi_st,a}']*xdata['eps2_a'])
