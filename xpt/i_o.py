@@ -20,8 +20,8 @@ mpl.rcParams['xtick.labelsize'] = 12
 mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['text.usetex'] = True
 
-class InputOutput(object):
-
+class InputOutput:
+    '''Bootstrapped data ingestion and output to gvar datasets'''
     def __init__(self):
         project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         
@@ -31,6 +31,7 @@ class InputOutput(object):
         #         name = name.replace(c, '_')
         # else:
         #     name = fit_collection
+
         # bootstrapped hyperon correlator data
         with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
@@ -42,7 +43,7 @@ class InputOutput(object):
             ens_in = sorted(list(f.keys()))
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
-
+        # hopefully with new data these can be safely re-added
         ensembles.remove('a12m220')
         ensembles.remove('a12m220ms')
         ensembles.remove('a12m310XL')
@@ -101,22 +102,11 @@ class InputOutput(object):
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
-
-        # with h5py.File(self.project_path+'/data/scale_setting.h5', 'r') as f: 
-        #     for ens in self.ensembles:
-        #         data[ens]['m_omega'] = f[ens]['omega_E_0'][:]
-        #         data[ens]['m_pi'] = f[ens]['pion_E_0'][:]
-        #         data[ens]['m_k'] = f[ens]['kaon_E_0'][:]
-        #         data[ens]['mres-L'] = f[ens]['mres-L'][:]
-        #         data[ens]['mres-S'] = f[ens]['mres-S'][:]
-        #         data[ens]['eps_pi'] = data[ens]['m_pi'] / data[ens]['lam_chi'][0:2000]
-
         return data
 
 
     def get_data(self, scheme=None,units=None,div_lam_chi=False):
         bs_data = self._get_bs_data(scheme,units)
-        phys_data = self.get_data_phys_point()
         gv_data = {}
         
         # if div_lam_chi is True:
@@ -124,16 +114,13 @@ class InputOutput(object):
         # else:
         dim1_obs = ['m_lambda', 'm_sigma', 'eps_pi','m_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi']
         for ens in self.ensembles:
-            gv_data[ens] = {}
+            gv_data[ens] = gv.BufferDict()
             for obs in dim1_obs:
                 gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
-                # gv_data[ens] = bs_data[ens]
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in dim1_obs:
-                # gv_data[ens] = gv_data[ens] *bs_data[ens]['units_MeV']
                 gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
-
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
     

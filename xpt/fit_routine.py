@@ -1,5 +1,7 @@
+import copy
 import lsqfit
 import numpy as np
+import h5py as h5
 import gvar as gv
 import pprint
 import sys
@@ -7,7 +9,7 @@ import os
 import functools
 # local modules
 import xpt.non_analytic_functions as naf
-import xpt.i_o
+import xpt.i_o as i_o
 
 
 class FitRoutine:
@@ -44,8 +46,23 @@ class FitRoutine:
             Method to create prior information.
     """
 
-    def __init__(self, prior, data, model_info,phys_point_data,emp_bayes,empbayes_grouping):
+    def __init__(self, prior, data, model_info,phys_point_data,emp_bayes,empbayes_grouping,fv=None):
+        project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
+        # TODO REPLACE WITH NEW BS FILE 
+        with h5.File(project_path+'/data/hyperon_data.h5', 'r') as f:
+            ens_hyp = sorted(list(f.keys()))
+            ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
+        # TODO REPLACE WITH UPDATED SCALE SETTING FILE 
+        with h5.File(project_path+'/data/input_data.h5', 'r') as f: 
+            ens_in = sorted(list(f.keys()))
 
+        ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
+        ensembles.remove('a12m220')
+        ensembles.remove('a12m220ms')
+        ensembles.remove('a12m310XL')
+        ensembles.remove('a12m220S')
+        ensembles.remove('a12m180L')
+        self.ensembles = ensembles
         self.prior = prior
         self.data = data
         self.model_info = model_info.copy()
@@ -55,11 +72,12 @@ class FitRoutine:
         self.emp_bayes = False #boolean
         self.empbayes_grouping = None #groups for empirical bayes prior study
         self._empbayes_fit = None
+        self.fv = None # TODO not yet implemented 
         # this is manually reconstructing the gvar to decorrelate x and y data
         y_particles = ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']
         data_subset = {part : self.data['m_'+part] for part in y_particles}
         self.y = gv.gvar(dict(gv.mean(data_subset)),dict(gv.evalcov(data_subset)))
-        # x_data_subset = {
+        # x_data_subset = {ens
         # key: value for key, value in self.data.items() if key not in data_subset
         # }
         # self.x = x_data_subset
@@ -184,20 +202,16 @@ class FitRoutine:
         return self._get_posterior()
 
     def _get_posterior(self,param=None):
-        #output = {}
-        #return self.fit.p
         if param == 'all':
             return self.fit.p
-        elif param is not None:
+        if param is not None:
             return self.fit.p[param]
-        # elif param =='fpi':
-        #     return self.fitter_fpi.fit.p
-        else:
-            output = {}
-            for param in self.prior:
-                if param in self.fit.p:
-                    output[param] = self.fit.p[param]
-            return output  
+        
+        output = {}
+        for param in self.prior:
+            if param in self.fit.p:
+                output[param] = self.fit.p[param]
+        return output  
         
     @property
     def phys_point_data(self):
@@ -209,24 +223,81 @@ class FitRoutine:
             return self._phys_point_data
         else:
             return self._phys_point_data[parameter]
+        
+    def shift_latt_to_phys(self,ens=None,phys_params=None,observable=None,debug=None):
+        '''shift fitted values of the observable(hyperon) on each lattice to a 
+        new sector of parameter space in which all parameters are fixed except
+        the physical parameter of interest,eg. eps2_a (lattice spacing), eps_pi (pion mass), etc. '''
+        value_shifted = {}
+        vals = {}
+        for j, ens_j in enumerate(self.ensembles):
+            if ens is None or ens_j == ens:
+                # vals['latt'] = {}
 
-    def get_fitfcn(self,p=None,data=None,particle=None):
+                # for part in model_info['particles']:
+                vals['latt'] = self.fit.y[observable][j]
+                vals['fit'] = self.extrapolate_to_ens(ens=ens_j)
+                vals['phys'] = self.extrapolate_to_ens(ens=ens_j, phys_params=phys_params)
+                value_fit_phys = self.extrapolate_to_ens(ens=ens_j, phys_params=phys_params)
+                value_latt = self.fit.y[observable][j]
+                value_fit = self.extrapolate_to_ens(ens=ens_j)
+                if debug:
+                    print(vals['latt'],'latt')
+                    print(vals['fit'] ,'fit')
+                    print(vals['phys'],'phys')
+                
+                value_shifted[ens_j] = value_latt +  (value_fit_phys[observable] - value_fit[observable])
+                if ens is not None:
+                    return value_shifted[ens_j]
+        return value_shifted
+        
+    
+
+    def extrapolate_to_ens(self,ens=None, phys_params=None):
+        if phys_params is None:
+            phys_params = []
+        extrapolated_values = {}
+        for j, ens_j in enumerate(self.ensembles):
+            posterior = {}
+            xdata = {}
+            if ens is None or (ens is not None and ens_j == ens):
+                for param in self.fit.p:
+                    shape = self.fit.p[param].shape
+                    if param in phys_params:
+                        posterior[param] = self.phys_point_data[param] / self.phys_point_data['hbarc']
+                    elif shape == ():
+                        posterior[param] = self.fit.p[param]
+                    else:
+                        posterior[param] = self.fit.p[param][j]
+                if 'eps_pi' in phys_params:
+                    xdata['eps_pi'] = self.phys_point_data['m_pi'] / self.phys_point_data['lam_chi']
+                if 'd_eps2_s' in phys_params:
+                    xdata['d_eps2_s'] = (2 *self.phys_point_data['m_k']**2 - self.phys_point_data['m_pi']**2)/ self.phys_point_data['lam_chi']**2
+                if 'eps2_a' in phys_params:
+                    xdata['eps_a'] = 0
+                if ens is not None:
+                    return self.get_fitfcn(p=posterior, data={},xdata=xdata)
+                extrapolated_values[j] = self.get_fitfcn(p=posterior, data={}, xdata=xdata)
+        return extrapolated_values
+            
+
+    def get_fitfcn(self,p=None,data=None,particle=None,xdata=None):
         output = {}
         if p is None:
+            # p = copy.deepcopy(self.posterior)
             p = {}
             p.update(self.posterior)
         if data is None:
-            data = self.phys_point_data
-            
+            data = copy.deepcopy(self.phys_point_data)
         p.update(data)
+        # print(p,'p')
         for mdl in self._make_models(model_info=self.model_info):
             part = mdl.datatag
-            output[part] = mdl.fitfcn(p)
-
+            output[part] = mdl.fitfcn(p=p,data=data,xdata=xdata)
         if particle is None:
             return output
-        else:
-            return output[particle]
+        
+        return output[particle]
 
     def _make_models(self, model_info=None):
         if model_info is None:
@@ -292,7 +363,7 @@ class FitRoutine:
                         particle=p, order=o, lec_type=l))
         for key in keys:
             new_prior[key] = prior[key]
-
+        
         if self.model_info['order_strange'] is not None:
             new_prior['m_k'] = data['m_k']
         if self.model_info['order_light'] is not None:
@@ -413,8 +484,10 @@ class FitRoutine:
                 return output[particle][order][lec_type]
             else:
                 return []
+            
+    # def interpolate_w0a(self, latt_spacing, simultaneous_interpolation=False):
+    #     return self.fitfcn_interpolation(latt_spacing=latt_spacing, simultaneous_interpolation=simultaneous_interpolation, observable='w0')
 
-# S=2 Baryons #
 
 class Xi(lsqfit.MultiFitterModel):
     '''
@@ -424,19 +497,22 @@ class Xi(lsqfit.MultiFitterModel):
         super(Xi, self).__init__(datatag)
         self.model_info = model_info
 
-    def fitfcn(self, p, data=None):
+    def fitfcn(self, p, data=None,xdata = None):
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-        xdata = {}
-        xdata['lam_chi'] = p['lam_chi']
+        if xdata is None:
+            xdata = {}
+        if 'lam_chi' not in xdata:
+            xdata['lam_chi'] = p['lam_chi']
         if self.model_info['fit_phys_units']:
             xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
         elif self.model_info['fit_fpi_units']:
             xdata['eps_pi'] = p['eps_pi']
         xdata['eps_delta'] = (p['m_{xi_st,0}'] - p['m_{xi,0}']) / p['lam_chi']
         # xdata['eps_a'] = ((1/2) * p['a/w'])
-        xdata['eps2_a'] = p['eps2_a']
+        if 'eps2_a' not in xdata:
+            xdata['eps2_a'] = p['eps2_a']
         #strange quark mass mistuning
         if self.model_info['order_strange'] is not None:
             xdata['d_eps2_s'] = ((2 * p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2) - 0.3513
@@ -456,9 +532,11 @@ class Xi(lsqfit.MultiFitterModel):
         if self.model_info['fit_phys_units']: # lam_chi dependence ON #
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
                 output += p['m_{xi,0}'] * (p['d_{xi,a}'] * xdata['eps2_a'])
+                # print(output)
 
             if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
                 output += (p['s_{xi}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
+                # print(output,"2")
 
             if self.model_info['order_strange'] is not None:
                 if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo'] and 'd_{xi,s}' in p:
@@ -574,20 +652,23 @@ class Xi_st(lsqfit.MultiFitterModel):
         super(Xi_st, self).__init__(datatag)
         self.model_info = model_info
 
-    def fitfcn(self, p, data=None):
+    def fitfcn(self, p, data=None,xdata=None):
         '''extraplation formulae'''
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-        xdata = {}
-        xdata['lam_chi'] = p['lam_chi']
+        if xdata is None:
+            xdata = {}
+        if 'lc' not in xdata:
+            xdata['lam_chi'] = p['lam_chi']
         if self.model_info['fit_phys_units']:
             xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
         elif self.model_info['fit_fpi_units']:
             xdata['eps_pi'] = p['eps_pi']
         xdata['eps_delta'] = (p['m_{xi_st,0}'] - p['m_{xi,0}']) / p['lam_chi']
         # xdata['eps_a'] = ((1/2) * p['a/w'])
-        xdata['eps2_a'] = p['eps2_a']
+        if 'a' not in xdata:
+            xdata['eps2_a'] = p['eps2_a']
         if self.model_info['order_strange'] is not None:
             xdata['d_eps2_s'] = (
                 (2 * p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2) - 0.3513

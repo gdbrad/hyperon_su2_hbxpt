@@ -11,6 +11,7 @@ import h5py
 import yaml
 import sys
 import datetime
+import copy
 sys.setrecursionlimit(10000)
 
 import matplotlib as mpl
@@ -79,8 +80,98 @@ class Xpt_Fit_Analysis(object):
             for particle in [p for p in self.model_info['particles']]:
                 output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
 
+        return output 
 
-        return output
+    def plot_params(self,yparam,xparam=None):
+        if xparam is None:
+            xparam = 'eps2_a'
+        colormap = {
+            'a06' : '#6A5ACD',
+            'a09' : '#51a7f9',
+            'a12' : '#70bf41',
+            'a15' : '#ec5d57',
+        }
+        x = {}
+        y = {}
+        baryon_latex = {
+                    'sigma': '\Sigma',
+                    'sigma_st': '\Sigma^*',
+                    'xi': '\Xi',
+                    'xi_st': '\Xi^*',
+                    'lambda': '\Lambda'
+                }
+
+        for i in range(len(self.ensembles)):
+            for j, param in enumerate([xparam, yparam]):
+                if param in baryon_latex.keys():
+                    value = self.fit.y[yparam][i]
+                    latex_baryon = baryon_latex[param]
+                    label = f'$m_{{{latex_baryon}}}$(MeV)'
+                if param =='eps2_a':
+                    value = self.data['eps2_a'][i] 
+                    label = '$\epsilon_a^2$'
+                if j == 0:
+                    x[i] = value
+                    xlabel = label
+                elif j == 1:
+                    y[i] = value
+                    ylabel = label
+        added_labels = set()
+
+        for i in range(len(self.ensembles)):
+            C = gv.evalcov([x[i], y[i]])
+            eVe, eVa = np.linalg.eig(C)
+            color_key = self.ensembles[i][:3]
+            color = colormap[color_key]
+            label = f'{color_key.lower()}'
+
+            for e, v in zip(eVe, eVa.T):
+                plt.plot([gv.mean(x[i])-1*np.sqrt(e)*v[0], 1*np.sqrt(e)*v[0] + gv.mean(x[i])],
+                        [gv.mean(y[i])-1*np.sqrt(e)*v[1], 1*np.sqrt(e)*v[1] + gv.mean(y[i])],
+                            alpha=1.0, lw=2, color=color)
+
+                if label not in added_labels:
+                    plt.plot(gv.mean(x[i]), gv.mean(y[i]), 
+                            marker='o', mec='w', zorder=3, color=color, label=label)
+                    added_labels.add(label)
+                else:
+                    plt.plot(gv.mean(x[i]), gv.mean(y[i]), 
+                            marker='o', mec='w', zorder=3, color=color)
+            
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys(),
+            ncol=len(by_label), bbox_to_anchor=(0,1), loc='lower left')
+        plt.grid()
+        plt.xlabel(xlabel, fontsize = 24)
+        plt.ylabel(ylabel, fontsize = 24)
+        if yparam ==   'xi':
+            phys_point_yparam = gv.mean(np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]))
+        elif yparam == 'xi_st':
+            phys_point_yparam = gv.mean(np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]))
+        elif yparam == 'lambda':
+            phys_point_yparam = gv.mean(gv.gvar(1115.683, 0.006))
+        elif yparam == 'sigma':
+            phys_point_yparam =  np.mean([gv.gvar(g) for g in ['1189.37(07)', '1192.642(24)', '1197.449(30)']]),
+        elif yparam == 'sigma_st':
+            phys_point_yparam = np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']])
+        phys_point_xparam = 0.0
+        if yparam in baryon_latex:
+            latex_baryon = baryon_latex[param]
+            label = f'$m_{{{latex_baryon}}}$'
+        plt.plot(phys_point_xparam, phys_point_yparam, marker='o', color='black', zorder=4)
+        plt.axvline(phys_point_xparam, ls='--', color='black', label=label)
+
+        fig = plt.gcf()
+        # plt.show()
+        plt.close()
+        return fig 
+    
+
+    
+
+
     @property
     def error_budget(self):
         '''
@@ -144,7 +235,7 @@ class Xpt_Fit_Analysis(object):
             if output is None:
                 output = {}
             for particle in self.model_info['particles']:
-                output[particle+'_disc'] = self.extrapolated_mass[particle].partialsdev(
+                output[particle+'_disc'] = self.extrapolated_mass['m_{'+particle+',0}'].partialsdev(
                             [self.prior[key] for key in disc_keys if key in self.prior])
                 
                 output[particle+'_chiral'] = self.extrapolated_mass[particle].partialsdev(
@@ -175,40 +266,47 @@ class Xpt_Fit_Analysis(object):
         }
         return fit_info
     
-    def fitfcn(self, p=None, data=None, particle=None):
-        '''returns gvar result of hyperon extrapolation function'''
+    def fitfcn(self, posterior=None, data=None, particle=None,xdata=None):
+        '''returns resulting y_fit of hyperon extrapolation function'''
         output = {}
-        if p is None:
-            p = {}
-            p.update(self.posterior)
         if data is None:
-            data = self.phys_point_data
-        p.update(data)
+            data = copy.deepcopy(self.phys_point_data)
+        if posterior is None:
+            posterior = copy.deepcopy(self.posterior)
 
-        for mdl in self.fitter._make_models():
+            # p = {}
+            # p.update(self.posterior)
+        # if data is None:
+        #     data = self.phys_point_data
+        # p.update(data)
+        models = self.fitter._make_models()
+        for mdl in models:
             part = mdl.datatag
-            output[part] = mdl.fitfcn(p)
+            output[part] = mdl.fitfcn(p=posterior,data=data,xdata=xdata)
 
         if particle is None:
             return output
         return output[particle]
 
-    def extrapolated_mass(self,posterior=None,data=None,particle=None):
+        # # if particle is None:
+        # #     return output
+        #         return mdl.fitfcn(p=posterior,data=data,xdata=xdata)
+    @property
+    def extrapolated_mass(self):
         '''returns mass of a hyperon extrapolated to the physical point'''
         output = {}
         mdls = fit.FitRoutine(prior=self.prior,data=self.data, model_info=self.model_info,
                     phys_point_data=self.phys_point_data, emp_bayes=None,empbayes_grouping=None)
                               
-        output = mdls.get_fitfcn(p=posterior, data=data)
+        output = mdls.get_fitfcn(p=self.posterior, data=self.phys_point_data)
 
-        if particle is None:
-            return output
-        return output[particle]
+        # if particle is None:
+        return output
+        # return output[particle]
     
     def _extrapolate_to_ens(self,ens=None, phys_params=None):
         if phys_params is None:
             phys_params = []
-
         extrapolated_values = {}
         for j, ens_j in enumerate(self.ensembles):
             posterior = {}
@@ -222,32 +320,34 @@ class Xpt_Fit_Analysis(object):
                         posterior[param] = self.fit.p[param]
                     else:
                         posterior[param] = self.fit.p[param][j]
-                if 'alpha_s' in phys_params:
-                    posterior['alpha_s'] = self.phys_point_data['alpha_s']
                 if 'eps_pi' in phys_params:
                     xdata['eps_pi'] = self.phys_point_data['m_pi'] / self.phys_point_data['lam_chi']
                 if 'd_eps2_s' in phys_params:
                     xdata['d_eps2_s'] = (2 *self.phys_point_data['m_k']**2 - self.phys_point_data['m_pi']**2)/ self.phys_point_data['lam_chi']**2
-                if 'eps_a' in phys_params:
+                if 'eps2_a' in phys_params:
                     xdata['eps_a'] = 0
                 if ens is not None:
-                    return self.fitfcn(p=posterior, data={})
-
-                extrapolated_values[ens_j] = self.fitfcn(p=posterior, data={}, particle=None)
+                    return self.fitfcn(posterior=posterior, data={},xdata=xdata)
+                extrapolated_values[j] = self.fitfcn(posterior=posterior, data={}, xdata=xdata)
         return extrapolated_values
     
-    def shift_latt_to_phys(self, ens=None, phys_params=None):
+    def shift_latt_to_phys(self, ens=None, phys_params=None,observable=None):
+        '''shift fitted values of the observable(hyperon) on each lattice to a 
+        new sector of parameter space in which all parameters are fixed except
+        the physical parameter of interest,eg. eps2_a (lattice spacing), eps_pi (pion mass), etc. '''
         value_shifted = {}
         for j, ens_j in enumerate(self.ensembles):
             if ens is None or ens_j == ens:
-                for param in phys_params:
-                    y_fit = self.fit.y
-                    value_latt =  y_fit[param][j]
-                    value_fit = self._extrapolate_to_ens(ens_j,phys_params=phys_params)
-                    value_fit_phys = self._extrapolate_to_ens(ens_j, phys_params)
-                    # if ens_j not in value_shifted:
-                    #     value_shifted[ens_j] = {}
-                    value_shifted[ens_j] = value_latt + value_fit_phys[param] - value_fit[param]
+                y_fit = self.fit.y[observable]
+                value_latt =  y_fit[j]
+                print(value_latt)
+                value_fit = self._extrapolate_to_ens(ens_j)
+                print(value_fit)
+                # this should differ from value_fit obviously...
+                value_fit_phys = self._extrapolate_to_ens(ens_j, phys_params)
+                print(value_fit_phys)
+                
+                value_shifted[ens_j] = value_latt + value_fit_phys[observable] - value_fit[observable]
                 if ens is not None:
                     return value_shifted[ens_j]
         return value_shifted
