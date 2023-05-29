@@ -34,14 +34,15 @@ import xpt.i_o
 
 class Xpt_Fit_Analysis(object):
     
-    def __init__(self, phys_point_data, data=None, model_info=None, prior=None,verbose=None):
-        project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
+    def __init__(self, phys_point_data, data=None, model_info=None, prior=None,project_path=None,verbose=None):
+        self.project_path = project_path
+        # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
-        with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
+        with h5py.File(project_path+'/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
         # TODO REPLACE WITH UPDATED SCALE SETTING FILE 
-        with h5py.File(project_path+'/data/input_data.h5', 'r') as f: 
+        with h5py.File(project_path+'/input_data.h5', 'r') as f: 
             ens_in = sorted(list(f.keys()))
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
@@ -59,7 +60,7 @@ class Xpt_Fit_Analysis(object):
         self._input_prior = prior
         self._phys_point_data = phys_point_data
         self._fit = {}
-        self.fitter = fit.FitRoutine(prior=prior,data=data, model_info=model_info,
+        self.fitter = fit.FitRoutine(prior=prior,data=data, project_path=self.project_path,model_info=model_info,
                     phys_point_data=phys_point_data, emp_bayes=None,empbayes_grouping=None)
         self.fit = self.fitter.fit
       
@@ -167,10 +168,6 @@ class Xpt_Fit_Analysis(object):
         # plt.show()
         plt.close()
         return fig 
-    
-
-    
-
 
     @property
     def error_budget(self):
@@ -209,7 +206,7 @@ class Xpt_Fit_Analysis(object):
             'm_{lambda,0}', 'm_{sigma,0}', 'm_{sigma_st,0}', 'm_{xi,0}', 'm_{xi_st,0}'
         ]
         phys_keys = list(self.phys_point_data)
-        stat_keys_x = 'lam_chi'# Since the input data is correlated, only need a single variable as a proxy for all
+        stat_key = 'lam_chi'# Since the input data is correlated, only need a single variable as a proxy for all
 
         if verbose:
             if output is None:
@@ -220,8 +217,10 @@ class Xpt_Fit_Analysis(object):
             inputs.update({str(param)+' [xpt]': self._input_prior[param] for param in chiral_keys if param in self._input_prior})
             inputs.update({str(param)+ '[strange]': self._input_prior[param] for param in strange_keys if param in self._input_prior})
             inputs.update({str(param)+' [pp]': self.phys_point_data[param] for param in list(phys_keys)})
-            inputs.update({'x [stat]' : self._input_prior[param] for param in stat_keys_x if param in self._input_prior})
-            inputs.update({'y [stat]' : self._input_prior[param] for param in stat_keys_y if param in self.fit.y})
+            inputs.update({'x [stat]' : self._input_prior[param] for param in stat_key if param in self._input_prior})
+            inputs.update({'a [stat]' : self._input_prior['eps2_a'] })
+            inputs.update({str(obs)+'[stat]' : self.fit.y[obs] for obs in self.fit.y})
+            # inputs.update({'y [stat]' : self._input_prior[param] for param in stat_keys_y if param in self.fit.y})
             # , 'y [stat]' : self.fitter.fit.y})
 
             if kwargs is None:
@@ -235,7 +234,7 @@ class Xpt_Fit_Analysis(object):
             if output is None:
                 output = {}
             for particle in self.model_info['particles']:
-                output[particle+'_disc'] = self.extrapolated_mass['m_{'+particle+',0}'].partialsdev(
+                output[particle+'_disc'] = self.extrapolated_mass[particle].partialsdev(
                             [self.prior[key] for key in disc_keys if key in self.prior])
                 
                 output[particle+'_chiral'] = self.extrapolated_mass[particle].partialsdev(
@@ -244,11 +243,16 @@ class Xpt_Fit_Analysis(object):
                 output[particle+'_pp'] = self.extrapolated_mass[particle].partialsdev(
                             [self.phys_point_data[key] for key in phys_keys if key in phys_keys])
                 
-                output[particle+'_stat_x'] = self.extrapolated_mass[particle].partialsdev(
-                        [self._get_prior(stat_keys_x),self.fitter.fit.y[particle]]) 
+                # output[particle+'_stat_x'] = self.extrapolated_mass[particle].partialsdev(
+                #         [self._get_prior(stat_keys_x),self.fitter.fit.y[particle]]) 
                 
-                output[particle+'_stat_y'] = self.extrapolated_mass[particle].partialsdev(
-                        [self._get_prior(stat_keys_y),self.fitter.fit.y[particle]]) 
+                # output[particle+'_stat_y'] = self.extrapolated_mass[particle].partialsdev(
+                #         [self._get_prior(sta) for key in stae,self.fitter.fit.y[particle]]) 
+                output[particle+'_stat'] = self.extrapolated_mass[particle].partialsdev(
+                    [self.fit.prior[key] for key in ['eps2_a'] if key in self.fit.prior]
+                    + [self._get_prior(stat_key)] 
+                    + [self.fitter.y[obs] for obs in self.fitter.y]
+                )
         return output
 
     @property
@@ -288,14 +292,11 @@ class Xpt_Fit_Analysis(object):
             return output
         return output[particle]
 
-        # # if particle is None:
-        # #     return output
-        #         return mdl.fitfcn(p=posterior,data=data,xdata=xdata)
     @property
     def extrapolated_mass(self):
         '''returns mass of a hyperon extrapolated to the physical point'''
         output = {}
-        mdls = fit.FitRoutine(prior=self.prior,data=self.data, model_info=self.model_info,
+        mdls = fit.FitRoutine(prior=self.prior,data=self.data, project_path=self.project_path,model_info=self.model_info,
                     phys_point_data=self.phys_point_data, emp_bayes=None,empbayes_grouping=None)
                               
         output = mdls.get_fitfcn(p=self.posterior, data=self.phys_point_data)
@@ -384,14 +385,13 @@ class Xpt_Fit_Analysis(object):
     def _get_posterior(self,param=None):
         if param == 'all':
             return self.fitter.fit.p
-        elif param is not None:
+        if param is not None:
             return self.fitter.fit.p[param]
-        else:
-            output = {}
-            for param in self._input_prior:
-                if param in self.fitter.fit.p:
-                    output[param] = self.fitter.fit.p[param]
-            return output
+        output = {}
+        for param_ in self._input_prior:
+            if param_ in self.fitter.fit.p:
+                output[param_] = self.fitter.fit.p[param_]
+        return output
 
     @property
     def prior(self):
@@ -403,12 +403,12 @@ class Xpt_Fit_Analysis(object):
             output = {param : self.fitter.fit.prior[param] for param in self.fit_keys}
         elif param == 'all':
             output = self.fitter.fit.prior
+        elif isinstance(param, list):  # New condition to handle lists of params
+            output = {p: self.fitter.fit.prior[p] for p in param if p in self.fitter.fit.prior}
         else:
             output = self.fitter.fit.prior[param]
 
         return output
-    
-    
     
     # def plot_fit(self,xparam=None, yparam=None):
     #     if yparam is None:

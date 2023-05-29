@@ -46,14 +46,15 @@ class FitRoutine:
             Method to create prior information.
     """
 
-    def __init__(self, prior, data, model_info,phys_point_data,emp_bayes,empbayes_grouping,fv=None):
-        project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
+    def __init__(self, prior, data,project_path, model_info,phys_point_data,emp_bayes,empbayes_grouping,fv=None):
+        # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
-        with h5.File(project_path+'/data/hyperon_data.h5', 'r') as f:
+        self.project_path = project_path
+        with h5.File(self.project_path+'/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
         # TODO REPLACE WITH UPDATED SCALE SETTING FILE 
-        with h5.File(project_path+'/data/input_data.h5', 'r') as f: 
+        with h5.File(self.project_path+'/input_data.h5', 'r') as f: 
             ens_in = sorted(list(f.keys()))
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))

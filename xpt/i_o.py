@@ -22,9 +22,12 @@ mpl.rcParams['text.usetex'] = True
 
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar datasets'''
-    def __init__(self):
-        project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
-        
+    def __init__(self,project_path=None):
+        # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
+        self.project_path = project_path 
+        data_path_hyperon = os.path.join(project_path, "hyperon_data.h5")
+        data_path_input = os.path.join(project_path, "input_data.h5")
+        # print(project_path)
         # if fit_collection is None:
         #     name = str(datetime.datetime.now())
         #     for c in [' ', ':', '.', '-']:
@@ -33,13 +36,13 @@ class InputOutput:
         #     name = fit_collection
 
         # bootstrapped hyperon correlator data
-        with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
+        with h5py.File(data_path_hyperon, 'r') as f:
             ens_hyp = sorted(list(f.keys()))
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
 
         # bootstrapped scale setting data 
         # TODO replace with new scale set data 
-        with h5py.File(project_path+'/data/input_data.h5', 'r') as f: 
+        with h5py.File(data_path_input, 'r') as f: 
             ens_in = sorted(list(f.keys()))
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
@@ -56,7 +59,7 @@ class InputOutput:
     def _get_bs_data(self, scheme=None, units=None):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
         hbar_c = self.get_data_phys_point('hbarc') # MeV-fm (PDG 2019 conversion constant)
-        scale_factors = gv.load(self.project_path +'/data/scale_setting.p')
+        scale_factors = gv.load(self.project_path +'/scale_setting.p')
 
         if scheme is None:
             scheme = 'w0_imp'
@@ -64,7 +67,7 @@ class InputOutput:
             raise ValueError('Invalid scale setting scheme')
 
         data = {}
-        with h5py.File(self.project_path+'/data/input_data.h5','r') as f: 
+        with h5py.File(self.project_path+'/input_data.h5','r') as f: 
             for ens in self.ensembles:
                 data[ens] = {}
                 if scheme in ['w0_org','w0_imp'] and units=='phys':
@@ -95,7 +98,7 @@ class InputOutput:
                 elif scheme == 't0_org':
                     data[ens]['eps2_a'] = 1 / (4 *to_gvar(f[ens]['t0aSq']))
 
-        with h5py.File(self.project_path+'/data/hyperon_data.h5', 'r') as f:
+        with h5py.File(self.project_path+'/hyperon_data.h5', 'r') as f:
             for ens in self.ensembles:
                 for obs in list(f[ens]):
                     data[ens].update({obs: f[ens][obs][:]})
