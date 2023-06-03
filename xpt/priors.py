@@ -22,13 +22,6 @@ def filter_prior_keys(prior, model_info, particles):
 
     filtered_prior = {k: v for k, v in prior.items() if k in relevant_keys}
     return filtered_prior
-def get_filtered_prior_keys(particles, order, prior):
-    keys = []
-    # for p in particles:
-    for k in prior.keys():
-            # if p in k:
-        keys.append(k)
-    return keys
 
 def filter_relevant_prior_keys(model_info, prior):
     orders = ['llo', 'lo', 'nlo', 'n2lo']
@@ -80,8 +73,8 @@ def get_prior(units=None):
     elif units =='lam_chi':
         gs_baryons = {
         # not-even leading order 
-        'm_{xi,0}' : gv.gvar(1,.1), 
-        'm_{xi_st,0}' :  gv.gvar(1.1,.1), 
+        'm_{xi,0}' : gv.gvar(1,1), 
+        'm_{xi_st,0}' :  gv.gvar(1.1,1), 
         'm_{lambda,0}' :  gv.gvar(1,1), 
         'm_{sigma,0}' :  gv.gvar(1,1), 
         'm_{sigma_st,0}' :  gv.gvar(1,1),
@@ -98,6 +91,12 @@ def get_prior(units=None):
         's_{lambda}' : gv.gvar(0, 5),
         's_{sigma,bar}' : gv.gvar(0, 5),
         's_{sigma}' : gv.gvar(0, 5),
+        'l3_bar' : gv.gvar(3.53,2.6),
+        'l4_bar':gv.gvar(4.02,4.02),
+
+        'F0'    : gv.gvar(85,30),
+        'c2_F' : gv.gvar(0,20),
+        'c1_F' : gv.gvar(0,20),
    
         # nlo
         'g_{xi,xi}' : gv.gvar(0.3, 4),

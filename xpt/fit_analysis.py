@@ -65,13 +65,9 @@ class Xpt_Fit_Analysis(object):
         self.fit = self.fitter.fit
       
     def __str__(self):
-        # output = "Model: %s" %(self.model)
-        output = '\n---\n'
-        if self.verbose:
-            fit_str = self.fit.format(maxline=True,pstyle='vv')
-        else:
-            fit_str = self.fit.format(pstyle='m')
-        output+= fit_str
+        output = "Model: %s" %(self.model_info['name'])
+        output += '\n---\n'
+        output+= 'Extrapolation:'
         output+= str(self.extrapolated_mass)
         output += '\nError Budget:\n'
         max_len = np.max([len(key) for key in self.error_budget.keys()])
@@ -80,94 +76,15 @@ class Xpt_Fit_Analysis(object):
             output += key.ljust(max_len+1)
             for particle in [p for p in self.model_info['particles']]:
                 output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
+        if self.verbose:
+            fit_str = self.fit.format(maxline=True,pstyle='vv')
+        else:
+            fit_str = self.fit.format(pstyle='m')
+        output+= str(fit_str)
+        
 
         return output 
-
-    def plot_params(self,yparam,xparam=None):
-        if xparam is None:
-            xparam = 'eps2_a'
-        colormap = {
-            'a06' : '#6A5ACD',
-            'a09' : '#51a7f9',
-            'a12' : '#70bf41',
-            'a15' : '#ec5d57',
-        }
-        x = {}
-        y = {}
-        baryon_latex = {
-                    'sigma': '\Sigma',
-                    'sigma_st': '\Sigma^*',
-                    'xi': '\Xi',
-                    'xi_st': '\Xi^*',
-                    'lambda': '\Lambda'
-                }
-
-        for i in range(len(self.ensembles)):
-            for j, param in enumerate([xparam, yparam]):
-                if param in baryon_latex.keys():
-                    value = self.fit.y[yparam][i]
-                    latex_baryon = baryon_latex[param]
-                    label = f'$m_{{{latex_baryon}}}$(MeV)'
-                if param =='eps2_a':
-                    value = self.data['eps2_a'][i] 
-                    label = '$\epsilon_a^2$'
-                if j == 0:
-                    x[i] = value
-                    xlabel = label
-                elif j == 1:
-                    y[i] = value
-                    ylabel = label
-        added_labels = set()
-
-        for i in range(len(self.ensembles)):
-            C = gv.evalcov([x[i], y[i]])
-            eVe, eVa = np.linalg.eig(C)
-            color_key = self.ensembles[i][:3]
-            color = colormap[color_key]
-            label = f'{color_key.lower()}'
-
-            for e, v in zip(eVe, eVa.T):
-                plt.plot([gv.mean(x[i])-1*np.sqrt(e)*v[0], 1*np.sqrt(e)*v[0] + gv.mean(x[i])],
-                        [gv.mean(y[i])-1*np.sqrt(e)*v[1], 1*np.sqrt(e)*v[1] + gv.mean(y[i])],
-                            alpha=1.0, lw=2, color=color)
-
-                if label not in added_labels:
-                    plt.plot(gv.mean(x[i]), gv.mean(y[i]), 
-                            marker='o', mec='w', zorder=3, color=color, label=label)
-                    added_labels.add(label)
-                else:
-                    plt.plot(gv.mean(x[i]), gv.mean(y[i]), 
-                            marker='o', mec='w', zorder=3, color=color)
-            
-
-        handles, labels = plt.gca().get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        plt.legend(by_label.values(), by_label.keys(),
-            ncol=len(by_label), bbox_to_anchor=(0,1), loc='lower left')
-        plt.grid()
-        plt.xlabel(xlabel, fontsize = 24)
-        plt.ylabel(ylabel, fontsize = 24)
-        if yparam ==   'xi':
-            phys_point_yparam = gv.mean(np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]))
-        elif yparam == 'xi_st':
-            phys_point_yparam = gv.mean(np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]))
-        elif yparam == 'lambda':
-            phys_point_yparam = gv.mean(gv.gvar(1115.683, 0.006))
-        elif yparam == 'sigma':
-            phys_point_yparam =  np.mean([gv.gvar(g) for g in ['1189.37(07)', '1192.642(24)', '1197.449(30)']]),
-        elif yparam == 'sigma_st':
-            phys_point_yparam = np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']])
-        phys_point_xparam = 0.0
-        if yparam in baryon_latex:
-            latex_baryon = baryon_latex[param]
-            label = f'$m_{{{latex_baryon}}}$'
-        plt.plot(phys_point_xparam, phys_point_yparam, marker='o', color='black', zorder=4)
-        plt.axvline(phys_point_xparam, ls='--', color='black', label=label)
-
-        fig = plt.gcf()
-        # plt.show()
-        plt.close()
-        return fig 
+    
 
     @property
     def error_budget(self):
@@ -178,7 +95,7 @@ class Xpt_Fit_Analysis(object):
 
     def _get_error_budget(self, verbose=False,**kwargs):
         '''
-        hardcoded list of chiral expansion parameters associated with each hyperon,
+        list of chiral expansion parameters associated with each hyperon,
         calculates a parameter's relative contribution to the total error inherent 
         in the mass expansion
         '''
@@ -216,7 +133,7 @@ class Xpt_Fit_Analysis(object):
             inputs.update({str(param)+' [disc]': self._input_prior[param] for param in disc_keys if param in self._input_prior})
             inputs.update({str(param)+' [xpt]': self._input_prior[param] for param in chiral_keys if param in self._input_prior})
             inputs.update({str(param)+ '[strange]': self._input_prior[param] for param in strange_keys if param in self._input_prior})
-            inputs.update({str(param)+' [pp]': self.phys_point_data[param] for param in list(phys_keys)})
+            inputs.update({str(param)+' [phys]': self.phys_point_data[param] for param in list(phys_keys)})
             inputs.update({'x [stat]' : self._input_prior[param] for param in stat_key if param in self._input_prior})
             inputs.update({'a [stat]' : self._input_prior['eps2_a'] })
             inputs.update({str(obs)+'[stat]' : self.fit.y[obs] for obs in self.fit.y})
@@ -251,7 +168,7 @@ class Xpt_Fit_Analysis(object):
                 output[particle+'_stat'] = self.extrapolated_mass[particle].partialsdev(
                     [self.fit.prior[key] for key in ['eps2_a'] if key in self.fit.prior]
                     + [self._get_prior(stat_key)] 
-                    + [self.fitter.y[obs] for obs in self.fitter.y]
+                    + [self.fit.y[particle]]
                 )
         return output
 
@@ -304,10 +221,12 @@ class Xpt_Fit_Analysis(object):
         # if particle is None:
         return output
         # return output[particle]
+
     
-    def _extrapolate_to_ens(self,ens=None, phys_params=None):
+    def _extrapolate_to_ens(self,ens=None, phys_params=None,observable=None):
         if phys_params is None:
             phys_params = []
+
         extrapolated_values = {}
         for j, ens_j in enumerate(self.ensembles):
             posterior = {}
@@ -316,39 +235,47 @@ class Xpt_Fit_Analysis(object):
                 for param in self.fit.p:
                     shape = self.fit.p[param].shape
                     if param in phys_params:
-                        posterior[param] = self.phys_point_data[param] / self.phys_point_data['hbarc']
+                        # posterior[param] = self.phys_point_data[param] / self.phys_point_data['hbarc']
+                        posterior[param] = self.phys_point_data[param]       
                     elif shape == ():
-                        posterior[param] = self.fit.p[param]
+                            posterior[param] = self.fit.p[param]
                     else:
                         posterior[param] = self.fit.p[param][j]
                 if 'eps_pi' in phys_params:
                     xdata['eps_pi'] = self.phys_point_data['m_pi'] / self.phys_point_data['lam_chi']
+                if 'mpi' in phys_params:
+                    xdata['m_pi'] = self.phys_point_data['m_pi']
                 if 'd_eps2_s' in phys_params:
                     xdata['d_eps2_s'] = (2 *self.phys_point_data['m_k']**2 - self.phys_point_data['m_pi']**2)/ self.phys_point_data['lam_chi']**2
                 if 'eps2_a' in phys_params:
                     xdata['eps_a'] = 0
+                if 'lam_chi' in phys_params:
+                    xdata['lam_chi'] = self.phys_point_data['lam_chi']
                 if ens is not None:
-                    return self.fitfcn(posterior=posterior, data={},xdata=xdata)
-                extrapolated_values[j] = self.fitfcn(posterior=posterior, data={}, xdata=xdata)
+                    return self.fitfcn(posterior=posterior, data={},xdata=xdata,particle=observable)
+                extrapolated_values[ens_j] = self.fitfcn(posterior=posterior, data={}, xdata=xdata,particle=observable)
         return extrapolated_values
     
-    def shift_latt_to_phys(self, ens=None, phys_params=None,observable=None):
-        '''shift fitted values of the observable(hyperon) on each lattice to a 
+    def shift_latt_to_phys(self, ens=None, phys_params=None,observable=None,debug=None):
+        '''
+        shift fitted values of the hyperon on each lattice to a 
         new sector of parameter space in which all parameters are fixed except
-        the physical parameter of interest,eg. eps2_a (lattice spacing), eps_pi (pion mass), etc. '''
+        the physical parameter of interest,eg. eps2_a (lattice spacing), eps_pi (pion mass),
+        etc.
+        Since we have extrapolation to lam_chi as fcn of eps_pi, eps2_a, we use lattice value of lam_chi for analyis of masses. To then call this function when plotting extrapolation fit vs. one of these phys. parameters, can use fit to lam_chi(eps_pi,eps2_a)
+        '''
         value_shifted = {}
         for j, ens_j in enumerate(self.ensembles):
             if ens is None or ens_j == ens:
                 y_fit = self.fit.y[observable]
                 value_latt =  y_fit[j]
-                print(value_latt)
-                value_fit = self._extrapolate_to_ens(ens_j)
-                print(value_fit)
-                # this should differ from value_fit obviously...
-                value_fit_phys = self._extrapolate_to_ens(ens_j, phys_params)
-                print(value_fit_phys)
-                
-                value_shifted[ens_j] = value_latt + value_fit_phys[observable] - value_fit[observable]
+                value_fit = self._extrapolate_to_ens(ens_j,observable=observable)
+                value_fit_phys = self._extrapolate_to_ens(ens_j, phys_params,observable=observable)
+                value_shifted[ens_j] = value_latt + value_fit_phys - value_fit
+                if debug:
+                    print(value_latt,"latt")
+                    print(value_fit,"fit")
+                    print(value_fit_phys,"phys")
                 if ens is not None:
                     return value_shifted[ens_j]
         return value_shifted
@@ -410,78 +337,218 @@ class Xpt_Fit_Analysis(object):
 
         return output
     
-    # def plot_fit(self,xparam=None, yparam=None):
-    #     if yparam is None:
-    #         yparam = 'm_xi'
-    #     x_fit = {}
-    #     y_fit = {}
-    #     c = {}
-    #     colors = {
-    #         '06' : '#6A5ACD',
-    #         '09' : '#51a7f9',
-    #         '12' : '#70bf41',
-    #         '15' : '#ec5d57',
-    #     }
+    def plot_params(self,observable,xparam=None,show_plot=None,eps=None):
+        '''plot unshifted masses on each ensemble vs physical param. of interest eg. 
+        eps2_a, eps_pi'''
 
-    #     baryon_latex = {
-    #         'sigma': '\Sigma',
-    #         'sigma_st': '\Sigma^*',
-    #         'xi': '\Xi',
-    #         'xi_st': '\Xi^*',
-    #         'lam': '\Lambda'
-    #     }
-    #     print(self.fit.p)
+        if xparam is None:
+            xparam = 'eps2_a'
+        colormap = {
+            'a06' : 'purple',
+            'a09' : 'blue',
+            'a12' : 'green',
+            'a15' : 'red',
+        }
+        x = {}
+        y = {}
+        baryon_latex = {
+                    'sigma': '\Sigma',
+                    'sigma_st': '\Sigma^*',
+                    'xi': '\Xi',
+                    'xi_st': '\Xi^*',
+                    'lambda': '\Lambda'
+                }
+        fig, ax = plt.subplots(figsize=(10, 8))
 
-    #     for i in range(len(self.ensembles)):
-    #         for j, param in enumerate([xparam, yparam]):
-    #             if param in baryon_latex.keys():
-    #                 value = self.fit.y[yparam][i]
-    #                 latex_baryon = baryon_latex[param]
-    #                 label = f'$m_{{{latex_baryon}}}(MeV)$'
+        for i in range(len(self.ensembles)):
+            for j, param in enumerate([xparam, observable]):
+                if param in baryon_latex.keys():
+                    value = self.fit.y[observable][i]
+                    latex_baryon = baryon_latex[param]
+                    label = f'$m_{{{latex_baryon}}}$(MeV)'
+                if param =='eps2_a':
+                    value = self.data['eps2_a'][i] 
+                    label = '$\epsilon_a^2$'
+                if param =='mpi_sq':
+                    value = (self.data['m_pi'][i])**2
+                    label = '$m_\pi^2$'
+                if j == 0:
+                    x[i] = value
+                    xlabel = label
+                elif j == 1:
+                    y[i] = value
+                    ylabel = label
+        added_labels = set()
 
-    #             elif param == 'eps_pi':
-    #                 value = self.posterior['eps_pi'][i]
-    #                 label = '$\epsilon_\pi$'
-    #                 #min,max linspace
+        for i in range(len(self.ensembles)):
+            C = gv.evalcov([x[i], y[i]])
+            eVe, eVa = np.linalg.eig(C)
+            color_key = self.ensembles[i][:3]
+            color = colormap[color_key]
+            label = f'{color_key.lower()}'
 
-    #             elif param == 'eps2_a':
-    #                 value = self.fit.p['eps2_a'][i]
-    #                 label = '$\epsilon_a^2$'
-    #             if j == 0:
-    #                 x_fit[i] = value
-    #                 xlabel = label
-    #             elif j == 1:
-    #                 y_fit[i] = value
-    #                 ylabel = label
-    #     min_max = lambda arr : (np.nanmin(arr), np.nanmax(arr))
-    #     min_val, max_val = min_max(self.data['eps2_a'])
+            for e, v in zip(eVe, eVa.T):
+                ax.plot([gv.mean(x[i])-1*np.sqrt(e)*v[0], 1*np.sqrt(e)*v[0] + gv.mean(x[i])],
+                        [gv.mean(y[i])-1*np.sqrt(e)*v[1], 1*np.sqrt(e)*v[1] + gv.mean(y[i])],
+                            alpha=1.0, lw=2, color=color)
 
-    #     eps2_a = np.linspace(gv.mean(min_val), gv.mean(max_val))
+                if label not in added_labels:
+                    ax.plot(gv.mean(x[i]), gv.mean(y[i]), 
+                            marker='o', mec='w',markersize=8, zorder=3, color=color, label=label)
+                    added_labels.add(label)
+                else:
+                    ax.plot(gv.mean(x[i]), gv.mean(y[i]), 
+                            marker='o', mec='w', markersize=8,zorder=3, color=color)
+            
 
-    #     posterior = {}
-    #     posterior.update(self.fit.p)
-    #     eps2_a = posterior['eps2_a']
-    #     print(eps2_a,'eps')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys(),fontsize=14,
+             bbox_to_anchor=(1.05,1), loc='upper left')
+        ax.grid(True)
+        ax.set_xlabel(xlabel, fontsize = 16)
+        # plt.ylabel(ylabel, fontsize = 24)
+        if eps:
+            phys_point_observable = self._get_phys_point_data(parameter='eps_'+observable) 
+        else:
+            phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)  
+        phys_point_xparam = 0.0
+        if observable in baryon_latex.keys():
+            latex_baryon = baryon_latex[observable]
+            if eps:
+                label = f'$\\frac{{M_{latex_baryon}}}{{\\Lambda_{{\\chi}}}}$' 
+            else:
+                label = f'$M_{latex_baryon}$'
+        ax.set_ylabel(label, fontsize = 16)
 
-    #     # y_fit = self.fitfcn(particle=yparam)
+        plt.plot(phys_point_xparam, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
+        plt.axvline(phys_point_xparam, ls='--', color='black', label=label)
+        phys_point_xparam = 0.0
+        if observable in baryon_latex:
+            latex_baryon = baryon_latex[param]
+            if eps:
+                label = f'$m_{{{latex_baryon}}}$'
+        # plt.plot(phys_point_xparam, phys_point_observable, marker='o', color='black', zorder=4)
+        # plt.axvline(phys_point_xparam, ls='--', color='black', label=label)
 
-    #     pm = lambda g, k : gv.mean(g) + k *gv.sdev(g)
-    #     y_fit = self.fit.y[yparam]
+        fig = plt.gcf()
+        if show_plot:
+            plt.show()
+        plt.close()
+        return fig 
+    
+    def plot_params_fit(self,param,observable=None,shift=None,eps=None):
+        fig, ax = plt.subplots(figsize=(10,8))
+        colormap = {'a06' : 'purple', 'a09' : 'blue', 'a12' : 'green', 'a15' : 'red'}
+        
+        latt_spacing = {'06': gv.gvar('0.04009(18)'), '09': gv.gvar('0.09209(28)'), 
+                        '12': gv.gvar('0.17016(37)'), '15': gv.gvar('0.25206(32)'), 
+                        '00': gv.gvar('0(0)')}
+        xi = {}
+        
+        for j, xx in enumerate(reversed(latt_spacing)): 
+            min_max = lambda mydict : (gv.mean(np.nanmin([mydict[key] for key in mydict.keys()])), 
+                                       gv.mean(np.nanmax([mydict[key] for key in mydict.keys()])))   
+            phys_data = self.phys_point_data
+            phys_data['eps2_a'] = latt_spacing[xx]
+            if param == 'a':
+                eps2_a_arr = [self.data['eps2_a']] 
+                xi['eps2_a'] = np.linspace(0, gv.mean(np.max(eps2_a_arr)))
+                x_fit = xi['eps2_a']
+            if param == 'epi':
+                eps_pi_arr = [self.data['eps_pi']] 
+                xi['eps_pi'] = np.linspace(0, gv.mean(np.max(eps_pi_arr)))
+                x_fit = xi['eps_pi']
+            if param == 'mpi_sq':
+                min_max = min_max({ens : (self.data[ens]['mpi'])**2 for ens in self.ensembles})
+                # mpi_sq_arr = [self.data['m_pi']] 
+                xi['mpi_sq'] = np.linspace(0.0001,min_max[1])
+                x_fit = xi['mpi_sq']
 
-    #     plt.fill_between(gv.mean(eps2_a), pm(y_fit, -1), pm(y_fit, +1))
-    #     plt.show()
-    #     print(y_fit,value)
+        y_fit = {'xi': self.fitter.get_fitfcn(data=phys_data, particle='xi', xdata=xi),
+                'xi_st': self.fitter.get_fitfcn(data=phys_data, particle='xi_st', xdata=xi)}
+        print(y_fit,'y_fit')
+        pm = lambda g, k : gv.mean(g) + k * gv.sdev(g)
+        ax.fill_between(pm(x_fit, 0), pm(y_fit[observable], -1), pm(y_fit[observable], +1), 
+                        facecolor='None', edgecolor='k', alpha=0.6, hatch='/')
 
-    #     for i in range(len(self.ensembles)):
-    #         plt.errorbar(gv.mean(x_fit[i]), gv.mean(y_fit[i]),
-    #                     xerr=gv.sdev(x_fit[i]), yerr=gv.sdev(y_fit[i]),
-    #                     marker='o', mec='w', zorder=3, linestyle='')
+        added_labels = set()
+        x = {}
+        y = {}
+        baryon_latex = {'sigma': '\Sigma', 'sigma_st': '\Sigma^*', 'xi': '\Xi', 'xi_st': '\Xi^*', 'lambda': '\Lambda'}
+        
+        for ens in self.ensembles:
+            if param == 'a':
+                x = self.data['eps2_a']
+                if shift is not None:
+                    y[ens] = shift
+                else:
+                    y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps_pi','d_eps2_s','m_pi','lam_chi'], observable=observable)
+                xlabel = r'$\epsilon_a^2$'
+            elif param == 'epi':
+                x = self.data['eps_pi']
+                if shift is not None:
+                    y[ens] = shift
+                else:
+                    y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi','lam_chi'], observable=observable)
+                xlabel = r'$\epsilon_\pi$'
+            elif param == 'mpi_sq':
+                x = self.data['m_pi']
+                if shift is not None:
+                    y[ens] = shift
+                else:
+                    y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s'], observable=observable)
+                xlabel = r'$m_\pi^2$'
 
-    #         plt.grid()
-    #     plt.xlabel(xlabel, fontsize=24)
-    #     plt.ylabel(ylabel, fontsize=24)
-    #     plt.axvline(gv.mean(self.phys_point_data['m_'+yparam]), ls='--', label='phys. point')
+        for i,ens in enumerate(self.ensembles):
+            C = gv.evalcov([x[i], y[ens]])
+            eVe, eVa = np.linalg.eig(C)
+            color_key = self.ensembles[i][:3]
+            color = colormap[color_key]
+            label = f'{color_key.lower()}'
 
-    #     fig = plt.gcf()
-    #     plt.close()
-    #     return fig
+            for e, v in zip(eVe, eVa.T):
+                ax.plot([gv.mean(x[i])-1*np.sqrt(e)*v[0], 1*np.sqrt(e)*v[0] + gv.mean(x[i])],
+                        [gv.mean(y[ens])-1*np.sqrt(e)*v[1], 1*np.sqrt(e)*v[1] + gv.mean(y[ens])],
+                        alpha=1.0, lw=2.5, color=color)  # Increased linewidth
+
+                if label not in added_labels:
+                    ax.plot(gv.mean(x[i]), gv.mean(y[ens]), marker='o', mec='w', markersize=10, 
+                            zorder=3, color=color, label=label)  # Increased markersize
+                    added_labels.add(label)
+                else:
+                    ax.plot(gv.mean(x[i]), gv.mean(y[ens]), marker='o', mec='w', markersize=10, 
+                            zorder=3, color=color)     
+
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        
+        ax.legend(by_label.values(), by_label.keys(), fontsize=14, bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.grid(True)
+        
+        ax.set_xlabel(xlabel, fontsize = 20)
+        ax.set_title('Single Parameter Fit', fontsize=20)  
+        
+        phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)  
+        phys_point_xparam = 0.0
+        if observable in baryon_latex.keys():
+            if eps:
+                phys_point_observable = self._get_phys_point_data(parameter='eps_'+observable) 
+            else:
+                phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)  
+        phys_point_xparam = 0.0
+        if observable in baryon_latex.keys():
+            latex_baryon = baryon_latex[observable]
+            if eps:
+                label = f'$\\frac{{M_{latex_baryon}}}{{\\Lambda_{{\\chi}}}}$' 
+            else:
+                label = f'$M_{latex_baryon}$'
+            # latex_baryon = baryon_latex[observable]
+            # label = f'$M_{{{latex_baryon}}}$'
+        ax.set_ylabel(label, fontsize = 20)
+
+        ax.plot(phys_point_xparam, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
+        ax.axvline(phys_point_xparam, ls='--', color='black', label=label)
+        
+        return fig
+

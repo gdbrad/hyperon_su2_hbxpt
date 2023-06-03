@@ -28,8 +28,20 @@ models:
       fit_fpi_units : False
 
     xi:xi_st:d_n2lo:l_n2lo:x_n2lo:
+      name: xi:xi_st:d_n2lo:l_n2lo:x_n2lo:phys
+      particles: [xi,xi_st]
+      eps2a_defn: w0_imp
+      order_chiral: n2lo
+      order_disc: n2lo
+      order_strange: null
+      order_light: n2lo
+      xpt: False
+      fv: True
+      units: phys
+
+    xi:xi_st:d_n2lo:l_n2lo:x_n2lo:phys:
       name: xi:xi_st:d_n2lo:l_n2lo:x_n2lo
-      particles: [xi, xi_st]
+      particles: [xi,xi_st]
       eps2a_defn: w0_imp
       order_chiral: n2lo
       order_disc: n2lo
@@ -37,8 +49,7 @@ models:
       order_light: n2lo
       xpt: True
       fv: True
-      fit_phys_units: True
-      fit_fpi_units : False
+      units: phys
 
     xi:xi_st:d_n2lo:l_nlo:x_n2lo:
       name: xi:xi_st:d_n2lo:l_nlo:x_n2lo

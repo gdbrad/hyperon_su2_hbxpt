@@ -27,13 +27,6 @@ class InputOutput:
         self.project_path = project_path 
         data_path_hyperon = os.path.join(project_path, "hyperon_data.h5")
         data_path_input = os.path.join(project_path, "input_data.h5")
-        # print(project_path)
-        # if fit_collection is None:
-        #     name = str(datetime.datetime.now())
-        #     for c in [' ', ':', '.', '-']:
-        #         name = name.replace(c, '_')
-        # else:
-        #     name = fit_collection
 
         # bootstrapped hyperon correlator data
         with h5py.File(data_path_hyperon, 'r') as f:
@@ -60,6 +53,7 @@ class InputOutput:
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
         hbar_c = self.get_data_phys_point('hbarc') # MeV-fm (PDG 2019 conversion constant)
         scale_factors = gv.load(self.project_path +'/scale_setting.p')
+        # a_fm =  gv.load(self.project_path +'/data/a_fm_results.p')
 
         if scheme is None:
             scheme = 'w0_imp'
@@ -75,7 +69,8 @@ class InputOutput:
                 elif scheme in ['w0_org', 'w0_imp'] and units=='w0':
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and units=='phys':
-                    data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:]) 
+                    data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
+                    
                 data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L']
@@ -105,17 +100,21 @@ class InputOutput:
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
+                # for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
+                #     data[ens]['eps_'+obs] = data[ens]['m_'+obs] / data[ens]['lam_chi']
+                # if units == 'Fpi':
+                #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
+                #         data[ens]['m_'+obs]= data[ens]['m_'+obs] / data[ens]['lam_chi']
         return data
 
 
     def get_data(self, scheme=None,units=None,div_lam_chi=False):
         bs_data = self._get_bs_data(scheme,units)
         gv_data = {}
-        
-        # if div_lam_chi is True:
-        #     dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi']
-        # else:
+        # if div_lam_chi:
+        # dim0_obs = ['eps_lambda','eps_sigma','eps_sigma_st','eps_xi','eps_xi_st']
         dim1_obs = ['m_lambda', 'm_sigma', 'eps_pi','m_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi']
+
         for ens in self.ensembles:
             gv_data[ens] = gv.BufferDict()
             for obs in dim1_obs:
@@ -124,6 +123,7 @@ class InputOutput:
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in dim1_obs:
                 gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
+                # gv_data[ens][obs] = gv_data[ens][obs] 
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
     
@@ -132,7 +132,6 @@ class InputOutput:
         for param in gv_data[self.ensembles[0]]:
             output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])
         return output, ensembles
-
 
     def get_data_phys_point(self, param=None):
         '''
@@ -148,6 +147,8 @@ class InputOutput:
             'lam_chi' : 4 *np.pi *gv.gvar('92.07(57)'),
             'm_pi' : gv.gvar('134.8(3)'), # '138.05638(37)'
             'm_k' : gv.gvar('494.2(3)'), # '495.6479(92)'
+            'eps_pi' : gv.gvar('134.8(3)') / (4 *np.pi *gv.gvar('92.07(57)')),
+            'eps_k' : gv.gvar('494.2(3)') / (4 *np.pi *gv.gvar('92.07(57)')),
 
             'm_lam' : gv.gvar(1115.683, 0.006),
             'm_sigma' : np.mean([gv.gvar(g) for g in ['1189.37(07)', '1192.642(24)', '1197.449(30)']]),
@@ -157,6 +158,16 @@ class InputOutput:
             'm_omega' : gv.gvar(1672.45,29),
             'm_proton' : gv.gvar(938.272,.0000058)
         }
+        dim0_obs_to_m_baryon = {
+        'eps_lam': 'm_lam',
+        'eps_sigma': 'm_sigma',
+        'eps_sigma_st': 'm_sigma_st',
+        'eps_xi': 'm_xi',
+        'eps_xi_st': 'm_xi_st'
+    }
+        # Compute new values for dim0_obs keys
+        for obs, m_baryon_key in dim0_obs_to_m_baryon.items():
+            data_phys_point[obs] = data_phys_point[m_baryon_key] / data_phys_point['lam_chi']
         if param is not None:
             return data_phys_point[param]
         return data_phys_point
