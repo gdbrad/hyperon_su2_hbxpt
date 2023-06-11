@@ -122,8 +122,10 @@ class InputOutput:
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in dim1_obs:
-                gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
-                # gv_data[ens][obs] = gv_data[ens][obs] 
+                if units == 'phys':
+                    gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
+                if units == 'fpi':
+                    gv_data[ens][obs] = gv_data[ens][obs] 
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
     
