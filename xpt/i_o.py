@@ -113,7 +113,7 @@ class InputOutput:
         gv_data = {}
         # if div_lam_chi:
         # dim0_obs = ['eps_lambda','eps_sigma','eps_sigma_st','eps_xi','eps_xi_st']
-        dim1_obs = ['m_lambda', 'm_sigma', 'eps_pi','m_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi']
+        dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi']
 
         for ens in self.ensembles:
             gv_data[ens] = gv.BufferDict()
@@ -128,6 +128,7 @@ class InputOutput:
                     gv_data[ens][obs] = gv_data[ens][obs] 
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
+            gv_data[ens]['eps_pi'] = bs_data[ens]['eps_pi']
     
         ensembles = list(gv_data)
         output = {}

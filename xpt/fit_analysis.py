@@ -31,8 +31,7 @@ mpl.rcParams['text.usetex'] = True
 import xpt.fit_routine as fit
 import xpt.i_o
 
-
-class Xpt_Fit_Analysis(object):
+class Xpt_Fit_Analysis:
     
     def __init__(self, phys_point_data, data=None, model_info=None, prior=None,project_path=None,verbose=None):
         self.project_path = project_path
@@ -63,19 +62,93 @@ class Xpt_Fit_Analysis(object):
         self.fitter = fit.FitRoutine(prior=prior,data=data, project_path=self.project_path,model_info=model_info,
                     phys_point_data=phys_point_data, emp_bayes=None,empbayes_grouping=None)
         self.fit = self.fitter.fit
+        self.model_collection = []
+
+    def plot_model_mass_comparison(self,models=None,observables=None):
+        """
+        plot resulting extrapolated mass value for each model compared to the physical point of hyperon of interest 
+        """
+        models = []
+        extrap_masses = {obs: [] for obs in observables}
+        chi2_values = []
+        q = []
+        for mdl_key in models:
+            model_info = models[mdl_key]
+            mass = self.extrapolated_mass
+            models.append(mdl_key)
+            for obs in observables:
+                extrap_masses[obs].append(mass[obs])
+            info = self.fit_info
+            chi2_ = info['chi2/df']
+            q_ =  info['Q']
+            chi2_values.append(chi2_)
+            q.append(q_)
+        chi2_values = np.array(chi2_values)
+        q_values = np.array(q)
+        for obs in observables:
+            physical_point = self._get_phys_point_data(parameter=obs)
+        means = [gv.mean(val) for val in extrap_masses[obs]]
+        stddevs = [gv.sdev(val) for val in extrap_masses[obs]]
+
+        # Create a subplot layout of 2 rows and 2 columns
+        fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(12, 12))
+
+        # Create y values for scatter plot (this is just a range of integers)
+        y_values = range(len(models))
+
+        # Plot the extrapolated masses for 'xi' with error bars
+        scatter_xi = axs[0, 0].errorbar(means, y_values, xerr=stddevs, fmt='o', alpha=0.6)
+        axs[0, 0].axvline(x=physical_point, color='r', linestyle='--', label='Physical point')
+        axs[0, 0].set_xlabel('Extrapolated Mass')
+        axs[0, 0].set_ylabel('Models')
+        axs[0, 0].set_yticks(y_values)
+        axs[0, 0].set_yticklabels(models)
+        axs[0, 0].set_xlim([min(means)-max(stddevs)*1.5, max(means)+max(stddevs)*1.5])  # adjust this for desired zoom
+        axs[0, 0].set_title('xi')
+        axs[0, 0].legend()
+
+        # Plot chi2 values for each model corresponding to 'xi'
+        axs[0, 1].scatter(chi2_values, y_values, alpha=0.6)
+        axs[0, 1].set_xlabel('Chi2/df')
+        axs[0, 1].set_yticks([])  # remove y-ticks for chi2 plot
+        # axs[0, 1].set_title('Chi2 values for xi')
+
+        # # Plot the extrapolated masses for 'xi_st' with error bars
+        # scatter_xi_st = axs[1, 0].errorbar(means_xi_st, y_values, xerr=stddevs_xi_st, fmt='o', alpha=0.6)
+        # axs[1, 0].axvline(x=physical_point_xi_st, color='r', linestyle='--', label='Physical point')
+        # axs[1, 0].set_xlabel('Extrapolated Mass')
+        # axs[1, 0].set_ylabel('Models')
+        # axs[1, 0].set_yticks(y_values)
+        # axs[1, 0].set_yticklabels(models)
+        # axs[1, 0].set_xlim([min(means_xi_st)-max(stddevs_xi_st)*1.5, max(means_xi_st)+max(stddevs_xi_st)*1.5])  # adjust this for desired zoom
+        # axs[1, 0].set_title('xi_st')
+        # axs[1, 0].legend()
+
+        # # Plot chi2 values for each model corresponding to 'xi_st'
+        # axs[1, 1].scatter(chi2_values, y_values, alpha=0.6)
+        # axs[1, 1].set_xlabel('Chi2/df')
+        # axs[1, 1].set_yticks([])  # remove y-ticks for chi2 plot
+        # # axs[1, 1].set_title('Chi2')
+
+        # Adjust the spacing between subplots for better visibility
+        plt.tight_layout()
+        plt.show()
+
       
     def __str__(self):
         output = "Model: %s" %(self.model_info['name'])
         output += '\n---\n'
         output+= 'Extrapolation:'
-        output+= str(self.extrapolated_mass)
-        output += '\nError Budget:\n'
-        max_len = np.max([len(key) for key in self.error_budget.keys()])
-        for key in {k: v for k, v in sorted(self.error_budget.items(), key=lambda item: item[1], reverse=True)}:
-            output += '  '
-            output += key.ljust(max_len+1)
-            for particle in [p for p in self.model_info['particles']]:
-                output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
+        output += '\n'
+        output+= str(self.extrapolation(observables=['sigma_pi','mass']))
+        output += '\n---\n'
+        # output += '\nError Budget:\n'
+        # max_len = np.max([len(key) for key in self.error_budget.keys()])
+        # for key in {k: v for k, v in sorted(self.error_budget.items(), key=lambda item: item[1], reverse=True)}:
+        #     output += '  '
+        #     output += key.ljust(max_len+1)
+        #     for particle in [p for p in self.model_info['particles']]:
+        #         output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
         if self.verbose:
             fit_str = self.fit.format(maxline=True,pstyle='vv')
         else:
@@ -85,6 +158,13 @@ class Xpt_Fit_Analysis(object):
 
         return output 
     
+    def extrapolation(self,observables=None,p=None,data=None):
+        if data is None:
+            data = self.phys_point_data
+        if p is None:
+            p = self.posterior
+        _extrapolation = self.fitter.extrapolation(observables,p,data)
+        return _extrapolation
 
     @property
     def error_budget(self):
@@ -200,11 +280,10 @@ class Xpt_Fit_Analysis(object):
         # if data is None:
         #     data = self.phys_point_data
         # p.update(data)
-        models = self.fitter._make_models()
-        for mdl in models:
+        model_array, model_dict = self.fitter._make_models(model_info=self.model_info)
+        for mdl in model_array:
             part = mdl.datatag
             output[part] = mdl.fitfcn(p=posterior,data=data,xdata=xdata)
-
         if particle is None:
             return output
         return output[particle]
@@ -337,10 +416,12 @@ class Xpt_Fit_Analysis(object):
 
         return output
     
-    def plot_params(self,observable,xparam=None,show_plot=None,eps=None):
+    def plot_params(self, observables, xparam=None, show_plot=None, eps=None):
         '''plot unshifted masses on each ensemble vs physical param. of interest eg. 
         eps2_a, eps_pi'''
 
+        if isinstance(observables, str):
+            observables = [observables]
         if xparam is None:
             xparam = 'eps2_a'
         colormap = {
@@ -350,92 +431,76 @@ class Xpt_Fit_Analysis(object):
             'a15' : 'red',
         }
         x = {}
-        y = {}
+        y = {observable: {} for observable in observables}
         baryon_latex = {
-                    'sigma': '\Sigma',
-                    'sigma_st': '\Sigma^*',
-                    'xi': '\Xi',
-                    'xi_st': '\Xi^*',
-                    'lambda': '\Lambda'
-                }
-        fig, ax = plt.subplots(figsize=(10, 8))
+            'sigma': '\Sigma',
+            'sigma_st': '\Sigma^*',
+            'xi': '\Xi',
+            'xi_st': '\Xi^*',
+            'lambda': '\Lambda'
+        }
+        fig, axs = plt.subplots(len(observables), 1, figsize=(10, 8))
 
-        for i in range(len(self.ensembles)):
-            for j, param in enumerate([xparam, observable]):
-                if param in baryon_latex.keys():
-                    value = self.fit.y[observable][i]
-                    latex_baryon = baryon_latex[param]
-                    label = f'$m_{{{latex_baryon}}}$(MeV)'
-                if param =='eps2_a':
-                    value = self.data['eps2_a'][i] 
-                    label = '$\epsilon_a^2$'
-                if param =='mpi_sq':
-                    value = (self.data['m_pi'][i])**2
-                    label = '$m_\pi^2$'
-                if j == 0:
-                    x[i] = value
-                    xlabel = label
-                elif j == 1:
-                    y[i] = value
-                    ylabel = label
-        added_labels = set()
+        for idx, observable in enumerate(observables):
+            ax = axs[idx] if len(observables) > 1 else axs
+            for i in range(len(self.ensembles)):
+                for j, param in enumerate([xparam, observable]):
+                    if param in baryon_latex.keys():
+                        value = self.fit.y[param][i]
+                        latex_baryon = baryon_latex[param]
+                        label = f'$m_{{{latex_baryon}}}$(MeV)'
+                    if param == 'eps2_a':
+                        value = self.data['eps2_a'][i] 
+                        label = '$\epsilon_a^2$'
+                    if param == 'mpi_sq':
+                        value = (self.data['m_pi'][i])**2
+                        label = '$m_\pi^2$'
+                    if j == 0:
+                        x[i] = value
+                        xlabel = label
+                    else:
+                        y[observable][i] = value
+                        ylabel = label
 
-        for i in range(len(self.ensembles)):
-            C = gv.evalcov([x[i], y[i]])
-            eVe, eVa = np.linalg.eig(C)
-            color_key = self.ensembles[i][:3]
-            color = colormap[color_key]
-            label = f'{color_key.lower()}'
+            added_labels = set()
 
-            for e, v in zip(eVe, eVa.T):
-                ax.plot([gv.mean(x[i])-1*np.sqrt(e)*v[0], 1*np.sqrt(e)*v[0] + gv.mean(x[i])],
-                        [gv.mean(y[i])-1*np.sqrt(e)*v[1], 1*np.sqrt(e)*v[1] + gv.mean(y[i])],
+            for i in range(len(self.ensembles)):
+                C = gv.evalcov([x[i], y[observable][i]])
+                eVe, eVa = np.linalg.eig(C)
+                color_key = self.ensembles[i][:3]
+                color = colormap[color_key]
+                label = f'{color_key.lower()}'
+
+                for e, v in zip(eVe, eVa.T):
+                    ax.plot([gv.mean(x[i])-1*np.sqrt(e)*v[0], 1*np.sqrt(e)*v[0] + gv.mean(x[i])],
+                            [gv.mean(y[observable][i])-1*np.sqrt(e)*v[1], 1*np.sqrt(e)*v[1] + gv.mean(y[observable][i])],
                             alpha=1.0, lw=2, color=color)
 
-                if label not in added_labels:
-                    ax.plot(gv.mean(x[i]), gv.mean(y[i]), 
-                            marker='o', mec='w',markersize=8, zorder=3, color=color, label=label)
-                    added_labels.add(label)
-                else:
-                    ax.plot(gv.mean(x[i]), gv.mean(y[i]), 
-                            marker='o', mec='w', markersize=8,zorder=3, color=color)
-            
+                    if label not in added_labels:
+                        ax.plot(gv.mean(x[i]), gv.mean(y[observable][i]), 
+                                marker='o', mec='w', markersize=8, zorder=3, color=color, label=label)
+                        added_labels.add(label)
+                    else:
+                        ax.plot(gv.mean(x[i]), gv.mean(y[observable][i]), 
+                                marker='o', mec='w', markersize=8, zorder=3, color=color)
 
-        handles, labels = plt.gca().get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        ax.legend(by_label.values(), by_label.keys(),fontsize=14,
-             bbox_to_anchor=(1.05,1), loc='upper left')
-        ax.grid(True)
-        ax.set_xlabel(xlabel, fontsize = 16)
-        # plt.ylabel(ylabel, fontsize = 24)
-        if eps:
-            phys_point_observable = self._get_phys_point_data(parameter='eps_'+observable) 
-        else:
-            phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)  
-        phys_point_xparam = 0.0
-        if observable in baryon_latex.keys():
-            latex_baryon = baryon_latex[observable]
-            if eps:
-                label = f'$\\frac{{M_{latex_baryon}}}{{\\Lambda_{{\\chi}}}}$' 
-            else:
-                label = f'$M_{latex_baryon}$'
-        ax.set_ylabel(label, fontsize = 16)
+            handles, labels = ax.get_legend_handles_labels()
+            by_label = dict(zip(labels, handles))
+            ax.legend(by_label.values(), by_label.keys(), fontsize=14, bbox_to_anchor=(1.05,1), loc='upper left')
+            ax.grid(True)
+            ax.set_xlabel(xlabel, fontsize=16)
+            ax.set_ylabel(ylabel, fontsize=16)
 
-        plt.plot(phys_point_xparam, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
-        plt.axvline(phys_point_xparam, ls='--', color='black', label=label)
-        phys_point_xparam = 0.0
-        if observable in baryon_latex:
-            latex_baryon = baryon_latex[param]
-            if eps:
-                label = f'$m_{{{latex_baryon}}}$'
-        # plt.plot(phys_point_xparam, phys_point_observable, marker='o', color='black', zorder=4)
-        # plt.axvline(phys_point_xparam, ls='--', color='black', label=label)
+            phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)
+            ax.plot(0, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
+            ax.axvline(0, ls='--', color='black')
 
-        fig = plt.gcf()
+        plt.tight_layout()
         if show_plot:
             plt.show()
         plt.close()
-        return fig 
+        return fig
+
     
     def plot_params_fit(self,param,observable=None,shift=None,eps=None):
         fig, ax = plt.subplots(figsize=(10,8))
@@ -551,4 +616,3 @@ class Xpt_Fit_Analysis(object):
         ax.axvline(phys_point_xparam, ls='--', color='black', label=label)
         
         return fig
-
