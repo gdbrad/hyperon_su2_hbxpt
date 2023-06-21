@@ -1,17 +1,18 @@
-import lsqfit
 import numpy as np
 import gvar as gv
-import time
+import datetime
 import matplotlib
 import matplotlib.pyplot as plt
 import sys
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 import os
 import h5py
-import yaml
 import sys
-import datetime
 import copy
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.transforms import Bbox
+import textwrap
+
 sys.setrecursionlimit(10000)
 
 import matplotlib as mpl
@@ -31,9 +32,177 @@ mpl.rcParams['text.usetex'] = True
 import xpt.fit_routine as fit
 import xpt.i_o
 
+import lsqfitics
+
+class ModelComparsion:
+    '''Final analysis class. Generates a pdf with the model average and plots for each model'''
+    def __init__(self, models, phys_point_data, data=None, prior=None, project_path=None, verbose=None):
+        self.models = models
+        self.phys_point_data = phys_point_data
+        self.data = data
+        self.prior = prior
+        self.project_path = project_path
+        self.verbose = verbose
+
+    def physical_points(self):
+        physical_points = {
+            'lambda' : gv.gvar(1115.683, 0.006),
+            'sigma' : np.mean([gv.gvar(g) for g in ['1189.37(07)', '1192.642(24)', '1197.449(30)']]),
+            'sigma_st' : np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']]),
+            'xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
+            'xi_st' : np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]),
+            'proton' : gv.gvar(938.272,.0000058)
+        }
+        return physical_points
+    
+    def add_fit_results_figure(self, fit_results, title):
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.axis('off')
+        results_text = str(fit_results) #
+        wrapper = textwrap.TextWrapper(width=80)
+        results_text = wrapper.fill(results_text)
+        textbox = plt.text(0.5, 0.5, results_text, fontsize=8, ha='center', va='center', wrap=True)
+        textbox.set_bbox(dict(facecolor='white', alpha=1, edgecolor='black', boxstyle="round,pad=1"))
+        # plt.title(title)
+        plt.text(0.1, 0.5, title, rotation='vertical', fontsize=16, ha='center', va='center')
+        return fig
+    
+    def model_plots(self,system=None):
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        pdf_pages = PdfPages(f'model_plots_{system}.pdf')
+        # Add model_average output.
+        if system == 'xi':
+            particles = ['xi','xi_st']
+        else:
+            particles=['lambda','sigma_st','sigma']
+        avg_out, weights = self.model_average(particles=particles)
+       
+        avg_out_str = '\n'.join([f"{k}: {v}" for k, v in avg_out.items()])
+        weights_str = '\n'.join([f"{k}: {v}" for k, v in weights.items()])
+        avg_and_weights_str = f"Model averages:\n{avg_out_str}\n\nWeights:\n{weights_str}"
+        fig_avg = plt.figure(figsize=(10, 10))
+        plt.text(0.5, 0.5, avg_and_weights_str, fontsize=16, ha='center', va='center',
+                 bbox=dict(facecolor='white', alpha=0.5, boxstyle="round,pad=1"))
+        plt.axis('off')
+        pdf_pages.savefig(fig_avg, bbox_inches='tight')
+        plt.close(fig_avg)
+
+        fig_comp = self.compare_models(particles)
+        pdf_pages.savefig(fig_comp, bbox_inches='tight')
+        plt.close(fig_comp)
+        for mdl_key in self.models:
+            _model_info = self.models[mdl_key]
+            xfa_instance = Xpt_Fit_Analysis(phys_point_data=self.phys_point_data, data=self.data, 
+                                            model_info=_model_info, prior=self.prior, 
+                                            project_path=self.project_path, verbose=self.verbose,
+                                            extrapolate=True)
+            
+            fit_results_fig = self.add_fit_results_figure(xfa_instance.__str__, title='Model:'+mdl_key)
+            pdf_pages.savefig(fit_results_fig)
+            plt.close(fit_results_fig)
+            if system == 'xi':
+                fig1= xfa_instance.plot_params_fit(param='a',observable='xi',eps=False)
+                fig2=xfa_instance.plot_params_fit(param='a',observable='xi_st',eps=False)
+                pdf_pages.savefig(fig1)
+                pdf_pages.savefig(fig2)
+                plt.close(fig1)
+                plt.close(fig2)
+            else:
+                fig1= xfa_instance.plot_params_fit(param='a',observable='lambda',eps=False)
+                fig2=xfa_instance.plot_params_fit(param='a',observable='sigma',eps=False)
+                fig3=xfa_instance.plot_params_fit(param='a',observable='sigma_st',eps=False)
+                pdf_pages.savefig(fig1)
+                pdf_pages.savefig(fig2)
+                pdf_pages.savefig(fig3)
+                plt.close(fig1)
+                plt.close(fig2)
+                plt.close(fig3)
+        if system == 'xi':
+            fig_mpi = xfa_instance.plot_params(xparam='mpi_sq',observables=['xi','xi_st'],show_plot=True)
+            fig_eps = xfa_instance.plot_params(xparam='eps2_a',observables=['xi','xi_st'],show_plot=True,eps=False)
+            pdf_pages.savefig(fig_mpi)
+            pdf_pages.savefig(fig_eps)
+            plt.close(fig_mpi)
+            plt.close(fig_eps)
+
+        pdf_pages.close()
+
+    def model_average(self,particles):
+        avg = {}
+        avg_out = {}
+        fit_collection = {}
+        for mdl_key in self.models:
+            _model_info = self.models[mdl_key]
+            xfa_instance = Xpt_Fit_Analysis(phys_point_data=self.phys_point_data, data=self.data, 
+                                            model_info=_model_info, prior=self.prior, 
+                                            project_path=self.project_path, verbose=self.verbose,extrapolate=True)
+            fit_out = xfa_instance.fit
+            fit_collection[mdl_key] = fit_out
+            for part in particles:
+                avg[part] = fit_out.p[f'm_{{{part},0}}']          
+        weights = lsqfitics.calculate_weights(fit_collection,'logGBF')
+        # Sort weights dictionary by values in descending order
+        weights = {k: v for k, v in sorted(weights.items(), key=lambda item: item[1], reverse=True)}
+        for part in particles:
+            avg_out[part] = lsqfitics.calculate_average(values=avg[part],weights=weights)
+
+        return avg_out,weights
+
+    def compare_models(self,particles=None):
+        models = []
+        extrapolated_masses = {particle: [] for particle in particles}
+        q = []
+        chi2_values_ = []
+
+        for mdl_key in self.models:
+            model_info = self.models[mdl_key]
+            xfa_instance = Xpt_Fit_Analysis(phys_point_data=self.phys_point_data, data=self.data, 
+                                            model_info=model_info, prior=self.prior, 
+                                            project_path=self.project_path, verbose=self.verbose,extrapolate=True)
+            mass = xfa_instance.extrapolation(observables=['mass'])
+            models.append(mdl_key)
+            info = xfa_instance.fit_info
+            chi2_ = info['chi2/df']
+            q_ =  info['Q']
+            for particle in particles:
+                extrapolated_mass = mass[particle]['mass']
+                extrapolated_masses[particle].append(extrapolated_mass)
+            chi2_values_.append(chi2_)
+            q.append(q_)
+        chi2_values = np.array(chi2_values_)
+        q_values = np.array(q)
+
+        fig, axs = plt.subplots(nrows=len(particles), ncols=2, figsize=(12, 6*len(particles)))
+        # Create y values for scatter plot (this is just a range of integers)
+        y_values = range(len(models))
+
+        for idx, particle in enumerate(particles):
+            physical_point_ = self.physical_points()
+            physical_point = physical_point_[particle]
+            means  = [gv.mean(val) for val in extrapolated_masses[particle]]
+            stddevs = [gv.sdev(val) for val in extrapolated_masses[particle]]
+
+            # Plot the extrapolated masses for each particle with error bars
+            scatter = axs[idx, 0].errorbar(means, y_values, xerr=stddevs, fmt='o', alpha=0.6)
+            axs[idx, 0].axvline(x=gv.mean(physical_point), color='r', linestyle='--', label='Physical point')
+            axs[idx, 0].set_xlabel('Extrapolated Mass')
+            axs[idx, 0].set_ylabel('Models')
+            axs[idx, 0].set_yticks(y_values)
+            axs[idx, 0].set_yticklabels(models)
+            axs[idx, 0].set_xlim([min(means)-max(stddevs)*1.5, max(means)+max(stddevs)*1.5])  # adjust this for desired zoom
+            axs[idx, 0].set_title(particle)
+            axs[idx, 0].legend()
+
+            axs[idx, 1].scatter(chi2_values, y_values, alpha=0.6)
+            axs[idx, 1].set_xlabel('Chi2/df')
+            axs[idx, 1].set_yticks([])  
+        plt.tight_layout()
+        return fig
+
 class Xpt_Fit_Analysis:
     
-    def __init__(self, phys_point_data, data=None, model_info=None, prior=None,project_path=None,verbose=None):
+    def __init__(self, phys_point_data, data=None, model_info=None, prior=None,project_path=None,verbose=None,extrapolate=None):
         self.project_path = project_path
         # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
@@ -63,102 +232,38 @@ class Xpt_Fit_Analysis:
                     phys_point_data=phys_point_data, emp_bayes=None,empbayes_grouping=None)
         self.fit = self.fitter.fit
         self.model_collection = []
-
-    def plot_model_mass_comparison(self,models=None,observables=None):
-        """
-        plot resulting extrapolated mass value for each model compared to the physical point of hyperon of interest 
-        """
-        models = []
-        extrap_masses = {obs: [] for obs in observables}
-        chi2_values = []
-        q = []
-        for mdl_key in models:
-            model_info = models[mdl_key]
-            mass = self.extrapolated_mass
-            models.append(mdl_key)
-            for obs in observables:
-                extrap_masses[obs].append(mass[obs])
-            info = self.fit_info
-            chi2_ = info['chi2/df']
-            q_ =  info['Q']
-            chi2_values.append(chi2_)
-            q.append(q_)
-        chi2_values = np.array(chi2_values)
-        q_values = np.array(q)
-        for obs in observables:
-            physical_point = self._get_phys_point_data(parameter=obs)
-        means = [gv.mean(val) for val in extrap_masses[obs]]
-        stddevs = [gv.sdev(val) for val in extrap_masses[obs]]
-
-        # Create a subplot layout of 2 rows and 2 columns
-        fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(12, 12))
-
-        # Create y values for scatter plot (this is just a range of integers)
-        y_values = range(len(models))
-
-        # Plot the extrapolated masses for 'xi' with error bars
-        scatter_xi = axs[0, 0].errorbar(means, y_values, xerr=stddevs, fmt='o', alpha=0.6)
-        axs[0, 0].axvline(x=physical_point, color='r', linestyle='--', label='Physical point')
-        axs[0, 0].set_xlabel('Extrapolated Mass')
-        axs[0, 0].set_ylabel('Models')
-        axs[0, 0].set_yticks(y_values)
-        axs[0, 0].set_yticklabels(models)
-        axs[0, 0].set_xlim([min(means)-max(stddevs)*1.5, max(means)+max(stddevs)*1.5])  # adjust this for desired zoom
-        axs[0, 0].set_title('xi')
-        axs[0, 0].legend()
-
-        # Plot chi2 values for each model corresponding to 'xi'
-        axs[0, 1].scatter(chi2_values, y_values, alpha=0.6)
-        axs[0, 1].set_xlabel('Chi2/df')
-        axs[0, 1].set_yticks([])  # remove y-ticks for chi2 plot
-        # axs[0, 1].set_title('Chi2 values for xi')
-
-        # # Plot the extrapolated masses for 'xi_st' with error bars
-        # scatter_xi_st = axs[1, 0].errorbar(means_xi_st, y_values, xerr=stddevs_xi_st, fmt='o', alpha=0.6)
-        # axs[1, 0].axvline(x=physical_point_xi_st, color='r', linestyle='--', label='Physical point')
-        # axs[1, 0].set_xlabel('Extrapolated Mass')
-        # axs[1, 0].set_ylabel('Models')
-        # axs[1, 0].set_yticks(y_values)
-        # axs[1, 0].set_yticklabels(models)
-        # axs[1, 0].set_xlim([min(means_xi_st)-max(stddevs_xi_st)*1.5, max(means_xi_st)+max(stddevs_xi_st)*1.5])  # adjust this for desired zoom
-        # axs[1, 0].set_title('xi_st')
-        # axs[1, 0].legend()
-
-        # # Plot chi2 values for each model corresponding to 'xi_st'
-        # axs[1, 1].scatter(chi2_values, y_values, alpha=0.6)
-        # axs[1, 1].set_xlabel('Chi2/df')
-        # axs[1, 1].set_yticks([])  # remove y-ticks for chi2 plot
-        # # axs[1, 1].set_title('Chi2')
-
-        # Adjust the spacing between subplots for better visibility
-        plt.tight_layout()
-        plt.show()
-
+        self.extrapolate = extrapolate
       
     def __str__(self):
         output = "Model: %s" %(self.model_info['name'])
+        if self.extrapolate:
+            output += '\n---\n'
+            output+= 'Extrapolation:'
+            output += '\n'
+            output+= str(self.extrapolation(observables=['sigma_pi','mass']))
         output += '\n---\n'
-        output+= 'Extrapolation:'
-        output += '\n'
-        output+= str(self.extrapolation(observables=['sigma_pi','mass']))
-        output += '\n---\n'
-        # output += '\nError Budget:\n'
-        # max_len = np.max([len(key) for key in self.error_budget.keys()])
-        # for key in {k: v for k, v in sorted(self.error_budget.items(), key=lambda item: item[1], reverse=True)}:
-        #     output += '  '
-        #     output += key.ljust(max_len+1)
-        #     for particle in [p for p in self.model_info['particles']]:
-        #         output += '{: .1%}\n'.format((self.error_budget[key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
+        output += '\nError Budget:\n'
+        for particle in self.model_info['particles']:
+            max_len = np.max([len(key) for key in self.error_budget[particle].keys()])
+        # else:
+        #     max_len = np.max([len(key) for key in self.error_budget['sigma'].keys()])
+
+        for particle in [p for p in self.model_info['particles']]:
+            output += particle
+            output += '\n'
+            for key in {k: v for k, v in sorted(self.error_budget[particle].items(), key=lambda item: item[1], reverse=True)}:
+                output += '  '
+                output += key.ljust(max_len+1)
+                output += '{: .1%}\n'.format((self.error_budget[particle][key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
         if self.verbose:
             fit_str = self.fit.format(maxline=True,pstyle='vv')
         else:
             fit_str = self.fit.format(pstyle='m')
         output+= str(fit_str)
-        
-
         return output 
     
     def extrapolation(self,observables=None,p=None,data=None):
+        """returns extrapolated mass or sigma term"""
         if data is None:
             data = self.phys_point_data
         if p is None:
@@ -231,13 +336,14 @@ class Xpt_Fit_Analysis:
             if output is None:
                 output = {}
             for particle in self.model_info['particles']:
-                output[particle+'_disc'] = self.extrapolated_mass[particle].partialsdev(
+                output[particle] = {}
+                output[particle]['disc'] = self.extrapolated_mass[particle].partialsdev(
                             [self.prior[key] for key in disc_keys if key in self.prior])
                 
-                output[particle+'_chiral'] = self.extrapolated_mass[particle].partialsdev(
+                output[particle]['chiral'] = self.extrapolated_mass[particle].partialsdev(
                             [self.prior[key] for key in chiral_keys if key in self.prior])
                 
-                output[particle+'_pp'] = self.extrapolated_mass[particle].partialsdev(
+                output[particle]['pp'] = self.extrapolated_mass[particle].partialsdev(
                             [self.phys_point_data[key] for key in phys_keys if key in phys_keys])
                 
                 # output[particle+'_stat_x'] = self.extrapolated_mass[particle].partialsdev(
@@ -245,11 +351,12 @@ class Xpt_Fit_Analysis:
                 
                 # output[particle+'_stat_y'] = self.extrapolated_mass[particle].partialsdev(
                 #         [self._get_prior(sta) for key in stae,self.fitter.fit.y[particle]]) 
-                output[particle+'_stat'] = self.extrapolated_mass[particle].partialsdev(
+                output[particle]['stat'] = self.extrapolated_mass[particle].partialsdev(
                     [self.fit.prior[key] for key in ['eps2_a'] if key in self.fit.prior]
                     + [self._get_prior(stat_key)] 
                     + [self.fit.y[particle]]
                 )
+
         return output
 
     @property
@@ -416,7 +523,7 @@ class Xpt_Fit_Analysis:
 
         return output
     
-    def plot_params(self, observables, xparam=None, show_plot=None, eps=None):
+    def plot_params(self, observables, xparam=None, show_plot=None, eps=None,units=None):
         '''plot unshifted masses on each ensemble vs physical param. of interest eg. 
         eps2_a, eps_pi'''
 
@@ -439,22 +546,33 @@ class Xpt_Fit_Analysis:
             'xi_st': '\Xi^*',
             'lambda': '\Lambda'
         }
-        fig, axs = plt.subplots(len(observables), 1, figsize=(10, 8))
+        fig, axs = plt.subplots(len(observables), 1, figsize=(12, 10))
 
         for idx, observable in enumerate(observables):
             ax = axs[idx] if len(observables) > 1 else axs
             for i in range(len(self.ensembles)):
                 for j, param in enumerate([xparam, observable]):
                     if param in baryon_latex.keys():
-                        value = self.fit.y[param][i]
+                        if units == 'gev':
+                            value = self.fit.y[param][i] / 1000
+                        else:
+                            value = self.fit.y[param][i]
                         latex_baryon = baryon_latex[param]
-                        label = f'$m_{{{latex_baryon}}}$(MeV)'
+                        if units== 'gev':
+                            label = f'$m_{{{latex_baryon}}}$(GeV)'
+                        else:
+                            label = f'$m_{{{latex_baryon}}}$(meV)'
                     if param == 'eps2_a':
                         value = self.data['eps2_a'][i] 
                         label = '$\epsilon_a^2$'
                     if param == 'mpi_sq':
-                        value = (self.data['m_pi'][i])**2
-                        label = '$m_\pi^2$'
+                        if units == 'gev':
+                            value = (self.data['m_pi'][i])**2 /100000 #gev^2
+                            label = '$m_\pi^2(GeV^2)$'
+                        else:
+                            value = (self.data['m_pi'][i])**2
+                            label = '$m_\pi^2(MeV^2)$'
+
                     if j == 0:
                         x[i] = value
                         xlabel = label
@@ -496,8 +614,8 @@ class Xpt_Fit_Analysis:
             ax.axvline(0, ls='--', color='black')
 
         plt.tight_layout()
-        if show_plot:
-            plt.show()
+        # if show_plot:
+        #     plt.show()
         plt.close()
         return fig
 
@@ -525,14 +643,16 @@ class Xpt_Fit_Analysis:
                 xi['eps_pi'] = np.linspace(0, gv.mean(np.max(eps_pi_arr)))
                 x_fit = xi['eps_pi']
             if param == 'mpi_sq':
-                min_max = min_max({ens : (self.data[ens]['mpi'])**2 for ens in self.ensembles})
-                # mpi_sq_arr = [self.data['m_pi']] 
-                xi['mpi_sq'] = np.linspace(0.0001,min_max[1])
+                mpi_sq_arr = [self.data['m_pi']] 
+                xi['mpi_sq'] = np.linspace(0.000,gv.mean(np.max(mpi_sq_arr)))
                 x_fit = xi['mpi_sq']
+        y_fit = {observable: self.fitter.get_fitfcn(data=phys_data, particle=observable, xdata=xi)}
 
-        y_fit = {'xi': self.fitter.get_fitfcn(data=phys_data, particle='xi', xdata=xi),
-                'xi_st': self.fitter.get_fitfcn(data=phys_data, particle='xi_st', xdata=xi)}
-        print(y_fit,'y_fit')
+        # y_fit = {'xi': self.fitter.get_fitfcn(data=phys_data, particle='xi', xdata=xi),
+        #         'xi_st': self.fitter.get_fitfcn(data=phys_data, particle='xi_st', xdata=xi),
+        #         'lambda': self.fitter.get_fitfcn(data=phys_data, particle='lambda', xdata=xi),
+        #         'sigma': self.fitter.get_fitfcn(data=phys_data, particle='sigma', xdata=xi),
+        #         'sigma_st': self.fitter.get_fitfcn(data=phys_data, particle='sigma_st', xdata=xi)}
         pm = lambda g, k : gv.mean(g) + k * gv.sdev(g)
         ax.fill_between(pm(x_fit, 0), pm(y_fit[observable], -1), pm(y_fit[observable], +1), 
                         facecolor='None', edgecolor='k', alpha=0.6, hatch='/')

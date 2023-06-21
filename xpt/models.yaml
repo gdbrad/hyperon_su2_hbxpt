@@ -25,8 +25,8 @@ models:
       fv: True
       units: phys
 
-    xi:xi_st:d_n2lo:l_n2lo:x_n2lo:phys:
-      name: xi:xi_st:d_n2lo:l_n2lo:x_n2lo:phys
+    xi:xi_st:d_n2lo:l_n2lo:x_n2lo:
+      name: xi:xi_st:d_n2lo:l_n2lo:x_n2lo
       particles: [xi,xi_st]
       eps2a_defn: w0_imp
       order_chiral: n2lo
@@ -97,8 +97,8 @@ models:
       order_light: lo
       xpt : False
       fv : True
-      fit_phys_units: True
-      fit_fpi_units : False
+      units: phys
+
 
     lam:sigma:sigma_st:l_n2lo:d_n2lo:
       name: lam:sigma:sigma_st:l_n2lo:d_n2lo
@@ -110,12 +110,12 @@ models:
       order_light: n2lo
       xpt : False
       fv : True
-      fit_phys_units: True
-      fit_fpi_units : False
+      units: phys
+      
 
     lam:sigma:sigma_st:l_n2lo:d_n2lo:x_n2lo:phys:
       name: lam:sigma:sigma_st:l_n2lo:d_n2lo:x_n2lo
-      particles : [lambda]
+      particles : [lambda,sigma,sigma_st]
       eps2a_defn : w0_imp
       order_chiral  : n2lo
       order_disc : n2lo
@@ -124,19 +124,7 @@ models:
       xpt : True
       fv : True
       units : phys
-
-    lam:sigma:sigma_st:l_nlo:d_n2lo:x_n2lo:
-      name: lam:sigma:sigma_st:l_nlo:d_n2lo:x_n2lo
-      particles : [lambda,sigma,sigma_st]
-      eps2a_defn : w0_imp
-      order_chiral  : n2lo
-      order_disc : n2lo
-      order_strange : null
-      order_light: nlo
-      xpt : True
-      fv : True
-      fit_phys_units: True
-      fit_fpi_units : False
+    
 
     lam:sigma:sigma_st:l_lo:d_n2lo:s_lo:
       name: lam:sigma:sigma_st:l_lo:d_n2lo:s_lo
@@ -148,8 +136,8 @@ models:
       order_light: lo
       xpt : False
       fv : True
-      fit_phys_units: True
-      fit_fpi_units : False
+      units: phys
+      
 
     lam:sigma:sigma_st:l_n2lo:d_n2lo:s_lo:
       name: lam:sigma:sigma_st:l_n2lo:d_n2lo:s_lo
@@ -161,21 +149,8 @@ models:
       order_light: n2lo
       xpt : False
       fv : True
-      fit_phys_units: True
-      fit_fpi_units : False
-
-    lam:sigma:sigma_st:l_nlo:s_lo:d_n2lo:x_n2lo:
-      name: lam:sigma:sigma_st:l_nlo:s_lo:d_n2lo:x_n2lo
-      particles : [lambda,sigma,sigma_st]
-      eps2a_defn : w0_imp
-      order_chiral  : n2lo
-      order_disc : n2lo
-      order_strange : lo
-      order_light: nlo
-      xpt : True
-      fv : True
-      fit_phys_units: True
-      fit_fpi_units : False
+      units: phys
+      
 
     lam:sigma:sigma_st:l_n2lo:s_lo:d_n2lo:
       name: lam:sigma:sigma_st:l_n2lo:s_lo:d_n2lo
@@ -187,5 +162,5 @@ models:
       order_light: n2lo
       xpt : False
       fv : True
-      fit_phys_units: True
-      fit_fpi_units : False
+      units: phys
+      

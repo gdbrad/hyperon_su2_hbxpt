@@ -100,8 +100,8 @@ class InputOutput:
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
-                # for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
-                #     data[ens]['eps_'+obs] = data[ens]['m_'+obs] / data[ens]['lam_chi']
+                for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
+                    data[ens].update({'eps_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi']})
                 # if units == 'Fpi':
                 #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
                 #         data[ens]['m_'+obs]= data[ens]['m_'+obs] / data[ens]['lam_chi']
@@ -113,7 +113,8 @@ class InputOutput:
         gv_data = {}
         # if div_lam_chi:
         # dim0_obs = ['eps_lambda','eps_sigma','eps_sigma_st','eps_xi','eps_xi_st']
-        dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi']
+        dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi',
+                    'eps_lambda','eps_sigma','eps_sigma_st','eps_xi_st','eps_xi']
 
         for ens in self.ensembles:
             gv_data[ens] = gv.BufferDict()
@@ -128,7 +129,7 @@ class InputOutput:
                     gv_data[ens][obs] = gv_data[ens][obs] 
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
-            gv_data[ens]['eps_pi'] = bs_data[ens]['eps_pi']
+            # gv_data[ens]['eps_pi'] = bs_data[ens]['eps_pi']
     
         ensembles = list(gv_data)
         output = {}
@@ -153,7 +154,7 @@ class InputOutput:
             'eps_pi' : gv.gvar('134.8(3)') / (4 *np.pi *gv.gvar('92.07(57)')),
             'eps_k' : gv.gvar('494.2(3)') / (4 *np.pi *gv.gvar('92.07(57)')),
 
-            'm_lam' : gv.gvar(1115.683, 0.006),
+            'm_lambda' : gv.gvar(1115.683, 0.006),
             'm_sigma' : np.mean([gv.gvar(g) for g in ['1189.37(07)', '1192.642(24)', '1197.449(30)']]),
             'm_sigma_st' : np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']]),
             'm_xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
@@ -162,7 +163,7 @@ class InputOutput:
             'm_proton' : gv.gvar(938.272,.0000058)
         }
         dim0_obs_to_m_baryon = {
-        'eps_lam': 'm_lam',
+        'eps_lam': 'm_lambda',
         'eps_sigma': 'm_sigma',
         'eps_sigma_st': 'm_sigma_st',
         'eps_xi': 'm_xi',

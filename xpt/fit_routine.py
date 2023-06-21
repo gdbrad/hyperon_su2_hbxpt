@@ -9,6 +9,7 @@ import os
 import functools
 # local modules
 import xpt.non_analytic_functions as naf
+import xpt.fv_corrections as fv
 import xpt.i_o as i_o
 
 
@@ -45,10 +46,6 @@ class FitRoutine:
         _make_prior(self):
             Method to create prior information.
     """
-    '''
-    TODO:
-    - All ct expressions share the same form, so there should only be a single instance of these, with the correct priors passed in based on the class name -> particle name via the multifitter dict 
-    '''
 
     def __init__(self, prior, data,project_path, model_info,phys_point_data,emp_bayes,empbayes_grouping,fv=None):
         # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
@@ -81,10 +78,10 @@ class FitRoutine:
         self.fv = None # TODO not yet implemented 
         # this is manually reconstructing the gvar to decorrelate x and y data
         y_particles = ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']
-        # if self.model_info['units']:
-        #     data_subset = {part : self.data['eps_'+part] for part in y_particles}
-        # else:
-        data_subset = {part : self.data['m_'+part] for part in y_particles}
+        if self.model_info['units'] == 'fpi':
+            data_subset = {part : self.data['eps_'+part] for part in y_particles}
+        else:
+            data_subset = {part : self.data['m_'+part] for part in y_particles}
         self.y = gv.gvar(dict(gv.mean(data_subset)),dict(gv.evalcov(data_subset)))
         self.models, self.models_dict = self._make_models()
 
@@ -633,10 +630,8 @@ class Xi(BaseMultiFitterModel):
         if self.model_info['units'] == 'phys': # lam_chi dependence ON #
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
                 output += p['m_{xi,0}'] * (p['d_{xi,a}'] * xdata['eps2_a'])
-                # print(output)
             if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
                 output += (p['s_{xi}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
-                # print(output,"2")
             if self.model_info['order_strange'] is not None:
                 if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo'] and 'd_{xi,s}' in p:
                     output += p['m_{xi,0}']*(p['d_{xi,s}'] * xdata['d_eps2_s'])
@@ -758,6 +753,7 @@ class Xi(BaseMultiFitterModel):
             return xdata['eps_pi']**4 * p['b_{xi,4}']
 
         def compute_order_chiral():
+            # if self.model_info['fv']:
             return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi,4}']
 
         output = 0
@@ -1266,10 +1262,8 @@ class Lambda(BaseMultiFitterModel):
 
     def fitfcn_lo_ct(self, p, xdata):
         ''''pure taylor extrapolation to O(m_pi^2)'''
-        # term2 = 0
         output = 0
         if self.model_info['units'] == 'phys': # lam_chi dependence ON #
-
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
                 output+=p['m_{lambda,0}']*(p['d_{lambda,a}'] * xdata['eps2_a'])
 
@@ -1305,7 +1299,7 @@ class Lambda(BaseMultiFitterModel):
                             (2*xdata['lam_chi']*xdata['eps_pi'])
                     )
             if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-                output+= p['m_{lambda,0}']*(p['d_{xi,s}'] *  xdata['d_eps2_s'])
+                output+= p['m_{lambda,0}']*(p['d_{lambda,s}'] *  xdata['d_eps2_s'])
             
         elif self.model_info['units'] == 'fpi':
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
@@ -1441,11 +1435,11 @@ class Lambda(BaseMultiFitterModel):
             term1 =  p['b_{lambda,4}']* xdata['eps_pi']
             term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 
             term3 =  4 * xdata['lam_chi'] * xdata['eps_pi']**3
-
-            termfpi = p['a_{lambda,4}']* xdata['eps_pi']**4 
-            termfpi2 = 2 * p['b_{lambda,4}']* xdata['eps_pi']**4
-            termfpi3 = p['s_{lambda}']*(1/4*xdata['eps_pi']**4 - 1/4* p['l3_bar']* xdata['eps_pi']**4)
             if fpi:
+
+                termfpi = p['a_{lambda,4}']* xdata['eps_pi']**4 
+                termfpi2 = 2 * p['b_{lambda,4}']* xdata['eps_pi']**4
+                termfpi3 = p['s_{lambda}']*(1/4*xdata['eps_pi']**4 - 1/4* p['l3_bar']* xdata['eps_pi']**4)
                 return termfpi + termfpi2 + termfpi3
             else:
                 return term1*(term2+term3)
@@ -1493,6 +1487,8 @@ class Lambda(BaseMultiFitterModel):
 
     def fitfcn_n2lo_xpt(self, p, xdata):
         """XPT extrapolation to O(m_pi^4)"""
+        if self.model_info['xpt'] is False:
+            return 0
 
         term1 = 3/4 * p['g_{lambda,sigma}']** 2 * (p['s_{lambda}'] - p['s_{sigma}']) * xdata['eps_pi'] ** 2 * naf.fcn_J(xdata['eps_pi'], xdata['eps_sigma'])
         term2 = 3* p['g_{lambda,sigma_st}']** 2 * (p['s_{lambda}'] - p['s_{sigma,bar}']) * xdata['eps_pi'] ** 2 * naf.fcn_J(xdata['eps_pi'], xdata['eps_sigma_st'])
@@ -1517,6 +1513,8 @@ class Lambda(BaseMultiFitterModel):
 
     def fitfcn_n2lo_xpt_deriv(self, p, xdata):
         '''xpt expression for mass derivative expansion at O(m_pi^4)'''
+        if self.model_info['xpt'] is False:
+            return 0
 
         term1_base = 3/4 * p['g_{lambda,sigma}']** 2 * (p['s_{lambda}'] - p['s_{sigma}']) 
 
@@ -1546,8 +1544,6 @@ class Lambda(BaseMultiFitterModel):
             return 0
 
         return output
-    
-
 
     def buildprior(self, prior, mopt=False, extend=False):
         return prior
@@ -1596,20 +1592,21 @@ class Sigma(BaseMultiFitterModel):
 
     def fitfcn_lo_ct(self, p, xdata):
         ''''taylor extrapolation to O(m_pi^2) without terms coming from xpt expressions'''
+        output = 0 
 
         if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
-            term1= (p['d_{sigma,a}'] * xdata['eps2_a'])
+            output+= (p['d_{sigma,a}'] * xdata['eps2_a'])
 
         if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
-            term2 = (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
+            output+= (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
         if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-            term3 = (p['d_{sigma,s}'] * xdata['d_eps2_s'])
+            output+= (p['d_{sigma,s}'] * xdata['d_eps2_s'])
 
         if self.model_info['units'] == 'phys': # lam_chi dependence ON #
-            return p['m_{sigma,0}']*(term1+term3)+term2
+            return p['m_{sigma,0}']*output
         else:
-            return term1+term2+term3
+            return output
 
     def fitfcn_lo_deriv(self,p,xdata):
         '''derivative expansion to O(m_pi^2)'''
@@ -1624,7 +1621,7 @@ class Sigma(BaseMultiFitterModel):
                             (2*xdata['lam_chi']*xdata['eps_pi'])
                     )
             if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-                output+= p['m_{sigma,0}']*(p['d_{xi,s}'] *  xdata['d_eps2_s'])
+                output+= p['m_{sigma,0}']*(p['d_{sigma,s}'] *  xdata['d_eps2_s'])
             
         elif self.model_info['units'] == 'fpi':
             if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
@@ -1715,8 +1712,75 @@ class Sigma(BaseMultiFitterModel):
                 output += xdata['lam_chi'] * xdata['eps_pi']**4 *np.log(xdata['eps_pi']**2) * p['a_{sigma,4}']
 
         return output
+    
+    def fitfcn_n2lo_ct_deriv(self, p, xdata):
+        ''''derivative expansion to O(m_pi^4) without terms coming from xpt expressions'''
+        def compute_order_strange():
+            term1 = p['d_{sigma,as}'] * xdata['eps2_a'] * xdata['d_eps2_s']
+            term2 = p['d_{sigma,ls}'] * xdata['d_eps2_s'] * xdata['eps_pi']**2
+            term3 = p['d_{sigma,ss}'] * xdata['d_eps2_s']**2
 
-    # extract lecs in quotes and insert into prior dict in hyperon_fit??
+            return term1 + term2 + term3
+
+        def compute_order_disc():
+            term1 = p['d_{sigma,al}'] * xdata['eps2_a'] * xdata['eps_pi']**2
+            term2 = p['d_{sigma,aa}'] * xdata['eps2_a']**2
+
+            return term1 + term2
+
+        def compute_order_light(fpi=None): 
+            term1 =  p['b_{sigma,4}']* xdata['eps_pi']
+            term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 
+            term3 =  4 * xdata['lam_chi'] * xdata['eps_pi']**3
+            if fpi:
+                termfpi = p['a_{sigma,4}']* xdata['eps_pi']**4 
+                termfpi2 = 2 * p['b_{sigma,4}']* xdata['eps_pi']**4
+                termfpi3 = p['s_{sigma}']*(1/4*xdata['eps_pi']**4 - 1/4* p['l3_bar']* xdata['eps_pi']**4)
+                return termfpi + termfpi2 + termfpi3
+            else:
+                return term1*(term2+term3)
+
+        def compute_order_chiral(fpi=None):
+            term1 =  p['a_{sigma,4}']* xdata['eps_pi']
+            term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) 
+            term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * np.log(xdata['eps_pi']**2)
+            term4 = 2 * xdata['lam_chi'] * xdata['eps_pi']**3 
+
+            if fpi:
+                return p['a_{sigma,4}']* (2*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2))
+            else:
+                return term1*(term2+term3+term4)
+        output = 0
+
+        if self.model_info['units'] == 'phys':  # lam_chi dependence ON 
+            if self.model_info['order_strange'] in ['n2lo']:
+                output += p['m_{sigma,0}'] * compute_order_strange()
+
+            if self.model_info['order_disc'] in ['n2lo']:
+                output += p['m_{sigma,0}'] * compute_order_disc()
+
+            if self.model_info['order_light'] in ['n2lo']:
+                output += compute_order_light()
+
+            if self.model_info['order_chiral'] in ['n2lo']:
+                output += compute_order_chiral()
+
+        elif self.model_info['units'] == 'fpi':  # lam_chi dependence ON 
+            if self.model_info['order_strange'] in ['n2lo']:
+                output += compute_order_strange()
+
+            if self.model_info['order_disc'] in ['n2lo']:
+                output += compute_order_disc()
+
+            if self.model_info['order_light'] in ['n2lo']:
+                output += compute_order_light(fpi=True)
+
+            if self.model_info['order_chiral'] in ['n2lo']:
+                output += compute_order_chiral(fpi=True)
+
+        return output
+
+
     def fitfcn_n2lo_xpt(self, p, xdata):
         '''xpt extrapolation to O(m_pi^4)'''
         if self.model_info['xpt']:
@@ -1730,6 +1794,42 @@ class Sigma(BaseMultiFitterModel):
             return output
         if self.model_info['xpt'] is False:
             return 0
+        
+    def fitfcn_n2lo_xpt_deriv(self, p, xdata):
+        '''xpt expression for mass derivative expansion at O(m_pi^4)'''
+        if self.model_info['xpt'] is False:
+            return 0
+
+        term1_base = 3/4 * p['g_{lambda,sigma}']** 2 * (p['s_{sigma}'] - p['s_{sigma}']) 
+
+        term1 = (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi']) * xdata['eps_pi']** 2 * naf.fcn_J(xdata['eps_pi'], xdata['eps_sigma'])
+        term2 = 2* xdata['lam_chi'] *xdata['eps_pi'] *  naf.fcn_J(xdata['eps_pi'], xdata['eps_sigma'])
+        term3 = xdata['lam_chi'] * xdata['eps_pi']**2 * naf.fcn_dJ(xdata['eps_pi'], xdata['eps_sigma'])
+
+        term2_base = 3* p['g_{lambda,sigma_st}']** 2 * (p['s_{sigma}'] - p['s_{sigma,bar}']) * xdata['eps_pi'] ** 2 * xdata['lam_chi']
+        term1_ = (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi']) * xdata['eps_pi']** 2 * naf.fcn_J(xdata['eps_pi'], xdata['eps_sigma_st'])
+        term2_ = 2* xdata['lam_chi'] *xdata['eps_pi'] *  naf.fcn_J(xdata['eps_pi'], xdata['eps_sigma_st'])
+        term3_ = xdata['lam_chi'] * xdata['eps_pi']**2 * naf.fcn_dJ(xdata['eps_pi'], xdata['eps_sigma_st'])
+
+        def compute_phys_output():
+            """Computes the output for 'phys' units, considering lam_chi dependence."""
+            return term1_base*(term1+term2+term3) + term2_base*(term1_+term2_+term3_)
+
+        def compute_fpi_output():
+            """Computes the output for 'fpi' units, not considering lam_chi dependence."""
+            return (term1+term2)
+
+        if self.model_info['xpt']:
+            if self.model_info['units'] == 'phys':
+                output = compute_phys_output()
+            elif self.model_info['units'] == 'fpi':
+                output = compute_fpi_output()
+        else:
+            return 0
+
+        return output
+
+    
 
     def buildprior(self, prior, mopt=False, extend=False):
         return prior
@@ -1737,31 +1837,21 @@ class Sigma(BaseMultiFitterModel):
     def builddata(self, data):
         return data[self.datatag]
 
-class Sigma_st(lsqfit.MultiFitterModel):
+class Sigma_st(BaseMultiFitterModel):
     '''
     SU(2) hbxpt extrapolation multifitter class for the sigma* baryon
     '''
     def __init__(self, datatag, model_info):
-        super(Sigma_st, self).__init__(datatag)
+        super(Sigma_st, self).__init__(datatag,model_info)
         self.model_info = model_info
 
-    def fitfcn(self, p, data=None):
+    def fitfcn(self, p, data=None,xdata=None):
         '''extrapolation formulae'''
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-        xdata = {}
-        # xdata['m_k'] = p['m_k']
-        xdata['lam_chi'] = p['lam_chi']
-        xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
-        xdata['eps_lambda'] = (
-            p['m_{sigma_st,0}'] - p['m_{lambda,0}']) / p['lam_chi']
-        xdata['eps_sigma'] = (
-            p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi']
-        # xdata['eps_a'] = ((1/2) * p['a/w'])
-        xdata['eps2_a'] = p['eps2_a']
-        xdata['d_eps2_s'] = (2 * p['m_k']**2 - p['m_pi'] **
-                             2) / p['lam_chi']**2 - 0.3513
+        xdata = self.prep_data(p,data,xdata)
+
        # not-even leading order
         output = p['m_{sigma_st,0}']
         output += self.fitfcn_lo_ct(p, xdata)
@@ -1770,6 +1860,22 @@ class Sigma_st(lsqfit.MultiFitterModel):
         output += self.fitfcn_n2lo_xpt(p, xdata)
 
         return output
+    
+    def fitfcn_mass_deriv(self, p, data=None,xdata = None):
+        xdata = self.prep_data(p, data, xdata)
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
+
+        output = 0 #llo
+        output += self.fitfcn_lo_deriv(p,xdata)  
+        output += self.fitfcn_nlo_xpt_deriv(p,xdata) 
+        output += self.fitfcn_n2lo_ct_deriv(p,xdata)
+        output += self.fitfcn_n2lo_xpt_deriv(p,xdata)
+        if self.model_info['units'] == 'fpi':
+            output *= xdata['lam_chi']
+        else:
+            return output
 
     def fitfcn_lo_ct(self, p, xdata):
         ''''pure taylor extrapolation to O(m_pi^2)'''
@@ -1787,6 +1893,33 @@ class Sigma_st(lsqfit.MultiFitterModel):
                        p['d_{sigma_st,s}'] * xdata['d_eps2_s'])
 
         return output
+    
+    def fitfcn_lo_deriv(self,p,xdata):
+        '''derivative expansion to O(m_pi^2)'''
+        output = 0
+        if self.model_info['units'] == 'phys':
+            if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
+                output += p['m_{sigma_st,0}'] * (p['d_{sigma_st,a}'] * xdata['eps2_a'])
+        
+            if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
+                    output+= p['s_{sigma,bar}'] *xdata['eps_pi']* (
+                            (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['eps_pi']**2)+
+                            (2*xdata['lam_chi']*xdata['eps_pi'])
+                    )
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= p['m_{sigma_st,0}']*(p['d_{lambda,s}'] *  xdata['d_eps2_s'])
+            
+        elif self.model_info['units'] == 'fpi':
+            if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
+                output += p['d_{sigma_st,a}'] * xdata['eps2_a']
+        
+            if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
+                    output+= p['s_{sigma,bar}'] *xdata['eps_pi']**2
+                           
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= p['d_{sigma_st},s}'] *  xdata['d_eps2_s']
+
+        return output
 
     def fitfcn_nlo_xpt(self, p, xdata):
         '''xpt extrapolation to O(m_pi^3)'''
@@ -1801,6 +1934,31 @@ class Sigma_st(lsqfit.MultiFitterModel):
             )
         if self.model_info['xpt'] is False:
             return 0
+        return output
+
+    def fitfcn_nlo_xpt_deriv(self, p,xdata):
+        """Derivative expansion XPT expression at O(m_pi^3)"""
+
+        if not self.model_info['xpt']:
+            return 0
+
+        def compute_phys_output():
+            term1 = -np.pi *p['g_{sigma_st,sigma_st}']**2 * xdata['eps_pi'] *((self.d_de_lam_chi_lam_chi(p, xdata) * xdata['lam_chi']) * xdata['eps_pi']**3 +(3 * xdata['lam_chi'] * xdata['eps_pi']**2))  * naf.fcn_F(xdata['eps_pi'], xdata['eps_lambda'])
+
+            term2 = 1/3 * p['g_{sigma_st,sigma}']**2  * xdata['eps_pi']*(xdata['lam_chi']* self.d_de_lam_chi_lam_chi(p, xdata)) * naf.fcn_F(xdata['eps_pi'], -xdata['eps_lambda'])
+            
+            term3 =  1/3 * p['g_{lambda,sigma_st}']**2 * xdata['eps_pi']*(
+            xdata['lam_chi']* naf.fcn_F(xdata['eps_pi'], xdata['eps_sigma_st']))
+            return term1 - term2 - term3
+
+        if self.model_info['xpt']:
+            if self.model_info['units'] == 'phys':
+                output = compute_phys_output()
+            elif self.model_info['units'] == 'fpi':
+                output = compute_fpi_output()
+        else:
+            return 0
+
         return output
 
     def fitfcn_n2lo_ct(self, p, xdata):
@@ -1833,6 +1991,75 @@ class Sigma_st(lsqfit.MultiFitterModel):
                 output += xdata['lam_chi'] * xdata['eps_pi']**4 *np.log(xdata['eps_pi']**2) * p['a_{sigma_st,4}']
 
         return output
+    
+    def fitfcn_n2lo_ct_deriv(self, p, xdata):
+        ''''derivative expansion to O(m_pi^4) without terms coming from xpt expressions'''
+        def compute_order_strange():
+            term1 = p['d_{sigma_st,as}'] * xdata['eps2_a'] * xdata['d_eps2_s']
+            term2 = p['d_{sigma_st,ls}'] * xdata['d_eps2_s'] * xdata['eps_pi']**2
+            term3 = p['d_{sigma_st,ss}'] * xdata['d_eps2_s']**2
+
+            return term1 + term2 + term3
+
+        def compute_order_disc():
+            term1 = p['d_{sigma_st,al}'] * xdata['eps2_a'] * xdata['eps_pi']**2
+            term2 = p['d_{sigma_st,aa}'] * xdata['eps2_a']**2
+
+            return term1 + term2
+
+        def compute_order_light(fpi=None): 
+            term1 =  p['b_{sigma_st,4}']* xdata['eps_pi']
+            term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 
+            term3 =  4 * xdata['lam_chi'] * xdata['eps_pi']**3
+            if fpi:
+
+                termfpi = p['a_{sigma_st,4}']* xdata['eps_pi']**4 
+                termfpi2 = 2 * p['b_{sigma_st,4}']* xdata['eps_pi']**4
+                termfpi3 = p['s_{sigma,bar}']*(1/4*xdata['eps_pi']**4 - 1/4* p['l3_bar']* xdata['eps_pi']**4)
+                return termfpi + termfpi2 + termfpi3
+            else:
+                return term1*(term2+term3)
+
+        def compute_order_chiral(fpi=None):
+            term1 =  p['a_{sigma_st,4}']* xdata['eps_pi']
+            term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) 
+            term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * np.log(xdata['eps_pi']**2)
+            term4 = 2 * xdata['lam_chi'] * xdata['eps_pi']**3 
+
+            if fpi:
+                return p['a_{sigma_st,4}']* (2*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2))
+            else:
+                return term1*(term2+term3+term4)
+        output = 0
+
+        if self.model_info['units'] == 'phys':  # lam_chi dependence ON 
+            if self.model_info['order_strange'] in ['n2lo']:
+                output += p['m_{sigma_st,0}'] * compute_order_strange()
+
+            if self.model_info['order_disc'] in ['n2lo']:
+                output += p['m_{sigma_st,0}'] * compute_order_disc()
+
+            if self.model_info['order_light'] in ['n2lo']:
+                output += compute_order_light()
+
+            if self.model_info['order_chiral'] in ['n2lo']:
+                output += compute_order_chiral()
+
+        elif self.model_info['units'] == 'fpi':  # lam_chi dependence ON 
+            if self.model_info['order_strange'] in ['n2lo']:
+                output += compute_order_strange()
+
+            if self.model_info['order_disc'] in ['n2lo']:
+                output += compute_order_disc()
+
+            if self.model_info['order_light'] in ['n2lo']:
+                output += compute_order_light(fpi=True)
+
+            if self.model_info['order_chiral'] in ['n2lo']:
+                output += compute_order_chiral(fpi=True)
+
+        return output
+
 
     # extract lecs in quotes and insert into prior dict in hyperon_fit??
     def fitfcn_n2lo_xpt(self, p, xdata):
@@ -1849,6 +2076,40 @@ class Sigma_st(lsqfit.MultiFitterModel):
             return output
         if self.model_info['xpt'] is False:
             return 0
+        
+    def fitfcn_n2lo_xpt_deriv(self, p, xdata):
+        '''xpt expression for mass derivative expansion at O(m_pi^4)'''
+        if self.model_info['xpt'] is False:
+            return 0
+
+        term1_base = 3/4 * p['g_{sigma_st,sigma}']** 2 * (p['s_{sigma,bar}'] - p['s_{sigma}']) 
+
+        term1 = (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi']) * xdata['eps_pi']** 2 * naf.fcn_J(xdata['eps_pi'], -xdata['eps_sigma'])
+        term2 = 2* xdata['lam_chi'] *xdata['eps_pi'] *  naf.fcn_J(xdata['eps_pi'], -xdata['eps_sigma'])
+        term3 = xdata['lam_chi'] * xdata['eps_pi']**2 * naf.fcn_dJ(xdata['eps_pi'],- xdata['eps_sigma'])
+
+        term2_base = 3* p['g_{lambda,sigma_st}']** 2 * (p['s_{sigma,bar}'] - p['s_{sigma}']) * xdata['eps_pi'] ** 2 * xdata['lam_chi']
+        term1_ = (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi']) * xdata['eps_pi']** 2 * naf.fcn_J(xdata['eps_pi'], xdata['eps_sigma_st'])
+        term2_ = 2* xdata['lam_chi'] *xdata['eps_pi'] *  naf.fcn_J(xdata['eps_pi'], xdata['eps_lambda'])
+        term3_ = xdata['lam_chi'] * xdata['eps_pi']**2 * naf.fcn_dJ(xdata['eps_pi'], xdata['eps_lambda'])
+
+        def compute_phys_output():
+            """Computes the output for 'phys' units, considering lam_chi dependence."""
+            return term1_base*(term1+term2+term3) + term2_base*(term1_+term2_+term3_)
+
+        def compute_fpi_output():
+            """Computes the output for 'fpi' units, not considering lam_chi dependence."""
+            return (term1+term2)
+
+        if self.model_info['xpt']:
+            if self.model_info['units'] == 'phys':
+                output = compute_phys_output()
+            elif self.model_info['units'] == 'fpi':
+                output = compute_fpi_output()
+        else:
+            return 0
+
+        return output
 
     def buildprior(self, prior, mopt=False, extend=False):
         return prior
