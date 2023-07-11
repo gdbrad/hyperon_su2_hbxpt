@@ -23,9 +23,11 @@ def fcn_Kn(n, g):
     else:
         return ss.kn(n, gv.mean(g))
 
-# I(m) in notes: FV correction to tadpole integral
 def fcn_I_m(xi, L, mu, order):
-    """Multiplicity factors for the finite volume corrections of the first ten vector lengths"""
+    """
+    I(m) in notes: FV correction to tadpole integral
+    Multiplicity factors for the finite volume corrections of the first ten vector lengths
+    """
     c = [None, 6, 12, 8, 6, 24, 24, 0, 12, 30, 24]
     m = np.sqrt(xi *mu**2)
 

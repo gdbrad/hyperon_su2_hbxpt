@@ -64,20 +64,20 @@ def get_prior(units=None):
     
         # not-even leading order 
         'm_{xi,0}' : gv.gvar(1000,400), # MeV
-        'm_{xi_st,0}' : gv.gvar(1300,400), # MeV
-        'm_{lambda,0}' : gv.gvar(1000,50), 
-        'm_{sigma,0}' : gv.gvar(1200,50), 
-        'm_{sigma_st,0}' : gv.gvar(1400,50),
+        'm_{xi_st,0}' : gv.gvar(1500,400), # MeV
+        'm_{lambda,0}' : gv.gvar(1050,100), 
+        'm_{sigma,0}' : gv.gvar(1300,100), 
+        'm_{sigma_st,0}' : gv.gvar(1450,100),
         'm_{omega,0}' : gv.gvar(1650,50),
         }
-    elif units =='lam_chi':
+    elif units =='fpi': # ensure these have a gap between means or else a float division error will occur
         gs_baryons = {
         # not-even leading order 
         'm_{xi,0}' : gv.gvar(1,1), 
         'm_{xi_st,0}' :  gv.gvar(1.1,1), 
-        'm_{lambda,0}' :  gv.gvar(1,1), 
-        'm_{sigma,0}' :  gv.gvar(1,1), 
-        'm_{sigma_st,0}' :  gv.gvar(1,1),
+        'm_{lambda,0}' :  gv.gvar(1.2,1), 
+        'm_{sigma,0}' :  gv.gvar(1.3,1), 
+        'm_{sigma_st,0}' :  gv.gvar(1.4,1),
         'm_{omega,0}' :  gv.gvar(1,1),
         }
 
@@ -99,6 +99,9 @@ def get_prior(units=None):
         'F0'    : gv.gvar(85,30),
         'c2_F' : gv.gvar(0,20),
         'c1_F' : gv.gvar(0,20),
+
+        'b_{xi,2}': gv.gvar(2,2),
+        'c0': gv.gvar(2,2),
    
         # nlo
         'g_{xi,xi}' : gv.gvar(0.3, 4),

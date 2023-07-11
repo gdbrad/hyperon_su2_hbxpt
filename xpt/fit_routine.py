@@ -47,7 +47,7 @@ class FitRoutine:
             Method to create prior information.
     """
 
-    def __init__(self, prior, data,project_path, model_info,phys_point_data,emp_bayes,empbayes_grouping,fv=None):
+    def __init__(self, prior, data,project_path, model_info,phys_point_data,emp_bayes,empbayes_grouping,svd_study,svd_tol,fv=None):
         # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
         self.project_path = project_path
@@ -79,21 +79,58 @@ class FitRoutine:
         # this is manually reconstructing the gvar to decorrelate x and y data
         y_particles = ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']
         if self.model_info['units'] == 'fpi':
-            data_subset = {part : self.data['eps_'+part] for part in y_particles}
+            self.data_subset = {part : self.data['eps_'+part] for part in y_particles}
         else:
-            data_subset = {part : self.data['m_'+part] for part in y_particles}
-        self.y = gv.gvar(dict(gv.mean(data_subset)),dict(gv.evalcov(data_subset)))
+            self.data_subset = {part : self.data['m_'+part] for part in y_particles}
+        self.y = gv.gvar(dict(gv.mean(self.data_subset)),dict(gv.evalcov(self.data_subset)))
         self.models, self.models_dict = self._make_models()
+        self.svd_study = None
+        self.svd_tol = None
 
     def __str__(self):
         return str(self.fit)
+
+    # def svd_processor(self,dataset):
+    #     # data = self.y
+    #     d = gv.dataset.avg_data(dataset)
+    #     d2 = gv.BufferDict({k:v for k,v in d.items() if 'mres' not in k})
+    
+    #     return d2
+    # @property
+    # def svd_diagnose(self,nbs=50, svdcut=None,raw_data):
+    #     # d = self.y
+    #     # d2 = gv.BufferDict({k:v for k,v in d.items() if 'mres' not in k})
+
+    #     svd_test = gv.dataset.svd_diagnosis(raw_data,process_dataset=self.svd_processor)
+    #     svd_cut = svd_test.svdcut
+    #     if svdcut is not None:
+    #         print('  svd_diagnose.svdcut = %.2e' %svd_test.svdcut)
+    #         print('          args.svdcut = %.2e' %svdcut)
+    #         # use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
+    #         # if use_svd in ['y','Y','yes']:
+    #         #     svd_cut = svdcut
+
+    #     return svd_test
+
+    # @property
+    # def svd_study(self):
+    #     s = gv.dataset.svd_diagnosis(dataset=self.data_subset,models=self.models)
+    #     avgdata = gv.svd(s.avgdata, svdcut=s.svdcut)
+    #     s.plot_ratio(show=True)
+    #     return s
 
     @functools.cached_property
     def fit(self):
         prior = self._make_prior()
         data = self.y
         fitter = lsqfit.MultiFitter(models=self.models)
-        fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False)
+        # svd_test, svdcut = self.svd_diagnose(
+                                            #    svdcut=self.svd_study)
+        if self.svd_study:
+            fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False,svdcut=self.svd_tol)
+        else:
+            fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False)
+
 
         return fit
     
@@ -111,8 +148,6 @@ class FitRoutine:
         - extrapolated mass (meV)
         - pion sigma term 
         - barred pion sigma term / M_B 
-        - strange sigma term
-        - barred strange sigma term / M_B 
         '''
         if p is None:
             p = self.posterior
@@ -130,7 +165,7 @@ class FitRoutine:
         p['l4_bar'] =  gv.gvar('4.73(10)')
         p['c2_F'] = gv.gvar(0,20)
         p['c1_F'] = gv.gvar(0,20)
-        
+         
         MULTIFIT_DICT = {
             'xi': Xi,
             'xi_st': Xi_st,
@@ -176,7 +211,7 @@ class FitRoutine:
                     # extrapolate xi mass to the phys. pt. 
                     elif obs == 'mass':
                         if self.model_info['units'] == 'fpi':
-                            output+= model_instance.fitfcn(p=p) * xdata['lam_chi']
+                            output+= model_instance.fitfcn(p=p) * self.phys_point_data['lam_chi']
                         else:
                             output+= model_instance.fitfcn(p=p)
                     results[particle][obs] = output
@@ -408,6 +443,8 @@ class FitRoutine:
             new_prior['m_pi'] = data['m_pi']
             new_prior['lam_chi'] = data['lam_chi']
             new_prior['eps_pi'] = data['eps_pi']
+        if self.model_info['fv']:
+            new_prior['L'] = data['L']
 
         if self.model_info['order_disc'] is not None:
             new_prior['lam_chi'] = data['lam_chi']
@@ -499,6 +536,8 @@ class FitRoutine:
             output['xi']['lo']['disc'] = ['d_{xi,a}']
             output['xi']['lo']['light'] = ['s_{xi}']
             output['xi']['lo']['strange'] = ['d_{xi,s}']
+            output['xi']['lo']['xpt'] = ['c0']
+
             output['xi']['nlo']['xpt'] = [
                 'g_{xi,xi}', 'g_{xi_st,xi}', 'm_{xi_st,0}']
             output['xi']['n2lo']['disc'] = ['d_{xi,aa}', 'd_{xi,al}', ]
@@ -562,6 +601,8 @@ class BaseMultiFitterModel(lsqfit.MultiFitterModel):
 
         if 'eps2_a' not in xdata:
             xdata['eps2_a'] = p['eps2_a']
+        if 'L' not in xdata:
+            xdata['L'] = p['L']
         
         #strange quark mass mistuning
         if self.model_info['order_strange'] is not None:
@@ -584,6 +625,9 @@ class BaseMultiFitterModel(lsqfit.MultiFitterModel):
                 + 2*p['c2_F'] + p['c1_F'] - p['l4_bar']*(p['l4_bar']-1))
 
         return output 
+    def builddata(self, data):
+        return data[self.datatag]
+   
 
 
 class Xi(BaseMultiFitterModel):
@@ -601,7 +645,8 @@ class Xi(BaseMultiFitterModel):
             for key in data.keys():
                 p[key] = data[key]
     
-        output = p['m_{xi,0}'] #llo
+        # output = p['m_{xi,0}'] #llo
+        output = self.fitfcn_llo_ct(p,xdata)
         output += self.fitfcn_lo_ct(p, xdata)
         output += self.fitfcn_nlo_xpt(p, xdata) 
         output += self.fitfcn_n2lo_ct(p, xdata) 
@@ -624,6 +669,11 @@ class Xi(BaseMultiFitterModel):
             output * xdata['lam_chi']
         return output
 
+    def fitfcn_llo_ct(self,p,xdata):
+        output = 0
+        output+= p['m_{xi,0}']
+        return output 
+
     def fitfcn_lo_ct(self, p, xdata):
         ''''pure taylor extrapolation to O(m_pi^2)'''
         output = 0
@@ -645,6 +695,13 @@ class Xi(BaseMultiFitterModel):
 
             if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
                 output += (p['d_{xi,s}'] * xdata['d_eps2_s'])
+
+            if self.model_info['xpt']:
+                if self.model_info['order_chiral'] in ['lo', 'nlo', 'n2lo']:
+                    if self.model_info['fv']:
+                        output += p['c0'] * xdata['eps_pi']**2 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi',10])
+                    else:
+                        output += p['c0'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
 
         return output
     
@@ -686,8 +743,8 @@ class Xi(BaseMultiFitterModel):
 
         def compute_fpi_output():
             """Computes the output for 'fpi' units, not considering lam_chi dependence."""
-            term3 = (-3/2) * np.pi * p['g_{xi,xi}'] ** 2 * xdata['eps_pi'] ** 3
-            term4 = p['g_{xi_st,xi}'] ** 2 * naf.fcn_F(xdata['eps_pi'], xdata['eps_delta'])
+            term3 = (-3/2) * np.pi * p['g_{xi,xi}']** 2 * xdata['eps_pi'] ** 3
+            term4 = p['g_{xi_st,xi}']** 2 * naf.fcn_F(xdata['eps_pi'], xdata['eps_delta'])
             return term3 - term4
 
         if self.model_info['xpt']:
@@ -753,8 +810,10 @@ class Xi(BaseMultiFitterModel):
             return xdata['eps_pi']**4 * p['b_{xi,4}']
 
         def compute_order_chiral():
-            # if self.model_info['fv']:
-            return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi,4}']
+            if self.model_info['fv']:
+                return xdata['eps_pi']**4 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10)  * p['a_{xi,4}']
+            else:
+                return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi,4}']
 
         output = 0
 
@@ -814,13 +873,22 @@ class Xi(BaseMultiFitterModel):
             return term1*(term2+term3)
 
         def compute_order_chiral(fpi=None):
-            term1 =  p['a_{xi,4}']* xdata['eps_pi']
-            term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) 
-            term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * np.log(xdata['eps_pi']**2)
-            term4 = 2 * xdata['lam_chi'] * xdata['eps_pi']**3 
-
             if fpi:
-                return p['a_{xi,4}']* (2*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2))
+                if self.model_info['fv']:
+                    return p['a_{xi,4}']* (2*xdata['eps_pi']**4*fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10))
+                else:
+                    return p['a_{xi,4}']* (2*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2))
+            else:
+
+                term1 =  p['a_{xi,4}']* xdata['eps_pi']
+                if self.model_info['fv']:
+                    term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10)
+                    term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10)
+
+                else:
+                    term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) 
+                    term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * np.log(xdata['eps_pi']**2)
+                term4 = 2 * xdata['lam_chi'] * xdata['eps_pi']**3 
             return term1*(term2+term3+term4)
         output = 0
 
@@ -910,7 +978,10 @@ class Xi(BaseMultiFitterModel):
         return prior
 
     def builddata(self, data):
-        return data[self.datatag]
+        return super().builddata(data)
+
+    # def builddata(self, data):
+    #     return data[self.datatag]
 class Xi_st(BaseMultiFitterModel):
     '''
     SU(2) hbxpt extrapolation multifitter class for the Xi baryon
@@ -1068,7 +1139,10 @@ class Xi_st(BaseMultiFitterModel):
             return xdata['eps_pi']**4 * p['b_{xi_st,4}']
 
         def compute_order_chiral():
-            return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi_st,4}']
+            if self.model_info['fv']:
+                return p['a_{xi_st,4}']* (xdata['eps_pi']**4*fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10))
+            else:
+                return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi_st,4}']
 
         output = 0
 
@@ -1128,12 +1202,19 @@ class Xi_st(BaseMultiFitterModel):
 
         def compute_order_chiral(fpi=None):
             term1 =  p['a_{xi_st,4}']* xdata['eps_pi']
-            term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) 
-            term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * np.log(xdata['eps_pi']**2)
+            if self.model_info['fv']:
+                term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10) 
+                term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10) 
+            else:
+                term2 =  (self.d_de_lam_chi_lam_chi(p,xdata)*xdata['lam_chi'])*xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) 
+                term3 = 4 * xdata['lam_chi'] * xdata['eps_pi']**3 * np.log(xdata['eps_pi']**2)
             term4 = 2 * xdata['lam_chi'] * xdata['eps_pi']**3 
 
             if fpi:
-                return p['a_{xi_st,4}']* (2*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2))
+                if self.model_info['fv']:
+                    return p['a_{xi_st,4}']* (2*xdata['eps_pi']**4*fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10))
+                else:
+                    return p['a_{xi_st,4}']* (2*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2))
             else:
                 return term1*(term2+term3+term4)
         output = 0
@@ -1217,7 +1298,10 @@ class Xi_st(BaseMultiFitterModel):
         return prior
 
     def builddata(self, data):
-        return data[self.datatag]
+        return super().builddata(data)
+
+    # def builddata(self, data):
+    #     return data[self.datatag]
 
 # Strangeness=1 Hyperons
 

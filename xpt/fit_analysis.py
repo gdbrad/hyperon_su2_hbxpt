@@ -97,10 +97,16 @@ class ModelComparsion:
                                             model_info=_model_info, prior=self.prior, 
                                             project_path=self.project_path, verbose=self.verbose,
                                             extrapolate=True)
+            # fit_out = xfa_instance.fit
             
-            fit_results_fig = self.add_fit_results_figure(xfa_instance.__str__, title='Model:'+mdl_key)
-            pdf_pages.savefig(fit_results_fig)
-            plt.close(fit_results_fig)
+            # fit_results_fig = self.add_fit_results_figure(fit_out, title='Model:'+mdl_key)
+            # pdf_pages.savefig(fit_results_fig)
+            # plt.close(fit_results_fig)
+            plt.figure(figsize=(10, 10))  # create a new figure with specific size
+            plt.text(0, 0, str(xfa_instance), fontsize=8)  # add text to figure
+            plt.axis('off')  # hide axes
+            pdf_pages.savefig()  # save current figure to pdf
+            plt.close()  # close current figure
             if system == 'xi':
                 fig1= xfa_instance.plot_params_fit(param='a',observable='xi',eps=False)
                 fig2=xfa_instance.plot_params_fit(param='a',observable='xi_st',eps=False)
@@ -202,7 +208,7 @@ class ModelComparsion:
 
 class Xpt_Fit_Analysis:
     
-    def __init__(self, phys_point_data, data=None, model_info=None, prior=None,project_path=None,verbose=None,extrapolate=None):
+    def __init__(self, phys_point_data, data=None, model_info=None, prior=None,project_path=None,verbose=None,extrapolate=None,svd_study=None):
         self.project_path = project_path
         # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         # TODO REPLACE WITH NEW BS FILE 
@@ -228,8 +234,9 @@ class Xpt_Fit_Analysis:
         self._input_prior = prior
         self._phys_point_data = phys_point_data
         self._fit = {}
+        self.svd_study = svd_study
         self.fitter = fit.FitRoutine(prior=prior,data=data, project_path=self.project_path,model_info=model_info,
-                    phys_point_data=phys_point_data, emp_bayes=None,empbayes_grouping=None)
+                    phys_point_data=phys_point_data, emp_bayes=None,empbayes_grouping=None,svd_study=self.svd_study)
         self.fit = self.fitter.fit
         self.model_collection = []
         self.extrapolate = extrapolate
@@ -561,7 +568,11 @@ class Xpt_Fit_Analysis:
                         if units== 'gev':
                             label = f'$m_{{{latex_baryon}}}$(GeV)'
                         else:
-                            label = f'$m_{{{latex_baryon}}}$(meV)'
+                            if eps: 
+                                label = f'$\\frac{{M_{latex_baryon}}}{{\\Lambda_{{\\chi}}}}$' 
+
+                            else:
+                                label = f'$m_{{{latex_baryon}}}$ (meV)'
                     if param == 'eps2_a':
                         value = self.data['eps2_a'][i] 
                         label = '$\epsilon_a^2$'
@@ -608,8 +619,10 @@ class Xpt_Fit_Analysis:
             ax.grid(True)
             ax.set_xlabel(xlabel, fontsize=16)
             ax.set_ylabel(ylabel, fontsize=16)
-
-            phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)
+            if eps:
+                phys_point_observable = self._get_phys_point_data(parameter='eps_'+observable)
+            else:
+                phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)
             ax.plot(0, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
             ax.axvline(0, ls='--', color='black')
 
@@ -668,14 +681,21 @@ class Xpt_Fit_Analysis:
                 if shift is not None:
                     y[ens] = shift
                 else:
-                    y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps_pi','d_eps2_s','m_pi','lam_chi'], observable=observable)
+                    if eps:
+                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps_pi','d_eps2_s','m_pi','lam_chi'], observable=observable)
+                    else:
+                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi','lam_chi'], observable=observable)
+
                 xlabel = r'$\epsilon_a^2$'
             elif param == 'epi':
                 x = self.data['eps_pi']
                 if shift is not None:
                     y[ens] = shift
                 else:
-                    y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi','lam_chi'], observable=observable)
+                    if eps:
+                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi'], observable=observable)
+                    else:
+                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi','lam_chi'], observable=observable)
                 xlabel = r'$\epsilon_\pi$'
             elif param == 'mpi_sq':
                 x = self.data['m_pi']
@@ -712,7 +732,7 @@ class Xpt_Fit_Analysis:
         ax.grid(True)
         
         ax.set_xlabel(xlabel, fontsize = 20)
-        ax.set_title('Single Parameter Fit', fontsize=20)  
+        ax.set_title("Model: %s" %(self.model_info['name']), fontsize=20)  
         
         phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)  
         phys_point_xparam = 0.0

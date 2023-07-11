@@ -21,8 +21,8 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['text.usetex'] = True
 
 class InputOutput:
-    '''Bootstrapped data ingestion and output to gvar datasets'''
-    def __init__(self,project_path=None):
+    '''Bootstrapped data ingestion and output to gvar average datasets'''
+    def __init__(self,project_path=None,force_correlation=None):
         # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
         self.project_path = project_path 
         data_path_hyperon = os.path.join(project_path, "hyperon_data.h5")
@@ -47,19 +47,19 @@ class InputOutput:
         ensembles.remove('a12m180L')
         self.ensembles = ensembles
         self.project_path = project_path
+        self.force_correlation = force_correlation
 
     # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
     def _get_bs_data(self, scheme=None, units=None):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
         hbar_c = self.get_data_phys_point('hbarc') # MeV-fm (PDG 2019 conversion constant)
         scale_factors = gv.load(self.project_path +'/scale_setting.p')
-        # a_fm =  gv.load(self.project_path +'/data/a_fm_results.p')
+        a_fm =  gv.load(self.project_path +'/a_fm_results.p')
 
         if scheme is None:
             scheme = 'w0_imp'
         if scheme not in ['t0_org', 't0_imp', 'w0_org', 'w0_imp']:
             raise ValueError('Invalid scale setting scheme')
-
         data = {}
         with h5py.File(self.project_path+'/input_data.h5','r') as f: 
             for ens in self.ensembles:
@@ -70,17 +70,18 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                    
-                data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
+                if self.force_correlation:
+                    data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
+                else:
+                    data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
-                data[ens]['L'] = f[ens]['L']
+                data[ens]['L'] = f[ens]['L'][()]
                 data[ens]['m_pi'] = f[ens]['mpi'][1:]
                 data[ens]['m_k'] = f[ens]['mk'][1:]
                 data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][1:]
                 data[ens]['Fpi'] = f[ens]['Fpi'][1:] 
                 data[ens]['eps_pi'] = data[ens]['m_pi'] / data[ens]['lam_chi']
                 data[ens]['units_Fpi'] = 1/data[ens]['lam_chi'][:]
-
                 if units=='Fpi':
                 #     #for data[ens]['units'] not in data[ens]['lam_chi']:
                     data[ens]['units'] =  1/data[ens]['lam_chi'] #for removing lam_chi dependence of fits    
@@ -105,37 +106,49 @@ class InputOutput:
                 # if units == 'Fpi':
                 #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
                 #         data[ens]['m_'+obs]= data[ens]['m_'+obs] / data[ens]['lam_chi']
+
+        # import IPython; IPython.embed()
+
         return data
 
 
-    def get_data(self, scheme=None,units=None,div_lam_chi=False):
+    def get_data(self, scheme=None,units=None,div_lam_chi=False,show_raw=None):
         bs_data = self._get_bs_data(scheme,units)
         gv_data = {}
         # if div_lam_chi:
         # dim0_obs = ['eps_lambda','eps_sigma','eps_sigma_st','eps_xi','eps_xi_st']
-        dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi',
-                    'eps_lambda','eps_sigma','eps_sigma_st','eps_xi_st','eps_xi']
+        dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi','eps_lambda','eps_sigma','eps_sigma_st','eps_xi_st','eps_xi']
 
         for ens in self.ensembles:
-            gv_data[ens] = gv.BufferDict()
-            for obs in dim1_obs:
-                gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
+            if show_raw:
+                gv_data[ens] = {}
+                gv_data[ens] = bs_data[ens]
+                output = {}
+                for param in gv_data[self.ensembles[0]]:
+                    output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])
+                return output,list(gv_data)
+            else:
 
-            gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
-            for obs in dim1_obs:
-                if units == 'phys':
-                    gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
-                if units == 'fpi':
-                    gv_data[ens][obs] = gv_data[ens][obs] 
+                gv_data[ens] = gv.BufferDict()
+                for obs in dim1_obs:
+                    gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
 
-            gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
-            # gv_data[ens]['eps_pi'] = bs_data[ens]['eps_pi']
-    
-        ensembles = list(gv_data)
-        output = {}
-        for param in gv_data[self.ensembles[0]]:
-            output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])
-        return output, ensembles
+                gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
+                for obs in dim1_obs:
+                    if units == 'phys':
+                        gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
+                    if units == 'fpi':
+                        gv_data[ens][obs] = gv_data[ens][obs] 
+
+                gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
+                gv_data[ens]['L'] = gv.gvar(bs_data[ens]['L'], bs_data[ens]['L'] / 10**6)
+                # gv_data[ens]['eps_pi'] = bs_data[ens]['eps_pi']
+        
+            ensembles = list(gv_data)
+            output = {}
+            for param in gv_data[self.ensembles[0]]:
+                output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])
+            return output, ensembles
 
     def get_data_phys_point(self, param=None):
         '''
@@ -163,7 +176,7 @@ class InputOutput:
             'm_proton' : gv.gvar(938.272,.0000058)
         }
         dim0_obs_to_m_baryon = {
-        'eps_lam': 'm_lambda',
+        'eps_lambda': 'm_lambda',
         'eps_sigma': 'm_sigma',
         'eps_sigma_st': 'm_sigma_st',
         'eps_xi': 'm_xi',

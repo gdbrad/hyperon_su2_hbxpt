@@ -1,5 +1,42 @@
 models:
 
+  fpi:
+    fpi:l_n2lo:d_n2lo:x_n2lo:
+      name: fpi:l_n2lo:d_n2lo:x_n2lo
+      particles : [Fpi]
+      eps2a_defn : w0_imp
+      order_chiral : n2lo   
+      order_disc : n2lo
+      order_strange : Null
+      order_light : n2lo
+      xpt_fpi : False
+      fv : Null
+      units: fpi
+
+    fpi:l_lo:d_lo:x_lo:
+      name: fpi:l_lo:d_lo:x_lo
+      particles : [Fpi]
+      eps2a_defn : w0_imp
+      order_chiral : lo   
+      order_disc : lo
+      order_strange : Null
+      order_light : Null
+      xpt_fpi : False
+      fv : Null
+      units: fpi 
+
+    fpi:l4_bar:
+      name: fpi:l4_bar
+      particles : [Fpi]
+      eps2a_defn : w0_imp
+      order_chiral : lo   
+      order_disc : lo
+      order_strange : Null
+      order_light : lo
+      xpt_fpi : False
+      fv : null
+      units: fpi
+
   xi_system:
     xi:xi_st:d_n2lo:l_lo:
       name: xi:xi_st:d_n2lo:l_lo
@@ -25,6 +62,7 @@ models:
       fv: True
       units: phys
 
+
     xi:xi_st:d_n2lo:l_n2lo:x_n2lo:
       name: xi:xi_st:d_n2lo:l_n2lo:x_n2lo
       particles: [xi,xi_st]
@@ -36,6 +74,7 @@ models:
       xpt: True
       fv: True
       units: phys
+
 
     xi:xi_st:d_n2lo:l_nlo:x_n2lo:
       name: xi:xi_st:d_n2lo:l_nlo:x_n2lo
@@ -113,9 +152,10 @@ models:
       units: phys
       
 
-    lam:sigma:sigma_st:l_n2lo:d_n2lo:x_n2lo:phys:
+    lam:sigma:sigma_st:l_n2lo:d_n2lo:x_n2lo:
       name: lam:sigma:sigma_st:l_n2lo:d_n2lo:x_n2lo
-      particles : [lambda,sigma,sigma_st]
+      # particles : [lambda,sigma,sigma_st]
+      particles : [sigma,sigma_st,lambda]
       eps2a_defn : w0_imp
       order_chiral  : n2lo
       order_disc : n2lo
