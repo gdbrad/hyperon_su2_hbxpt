@@ -169,7 +169,7 @@ models:
     lam:sigma:sigma_st:l_lo:d_n2lo:s_lo:
       name: lam:sigma:sigma_st:l_lo:d_n2lo:s_lo
       particles : [lambda,sigma,sigma_st]
-      eps2a_defn : w0_imp
+      eps2a_defn : w0_org
       order_chiral  : null
       order_disc : n2lo
       order_strange : lo

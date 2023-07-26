@@ -57,18 +57,20 @@ def recalibrate_prior(prior, data,fit_result, scale_factor):
         else:
             new_prior[key] = data[key]
     return new_prior
+import yaml
+def get_prior(units=None):
 
-def get_prior(units=None): 
+   
     if units=='mev':
         gs_baryons={
     
         # not-even leading order 
-        'm_{xi,0}' : gv.gvar(1000,400), # MeV
-        'm_{xi_st,0}' : gv.gvar(1500,400), # MeV
-        'm_{lambda,0}' : gv.gvar(1050,100), 
-        'm_{sigma,0}' : gv.gvar(1300,100), 
-        'm_{sigma_st,0}' : gv.gvar(1450,100),
-        'm_{omega,0}' : gv.gvar(1650,50),
+        'm_{xi,0}' : gv.gvar(1100,400), # MeV
+        'm_{xi_st,0}' : gv.gvar(1300,400), # MeV
+        'm_{lambda,0}' : gv.gvar(1000,400), 
+        'm_{sigma,0}' : gv.gvar(1200,400), 
+        'm_{sigma_st,0}' : gv.gvar(1400,400),
+        'm_{omega,0}' : gv.gvar(1500,400),
         }
     elif units =='fpi': # ensure these have a gap between means or else a float division error will occur
         gs_baryons = {
@@ -88,9 +90,9 @@ def get_prior(units=None):
         # lo
         's_{xi}' : gv.gvar(0, 2),
         's_{xi,bar}' : gv.gvar(0, 2),
-        's_{lambda}' : gv.gvar(0, 5),
-        's_{sigma,bar}' : gv.gvar(0, 5),
-        's_{sigma}' : gv.gvar(0, 5),
+        's_{lambda}' : gv.gvar(3,2),
+        's_{sigma,bar}' : gv.gvar(0, 2),
+        's_{sigma}' : gv.gvar(0, 2),
         'l3_bar' : gv.gvar(3.53,2.6),
 
         
@@ -102,7 +104,7 @@ def get_prior(units=None):
 
         'b_{xi,2}': gv.gvar(2,2),
         'c0': gv.gvar(2,2),
-   
+
         # nlo
         'g_{xi,xi}' : gv.gvar(0.3, 4),
         'g_{xi_st,xi}' : gv.gvar(0.7, 3),
@@ -131,12 +133,12 @@ def get_prior(units=None):
         'd_{xi,s}' : gv.gvar(0,5),
         'd_{xi_st,a}' : gv.gvar(0,2),
         'd_{xi_st,s}' : gv.gvar(0,5), 
-        'd_{lambda,s}' : gv.gvar(0,5),
-        'd_{lambda,a}' : gv.gvar(0,5),
-        'd_{sigma_st,a}' : gv.gvar(0,5), 
-        'd_{sigma_st,s}' : gv.gvar(0,5),
-        'd_{sigma,s}' : gv.gvar(0,5), 
-        'd_{sigma,a}' : gv.gvar(0,5),
+        'd_{lambda,s}' : gv.gvar(0,2),
+        'd_{lambda,a}' : gv.gvar(0,2),
+        'd_{sigma_st,a}' : gv.gvar(0,2), 
+        'd_{sigma_st,s}' : gv.gvar(0,2),
+        'd_{sigma,s}' : gv.gvar(0,2), 
+        'd_{sigma,a}' : gv.gvar(0,2),
 
         # disc n2lo
         'd_{xi,aa}' : gv.gvar(2,4),
@@ -151,22 +153,22 @@ def get_prior(units=None):
         'd_{xi_st,ls}' : gv.gvar(0,5), 
         'd_{xi_st,ss}' : gv.gvar(0,5),
 
-        'd_{lambda,aa}' : gv.gvar(0,5),
-        'd_{lambda,al}' : gv.gvar(0,5),
-        'd_{lambda,as}' : gv.gvar(0,5),
-        'd_{lambda,ls}' : gv.gvar(0,5),
-        'd_{lambda,ss}' : gv.gvar(0,5),
+        'd_{lambda,aa}' : gv.gvar(0,4),
+        'd_{lambda,al}' : gv.gvar(0,4),
+        'd_{lambda,as}' : gv.gvar(0,4),
+        'd_{lambda,ls}' : gv.gvar(0,4),
+        'd_{lambda,ss}' : gv.gvar(0,4),
 
-        'd_{sigma,aa}' : gv.gvar(0,5),
-        'd_{sigma,al}' : gv.gvar(0,5),
-        'd_{sigma,as}' : gv.gvar(0,5),
-        'd_{sigma,ls}' : gv.gvar(0,5),
-        'd_{sigma,ss}' : gv.gvar(0,5),
+        'd_{sigma,aa}' : gv.gvar(0,4),
+        'd_{sigma,al}' : gv.gvar(0,4),
+        'd_{sigma,as}' : gv.gvar(0,4),
+        'd_{sigma,ls}' : gv.gvar(0,4),
+        'd_{sigma,ss}' : gv.gvar(0,4),
 
-        'd_{sigma_st,aa}' : gv.gvar(0,5),
-        'd_{sigma_st,al}' : gv.gvar(0,5), 
-        'd_{sigma_st,as}' : gv.gvar(0,5),
-        'd_{sigma_st,ls}' : gv.gvar(0,5), 
-        'd_{sigma_st,ss}' : gv.gvar(0,5),}
+        'd_{sigma_st,aa}' : gv.gvar(0,4),
+        'd_{sigma_st,al}' : gv.gvar(0,4), 
+        'd_{sigma_st,as}' : gv.gvar(0,4),
+        'd_{sigma_st,ls}' : gv.gvar(0,4), 
+        'd_{sigma_st,ss}' : gv.gvar(0,4),}
     return prior
 

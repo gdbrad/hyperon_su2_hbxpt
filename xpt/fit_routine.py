@@ -7,28 +7,28 @@ import pprint
 import sys
 import os
 import functools
+from pathlib import Path
+import matplotlib.pyplot as plt
+
 # local modules
 import xpt.non_analytic_functions as naf
 import xpt.fv_corrections as fv
 import xpt.i_o as i_o
-
+import xpt.priors as priors
 
 class FitRoutine:
     """
     The `FitRoutine` class is designed to fit models to data using least squares fitting.
-    It takes in the prior information, data, model information, and options for empirical Bayes analysis.
+    It takes in the model information, and options for empirical Bayes analysis.
 
     Attributes:
-        prior (dict): prior information for the fit.
-        data (dict):  data to be fit. The keys correspond to the names of the
-                     data types(baryon correlators), and the values are arrays of the data.
+       
         model_info (dict):  information about the model to be fit.
         empbayes (bool): A boolean indicating whether to perform empirical Bayes analysis.
         empbayes_grouping (list): A list of dictionaries containing information about how to group the data
                                   for the empirical Bayes analysis.
         _fit (tuple): A tuple containing the fit results. The first element is a dictionary of the fit
                       parameters, and the second element is a dictionary of the fit errors.
-        _simultaneous (bool): A boolean indicating whether to fit data simultaneously.
         _posterior (dict): information about the posterior distribution of the fit.
         _empbayes_fit (tuple):empirical Bayes fit results. The first element is the
                                empirical Bayes prior, and the second element is a dictionary of the fit
@@ -47,90 +47,86 @@ class FitRoutine:
             Method to create prior information.
     """
 
-    def __init__(self, prior, data,project_path, model_info,phys_point_data,emp_bayes,empbayes_grouping,svd_study,svd_tol,fv=None):
-        # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
-        # TODO REPLACE WITH NEW BS FILE 
-        self.project_path = project_path
-        with h5.File(self.project_path+'/hyperon_data.h5', 'r') as f:
-            ens_hyp = sorted(list(f.keys()))
-            ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
-        # TODO REPLACE WITH UPDATED SCALE SETTING FILE 
-        with h5.File(self.project_path+'/input_data.h5', 'r') as f: 
-            ens_in = sorted(list(f.keys()))
+    def __init__(self,
+                 force_correlation:bool,
+                 model_info:dict,
+                 units:str,
+                 scheme:str,
+                 discard_cov:bool,
+                 truncate: bool,
+                 svd_test:bool,
+                 svd_tol:float,
+                 emp_bayes:bool,
+                 fv:bool,
+                 empbayes_grouping,
+                ):
+        self.force_correlation = force_correlation
+        self.units = units
+        self.scheme = scheme
+        self.discard_cov = discard_cov
+        self.truncate = truncate
+        self.svd_test = svd_test
+        self.svd_tol = svd_tol
+        
+        self.input_output = i_o.InputOutput(force_correlation=self.force_correlation,units=self.units,scheme=self.scheme)
+        self.ensembles = self.input_output.ensembles
+        self.data = self.input_output.perform_gvar_processing()
+        # print(self.data)
 
-        ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
-        ensembles.remove('a12m220')
-        ensembles.remove('a12m220ms')
-        ensembles.remove('a12m310XL')
-        ensembles.remove('a12m220S')
-        ensembles.remove('a12m180L')
-        self.ensembles = ensembles
-        self.prior = prior
-        self.data = data
-        self.model_info = model_info.copy()
-        self._simultaneous = False
-        # self._fit = None
-        self._posterior = None
+        phys_point_data = self.input_output.get_data_phys_point()
         self._phys_point_data = phys_point_data
-        self.emp_bayes = False #boolean
+
+        _prior = priors.get_prior(units='mev')
+        prior = self.input_output.make_prior(data=self.data,prior=_prior)
+        self.prior = prior
+
+        self.model_info = model_info.copy()
+        self._posterior = None
+        self.emp_bayes = False 
         self.empbayes_grouping = None #groups for empirical bayes prior study
         self._empbayes_fit = None
-        self.fv = None # TODO not yet implemented 
+        # self.fv = None # TODO not yet implemented 
+
         # this is manually reconstructing the gvar to decorrelate x and y data
-        y_particles = ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']
-        if self.model_info['units'] == 'fpi':
-            self.data_subset = {part : self.data['eps_'+part] for part in y_particles}
-        else:
-            self.data_subset = {part : self.data['m_'+part] for part in y_particles}
-        self.y = gv.gvar(dict(gv.mean(self.data_subset)),dict(gv.evalcov(self.data_subset)))
+        lam_sigma_particles = ['lambda', 'sigma', 'sigma_st']
+        scale_params = ['m_pi','m_k','lam_chi','eps2_a']
+        y_particles = ['xi','xi_st','lambda', 'sigma', 'sigma_st']
+        if self.model_info['units'] == 'phys':
+            if self.truncate:
+                self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
+                self.data_subset.update({part:self.data[part]for part in scale_params})
+            else:
+                self.data_subset = {part:self.data['m_'+part] for part in y_particles}
+        if self.discard_cov:
+            self.y = self.data_subset
+        elif self.discard_cov is False:
+            self.y = gv.gvar(dict(gv.mean(self.data_subset)),dict(gv.evalcov(self.data_subset)))
+
+
+
         self.models, self.models_dict = self._make_models()
-        self.svd_study = None
-        self.svd_tol = None
+        
 
     def __str__(self):
         return str(self.fit)
 
-    # def svd_processor(self,dataset):
-    #     # data = self.y
-    #     d = gv.dataset.avg_data(dataset)
-    #     d2 = gv.BufferDict({k:v for k,v in d.items() if 'mres' not in k})
-    
-    #     return d2
-    # @property
-    # def svd_diagnose(self,nbs=50, svdcut=None,raw_data):
-    #     # d = self.y
-    #     # d2 = gv.BufferDict({k:v for k,v in d.items() if 'mres' not in k})
-
-    #     svd_test = gv.dataset.svd_diagnosis(raw_data,process_dataset=self.svd_processor)
-    #     svd_cut = svd_test.svdcut
-    #     if svdcut is not None:
-    #         print('  svd_diagnose.svdcut = %.2e' %svd_test.svdcut)
-    #         print('          args.svdcut = %.2e' %svdcut)
-    #         # use_svd = input('   use specified svdcut instead of that from svd_diagnosis? [y/n]\n')
-    #         # if use_svd in ['y','Y','yes']:
-    #         #     svd_cut = svdcut
-
-    #     return svd_test
-
-    # @property
-    # def svd_study(self):
-    #     s = gv.dataset.svd_diagnosis(dataset=self.data_subset,models=self.models)
-    #     avgdata = gv.svd(s.avgdata, svdcut=s.svdcut)
-    #     s.plot_ratio(show=True)
-    #     return s
 
     @functools.cached_property
     def fit(self):
-        prior = self._make_prior()
+        prior_final = self._make_prior()
         data = self.y
         fitter = lsqfit.MultiFitter(models=self.models)
-        # svd_test, svdcut = self.svd_diagnose(
-                                            #    svdcut=self.svd_study)
-        if self.svd_study:
-            fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False,svdcut=self.svd_tol)
+        if self.svd_test:
+            svd_cut = self.input_output.perform_svdcut()
+            fit = fitter.lsqfit(data=data, prior=prior_final, fast=False, mopt=False,svdcut=svd_cut)
+            # fig = plt.figure('svd_diagnosis', figsize=(7, 4))
+            # for ens in self.ensembles:
+            #     svd_test.plot_ratio(show=True)
         else:
-            fit = fitter.lsqfit(data=data, prior=prior, fast=False, mopt=False)
-
+            if self.svd_tol is None:
+                fit = fitter.lsqfit(data=data, prior=prior_final, fast=False, mopt=False)
+            else:
+                fit = fitter.lsqfit(data=data, prior=prior_final, fast=False, mopt=False,svdcut=self.svd_tol)
 
         return fit
     
@@ -406,6 +402,7 @@ class FitRoutine:
         '''
         if data is None:
             data = self.data
+        print(list(data))
         prior = self.prior
         new_prior = {}
         particles = []
@@ -1311,7 +1308,7 @@ class Lambda(BaseMultiFitterModel):
     Note: derivative expansions are defined explicitly for now, should be inherited from the regular expression for conciseness
     '''
     def __init__(self, datatag, model_info):
-        super(Lambda, self).__init__(datatag,model_info)
+        super().__init__(datatag,model_info)
         self.model_info = model_info
 
     def fitfcn(self, p, data=None,xdata=None):
