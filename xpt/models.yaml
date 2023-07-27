@@ -175,8 +175,12 @@ models:
       order_strange : lo
       order_light: lo
       xpt : False
-      fv : True
+      fv : False
       units: phys
+      scheme: w0_org
+      emp_bayes: False
+      emp_bayes_grouping: null
+      svd_test: False
       
 
     lam:sigma:sigma_st:l_n2lo:d_n2lo:s_lo:

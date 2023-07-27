@@ -1,14 +1,11 @@
 import copy
 import lsqfit
 import numpy as np
-import h5py as h5
 import gvar as gv
-import pprint
-import sys
-import os
 import functools
 from pathlib import Path
 import matplotlib.pyplot as plt
+import yaml
 
 # local modules
 import xpt.non_analytic_functions as naf
@@ -25,7 +22,7 @@ class FitRoutine:
        
         model_info (dict):  information about the model to be fit.
         empbayes (bool): A boolean indicating whether to perform empirical Bayes analysis.
-        empbayes_grouping (list): A list of dictionaries containing information about how to group the data
+        emp_bayes_grouping (list): A list of dictionaries containing information about how to group the data
                                   for the empirical Bayes analysis.
         _fit (tuple): A tuple containing the fit results. The first element is a dictionary of the fit
                       parameters, and the second element is a dictionary of the fit errors.
@@ -35,7 +32,7 @@ class FitRoutine:
                                parameters.
 
     Methods:
-        __init__(self, prior, data, model_info, empbayes, empbayes_grouping):
+        __init__(self, prior, data, model_info, empbayes, emp_bayes_grouping):
             Constructor method for the `FitRoutine` class.
         __str__(self):
             String representation of the fit.
@@ -48,73 +45,65 @@ class FitRoutine:
     """
 
     def __init__(self,
-                 force_correlation:bool,
                  model_info:dict,
-                 units:str,
-                 scheme:str,
                  discard_cov:bool,
-                 truncate: bool,
-                 svd_test:bool,
                  svd_tol:float,
-                 emp_bayes:bool,
-                 fv:bool,
-                 empbayes_grouping,
+                 data=None,
+                 prior=None
                 ):
-        self.force_correlation = force_correlation
-        self.units = units
-        self.scheme = scheme
+        self.model_info = model_info.copy()
+        self.units = self.model_info['units']
+        self.scheme = self.model_info['scheme']
         self.discard_cov = discard_cov
-        self.truncate = truncate
-        self.svd_test = svd_test
+        self.svd_test = self.model_info['svd_test']
         self.svd_tol = svd_tol
+        self.emp_bayes = self.model_info['emp_bayes']
         
-        self.input_output = i_o.InputOutput(force_correlation=self.force_correlation,units=self.units,scheme=self.scheme)
+        self.input_output = i_o.InputOutput(model_info=self.model_info)
         self.ensembles = self.input_output.ensembles
-        self.data = self.input_output.perform_gvar_processing()
-        # print(self.data)
+        if data is None:
+            self.data = self.input_output.perform_gvar_processing()
+        else:
+            self.data = data
 
         phys_point_data = self.input_output.get_data_phys_point()
         self._phys_point_data = phys_point_data
+        if prior is None:
+            _prior = priors.get_prior(units='mev')
+            prior_ = self.input_output.make_prior(data=self.data,prior=_prior)
+        else:
+            prior_ = prior
+        self.prior = prior_
 
-        _prior = priors.get_prior(units='mev')
-        prior = self.input_output.make_prior(data=self.data,prior=_prior)
-        self.prior = prior
-
-        self.model_info = model_info.copy()
         self._posterior = None
-        self.emp_bayes = False 
-        self.empbayes_grouping = None #groups for empirical bayes prior study
+        self.emp_bayes = self.model_info['emp_bayes']
+        self.emp_bayes_grouping = self.model_info['emp_bayes_grouping']
         self._empbayes_fit = None
-        # self.fv = None # TODO not yet implemented 
-
         # this is manually reconstructing the gvar to decorrelate x and y data
-        lam_sigma_particles = ['lambda', 'sigma', 'sigma_st']
         scale_params = ['m_pi','m_k','lam_chi','eps2_a']
-        y_particles = ['xi','xi_st','lambda', 'sigma', 'sigma_st']
-        if self.model_info['units'] == 'phys':
-            if self.truncate:
-                self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
-                self.data_subset.update({part:self.data[part]for part in scale_params})
-            else:
-                self.data_subset = {part:self.data['m_'+part] for part in y_particles}
+        if 'lambda' in self.model_info['particles']:
+            y_particles = ['lambda', 'sigma', 'sigma_st']
+        else:
+            y_particles = ['xi','xi_st']
+        # if self.model_info['units'] == 'phys':
+        self.data_subset = {part : self.data['m_'+part] for part in y_particles}
+        self.data_subset.update({part:self.data[part]for part in scale_params})
+            # else:
+            #     self.data_subset = {part:self.data['m_'+part] for part in y_particles}
         if self.discard_cov:
             self.y = self.data_subset
         elif self.discard_cov is False:
             self.y = gv.gvar(dict(gv.mean(self.data_subset)),dict(gv.evalcov(self.data_subset)))
-
-
-
         self.models, self.models_dict = self._make_models()
-        
 
     def __str__(self):
         return str(self.fit)
-
 
     @functools.cached_property
     def fit(self):
         prior_final = self._make_prior()
         data = self.y
+        print(data,"data")
         fitter = lsqfit.MultiFitter(models=self.models)
         if self.svd_test:
             svd_cut = self.input_output.perform_svdcut()
@@ -137,7 +126,7 @@ class FitRoutine:
                 results[model_name] = model.extrapolate(p=self.posterior, data=self.phys_point_data, observable=observable)
         return results
     
-    def extrapolation(self,observables, p=None, data=None, xdata=None):
+    def extrapolation(self,observables, p=None, data=None):
         '''chiral extrapolations of baryon mass data using the Feynman-Hellmann theorem to quantify pion mass and strange quark mass dependence of baryon masses. Extrapolations are to the physical point using PDG data. 
         
         Returns(takes a given subset of observables as a list):
@@ -150,10 +139,9 @@ class FitRoutine:
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-        if xdata is None:
-            xdata = {}
+        xdata = {}
         if self.model_info['units'] == 'phys':
-            xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
+            xdata['eps_pi'] = p['m_pi'] / data['lam_chi']
         elif self.model_info['units'] == 'fpi':
             xdata['eps_pi'] = p['eps_pi']
         p['l3_bar'] = -1/4 * (
@@ -207,23 +195,23 @@ class FitRoutine:
                     # extrapolate xi mass to the phys. pt. 
                     elif obs == 'mass':
                         if self.model_info['units'] == 'fpi':
-                            output+= model_instance.fitfcn(p=p) * self.phys_point_data['lam_chi']
+                            output+= model_instance.fitfcn(p=p,data=data) * self.phys_point_data['lam_chi']
                         else:
-                            output+= model_instance.fitfcn(p=p)
+                            output+= model_instance.fitfcn(p=p,data=data)
                     results[particle][obs] = output
         return results
     
 
-    def _empbayes_grouping(self):
+    def _emp_bayes_grouping(self):
         '''
         routine adapted from @millernb
         '''
         zkeys = {}
-        if self.empbayes_grouping == 'all':
+        if self.emp_bayes_grouping == 'all':
             for param in self.prior:
                 zkeys[param] = [param]
         # include particle choice xi or xi_st to fill inside bracket
-        elif self.empbayes_grouping == 'order':
+        elif self.emp_bayes_grouping == 'order':
             # vary all light quark terms together, strange terms together
             zkeys['chiral_llo'] = ['m_{xi,0}', 'm_{xi_st,0}']
             zkeys['chiral_lo'] = ['s_{xi}', 's_{xi,bar}']
@@ -237,13 +225,13 @@ class FitRoutine:
                 'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}']
 
         # discretization effects
-        elif self.empbayes_grouping == 'disc':
+        elif self.emp_bayes_grouping == 'disc':
             zkeys['chiral'] = ['m_{xi,0}', 'm_{xi_st,0}', 's_{xi}', 's_{xi,bar}', 'g_{xi,xi}', 'g_{xi_st,xi}', 'g_{xi_st,xi_st}',
                                'b_{xi,4}', 'b_{xi_st,4}', 'a_{xi,4}', 'a_{xi_st,4}']
             zkeys['disc'] = ['d_{xi,a}', 'd_{xi_st,a}', 'd_{xi,s}', 'd_{xi_st,s}',
                              'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}']
             
-        elif self.empbayes_grouping == 'disc_only':
+        elif self.emp_bayes_grouping == 'disc_only':
             zkeys['disc'] = ['d_{xi,a}', 'd_{xi_st,a}', 'd_{xi,s}', 'd_{xi_st,s}',
                              'd_{xi,aa}', 'd_{xi,al}', 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}',
                              'd_{xi_st,aa}','d_{xi_st,al}' ,'d_{xi_st,as}','d_{xi_st,ls}', 'd_{xi_st,ss}']
@@ -260,13 +248,13 @@ class FitRoutine:
 
         return zkeys
 
-    def _make_empbayes_fit(self, empbayes_grouping='disc_only',observable=None):
-        if (self._empbayes_fit is None) or (empbayes_grouping != self.empbayes_grouping):
-            self.empbayes_grouping = empbayes_grouping
+    def _make_empbayes_fit(self, emp_bayes_grouping='disc_only',observable=None):
+        if (self._empbayes_fit is None) or (emp_bayes_grouping != self.emp_bayes_grouping):
+            self.emp_bayes_grouping = emp_bayes_grouping
             self._counter = {'iters' : 0, 'evals' : 0}
 
             z0 = gv.BufferDict()
-            for group in self._empbayes_grouping():
+            for group in self._emp_bayes_grouping():
                 z0[group] = 1.0
 
             def analyzer(arg):
@@ -305,7 +293,7 @@ class FitRoutine:
 
         def capped(x, x_min, x_max): return np.max([np.min([x, x_max]), x_min])
 
-        zkeys = self._empbayes_grouping()
+        zkeys = self._emp_bayes_grouping()
         zmin = 1e-2
         zmax = 1e3
         for group in z.keys():
@@ -344,7 +332,7 @@ class FitRoutine:
             return self._phys_point_data[parameter]
 
             
-    def get_fitfcn(self,p=None,data=None,particle=None,xdata=None):
+    def get_fitfcn(self,p=None,data=None,particle=None):
         output = {}
         if p is None:
             p = copy.deepcopy(self.posterior)
@@ -355,7 +343,7 @@ class FitRoutine:
         model_array, model_dict = self._make_models(model_info=self.model_info)
         for mdl in model_array:
             part = mdl.datatag
-            output[part] = mdl.fitfcn(p=p,data=data,xdata=xdata)
+            output[part] = mdl.fitfcn(p=p,data=data)
         if particle is None:
             return output
         return output[particle]
@@ -448,7 +436,7 @@ class FitRoutine:
 
         if z is None:
             return new_prior
-        zkeys = self._empbayes_grouping()
+        zkeys = self._emp_bayes_grouping()
 
         for k in new_prior:
             for group in zkeys:
@@ -557,56 +545,69 @@ class FitRoutine:
 
             if lec_type in output[particle][order]:
                 return output[particle][order][lec_type]
-            else:
-                return []
+            return []
             
 class BaseMultiFitterModel(lsqfit.MultiFitterModel):
     """base class for all derived hyperon multifitter classes.
     provides the common `prep_data` routine"""
-    def __init__(self, datatag, model_info):
-        super(BaseMultiFitterModel,self).__init__(datatag)
-        self.model_info = model_info
 
-    def prep_data(self,p,data=None,xdata=None):
-        if xdata is None:
-            xdata = {}
-        if 'm_pi' not in xdata:
-            xdata['m_pi'] = p['m_pi']
-        if 'lam_chi' not in xdata:
-            xdata['lam_chi'] = p['lam_chi']
+    default_values = {"m_pi": "m_pi", "lam_chi": "lam_chi", "m_k": "m_k", "eps2_a": "eps2_a"}
+
+    def __init__(self, datatag, model_info):
+        super().__init__(datatag)
+        self.model_info = model_info
+        self._p = None #placeholder to fill generated values of p (line 561)
+
+    def _prep_default_values(self, p, data, xdata):
+        for key, value in self.default_values.items():
+            if key not in data:
+                p[key] = [value]
+
+        xdata['eps_pi'] = xdata['m_pi']/xdata['lam_chi']
+
+    def _prep_units(self, p, data, xdata):
         if self.model_info['units'] == 'phys':
             xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
         elif self.model_info['units'] == 'fpi':
-            xdata['eps_pi'] = p['eps_pi']
+            xdata['eps_pi'] = data['eps_pi']
+
+    def _prep_datatag_xi(self, p, data, xdata):
         if self.datatag in ['xi', 'xi_st']:
-            xdata['eps_delta'] = (p['m_{xi_st,0}'] - p['m_{xi,0}']) / p['lam_chi']
+            xdata['eps_delta'] = (p['m_{xi_st,0}'] - p['m_{xi,0}']) / data['lam_chi']
+
+    def _prep_datatag_lambda(self, p, xdata):
         if self.datatag == 'lambda':
-            xdata['eps_sigma_st'] = (
-                p['m_{sigma_st,0}'] - p['m_{lambda,0}']) / p['lam_chi']
-            xdata['eps_sigma'] = (
-                p['m_{sigma,0}'] - p['m_{lambda,0}']) / p['lam_chi']
+            xdata['eps_sigma_st'] = (p['m_{sigma_st,0}'] - p['m_{lambda,0}']) / xdata['lam_chi']
+            xdata['eps_sigma'] = (p['m_{sigma,0}'] - p['m_{lambda,0}']) / xdata['lam_chi']
+
+    def _prep_datatag_sigma(self, p, xdata):
         if self.datatag == 'sigma':
-            xdata['eps_lambda'] = (
-            p['m_{sigma,0}'] - p['m_{lambda,0}']) / p['lam_chi']
-            xdata['eps_sigma_st'] = (
-            p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi']
+            xdata['eps_lambda'] = (p['m_{sigma,0}'] - p['m_{lambda,0}']) / xdata['lam_chi']
+            xdata['eps_sigma_st'] = (p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / xdata['lam_chi']
+
+    def _prep_datatag_sigma_st(self, p, xdata):
         if self.datatag == 'sigma_st':
-            xdata['eps_lambda'] = (
-            p['m_{sigma_st,0}'] - p['m_{lambda,0}']) / p['lam_chi']
-            xdata['eps_sigma'] = (
-            p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / p['lam_chi']
+            xdata['eps_lambda'] = (p['m_{sigma_st,0}'] - p['m_{lambda,0}']) / xdata['lam_chi']
+            xdata['eps_sigma'] = (p['m_{sigma_st,0}'] - p['m_{sigma,0}']) / xdata['lam_chi']
 
-        if 'eps2_a' not in xdata:
-            xdata['eps2_a'] = p['eps2_a']
-        if 'L' not in xdata:
-            xdata['L'] = p['L']
-        
-        #strange quark mass mistuning
+    def _prep_order_strange(self, p, xdata):
         if self.model_info['order_strange'] is not None:
-            xdata['d_eps2_s'] = ((2 * p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2) - 0.3513
+            xdata['d_eps2_s'] = ((2 * xdata['m_k']**2 - xdata['m_pi']**2) / xdata['lam_chi']**2) - 0.3513
 
+    def prep_data(self, p, data=None, xdata=None):
+        xdata = xdata or {}
+        if data is not None:
+            p.update(data)
+
+        self._prep_default_values(p, data, xdata)
+        self._prep_units(p, data, xdata)
+        self._prep_datatag_xi(p, data, xdata)
+        self._prep_datatag_lambda(p,xdata)
+        self._prep_datatag_sigma(p,xdata)
+        self._prep_datatag_sigma_st(p,xdata)
+        self._prep_order_strange(p,xdata)
         return xdata
-    
+
     def d_de_lam_chi_lam_chi(self, p,xdata):
         '''
         see eq. 3.32 of Andre's notes. This is the derivative:
@@ -622,11 +623,11 @@ class BaseMultiFitterModel(lsqfit.MultiFitterModel):
                 + 2*p['c2_F'] + p['c1_F'] - p['l4_bar']*(p['l4_bar']-1))
 
         return output 
+
     def builddata(self, data):
         return data[self.datatag]
+
    
-
-
 class Xi(BaseMultiFitterModel):
     '''
     SU(2) hbxpt extrapolation multifitter class for the Xi baryon
@@ -636,8 +637,8 @@ class Xi(BaseMultiFitterModel):
         super(Xi, self).__init__(datatag,model_info)
         self.model_info = model_info
 
-    def fitfcn(self, p, data=None,xdata = None):
-        xdata = self.prep_data(p, data, xdata)
+    def fitfcn(self, p, data):
+        xdata = self.prep_data(p, data)
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
@@ -652,7 +653,7 @@ class Xi(BaseMultiFitterModel):
         return output
     
     def fitfcn_mass_deriv(self, p, data=None,xdata = None):
-        xdata = self.prep_data(p, data, xdata)
+        xdata = self.prep_data(p, data)
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
@@ -987,9 +988,9 @@ class Xi_st(BaseMultiFitterModel):
         super(Xi_st, self).__init__(datatag,model_info)
         self.model_info = model_info
 
-    def fitfcn(self, p, data=None,xdata=None):
+    def fitfcn(self, p, data,xdata=None):
         '''extraplation formulae'''
-        xdata = self.prep_data(p,data,xdata)
+        xdata = self.prep_data(p,data)
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
@@ -1313,10 +1314,11 @@ class Lambda(BaseMultiFitterModel):
 
     def fitfcn(self, p, data=None,xdata=None):
         '''extraplation formulae'''
-        xdata = self.prep_data(p,data,xdata)
-        if data is not None:
-            for key in data.keys():
-                p[key] = data[key]
+        # xdata = {}
+        # if data is not None:
+        if xdata is None:
+            xdata = self.prep_data(p,data,xdata)
+        print(xdata,'x')
         output =  p['m_{lambda,0}'] #llo
         output += self.fitfcn_lo_ct(p, xdata)
         output += self.fitfcn_nlo_xpt(p, xdata)
@@ -1326,7 +1328,8 @@ class Lambda(BaseMultiFitterModel):
         return output
 
     def fitfcn_mass_deriv(self, p, data=None,xdata = None):
-        xdata = self.prep_data(p, data, xdata)
+        data = self.prep_data(p,data)
+        
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
@@ -1637,17 +1640,16 @@ class Sigma(BaseMultiFitterModel):
     SU(2) hbxpt extrapolation multifitter class for the Sigma baryon
     '''
     def __init__(self, datatag, model_info):
-        super(Sigma, self).__init__(datatag,model_info)
+        super().__init__(datatag,model_info)
         self.model_info = model_info
 
-    def fitfcn(self, p, data=None,xdata=None):
-        '''master extrapolation formula'''
+    def fitfcn(self, p, data=None):
+        '''extraplation formulae'''
+        xdata = self.prep_data(p,data)
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-        xdata = self.prep_data(p,data,xdata)
-
-        output = p['m_{sigma,0}'] #llo
+        output =  p['m_{sigma,0}'] #llo
         output += self.fitfcn_lo_ct(p, xdata)
         output += self.fitfcn_nlo_xpt(p, xdata)
         output += self.fitfcn_n2lo_ct(p, xdata)
@@ -1655,39 +1657,47 @@ class Sigma(BaseMultiFitterModel):
 
         return output
 
-    def fitfcn_mass_deriv(self, p, data=None,xdata = None):
-        xdata = self.prep_data(p, data, xdata)
+    def fitfcn_mass_deriv(self, p, data=None):
+        data = self.prep_data(p,data)
+        
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-
+    
         output = 0 #llo
-        output += self.fitfcn_lo_deriv(p,xdata)  
-        output += self.fitfcn_nlo_xpt_deriv(p,xdata) 
-        output += self.fitfcn_n2lo_ct_deriv(p,xdata)
-        output += self.fitfcn_n2lo_xpt_deriv(p,xdata)
+        output += self.fitfcn_lo_deriv(p,data)  
+        output += self.fitfcn_nlo_xpt_deriv(p,data) 
+        output += self.fitfcn_n2lo_ct_deriv(p,data)
+        output += self.fitfcn_n2lo_xpt_deriv(p,data)
         if self.model_info['units'] == 'fpi':
-            output *= xdata['lam_chi']
+            output *= data['lam_chi']
         else:
             return output
+
 
     def fitfcn_lo_ct(self, p, xdata):
         ''''taylor extrapolation to O(m_pi^2) without terms coming from xpt expressions'''
         output = 0 
+        if self.model_info['units'] == 'phys':
+            if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
+                output+= p['m_{sigma,0}']*(p['d_{sigma,a}'] * xdata['eps2_a'])
 
-        if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
-            output+= (p['d_{sigma,a}'] * xdata['eps2_a'])
+            if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
-        if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
-            output+= (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= p['m_{sigma,0}']*(p['d_{sigma,s}'] * xdata['d_eps2_s'])
+        if self.model_info['units'] == 'fpi': # lam_chi dependence ON #
+            if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['d_{sigma,a}'] * xdata['eps2_a'])
 
-        if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-            output+= (p['d_{sigma,s}'] * xdata['d_eps2_s'])
+            if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
-        if self.model_info['units'] == 'phys': # lam_chi dependence ON #
-            return p['m_{sigma,0}']*output
-        else:
-            return output
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['d_{sigma,s}'] * xdata['d_eps2_s'])
+         
+        return output
 
     def fitfcn_lo_deriv(self,p,xdata):
         '''derivative expansion to O(m_pi^2)'''
@@ -1926,37 +1936,36 @@ class Sigma_st(BaseMultiFitterModel):
         super(Sigma_st, self).__init__(datatag,model_info)
         self.model_info = model_info
 
-    def fitfcn(self, p, data=None,xdata=None):
-        '''extrapolation formulae'''
+    def fitfcn(self, p, data=None):
+        '''extraplation formulae'''
+        data = self.prep_data(p,data)
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-        xdata = self.prep_data(p,data,xdata)
-
-       # not-even leading order
-        output = p['m_{sigma_st,0}']
-        output += self.fitfcn_lo_ct(p, xdata)
-        output += self.fitfcn_nlo_xpt(p, xdata)
-        output += self.fitfcn_n2lo_ct(p, xdata)
-        output += self.fitfcn_n2lo_xpt(p, xdata)
+        output =  p['m_{sigma_st,0}'] #llo
+        output += self.fitfcn_lo_ct(p, data)
+        output += self.fitfcn_nlo_xpt(p, data)
+        output += self.fitfcn_n2lo_ct(p, data)
+        output += self.fitfcn_n2lo_xpt(p, data)
 
         return output
-    
-    def fitfcn_mass_deriv(self, p, data=None,xdata = None):
-        xdata = self.prep_data(p, data, xdata)
+
+    def fitfcn_mass_deriv(self, p, data=None):
+        data = self.prep_data(p,data)
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
-
+    
         output = 0 #llo
         output += self.fitfcn_lo_deriv(p,xdata)  
         output += self.fitfcn_nlo_xpt_deriv(p,xdata) 
         output += self.fitfcn_n2lo_ct_deriv(p,xdata)
         output += self.fitfcn_n2lo_xpt_deriv(p,xdata)
         if self.model_info['units'] == 'fpi':
-            output *= xdata['lam_chi']
+            output *= data['lam_chi']
         else:
             return output
+
 
     def fitfcn_lo_ct(self, p, xdata):
         ''''pure taylor extrapolation to O(m_pi^2)'''

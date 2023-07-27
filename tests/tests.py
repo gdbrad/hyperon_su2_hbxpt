@@ -12,13 +12,14 @@ import xpt.i_o
 class VerboseFitfcn(object):
 
 
-    def __init__(self, data=None, p=None, model=None, force_gvars=False, phys_point_data=None):
-        project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
-        with h5py.File(project_path+'/data/hyperon_data.h5', 'r') as f:
+    def __init__(self, data=None, p=None, model_info=None, force_gvars=False, 
+                 phys_point_data=None):
+        # project_path = os.path.normpath(os.path.join(os.path.realpath(__file__), os.pardir, os.pardir))
+        with h5py.File('../data/hyperon_data.h5', 'r') as f:
             ens_hyp = sorted(list(f.keys()))
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
 
-        with h5py.File(project_path+'/data/input_data.h5', 'r') as f: 
+        with h5py.File('../data/input_data.h5', 'r') as f: 
             ens_in = sorted(list(f.keys()))
 
         ensembles = sorted(list(set(ens_hyp) & set(ens_in)))
@@ -28,44 +29,49 @@ class VerboseFitfcn(object):
         self.ensembles = ensembles
 
         if data is None:
-            with open(project_path+'/data/test_data.yaml') as file:
+            with open('../data/test_data.yaml') as file:
                 yaml_file = yaml.safe_load(file)
                 data = yaml_file['data']
                 if force_gvars: #convert all into gvar 
                     for key in data:
                         data[key] = gv.gvar(data[key], data[key] *1e-5)
+        self.data = data
         
         if p is None:
-            with open(project_path+'/data/test_data.yaml') as file:
+            with open('../data/test_data.yaml') as file:
                 yaml_file = yaml.safe_load(file)
                 prior = yaml_file['prior']
                 if force_gvars:
                     for key in prior:
                         prior[key] = gv.gvar(prior[key], prior[key] *1e-5)
-
-        if model is None:
+            self.p = prior
+        else:
+            self.p = p
+        if model_info is None:
             model_description = {}
-            model_description['particles'] = ['lambda', 'sigma', 'sigma_st', 'xi', 'xi_st']
-            model_description['order_chiral'] = 'n2lo'
+            model_description['particles'] = ['lambda', 'sigma', 'sigma_st']
+            model_description['order_chiral'] = None
             model_description['order_disc'] = 'n2lo'
-            model_description['order_strange'] = 'n2lo'
-            model_description['xpt'] = True # False => Taylor expansion
+            model_description['order_strange'] = 'lo'
+            model_description['order_light'] = 'lo'
+            model_description['xpt'] = False # False => Taylor expansion
             model_description['empirical_bayes'] = False
             model = model_description
         self.phys_point_data = phys_point_data
         self.data = data
         self.prior = prior
-        self.model = model
+        self.model_info = model_info
         #self._fitter = xpt.fitter.Fitter(prior=None, data=None, model=None)
 
 
     def __str__(self):
         output = ''
-        for particle in self.model['particles']:
+        for particle in self.model_info['particles']:
             output += '-- ' + particle + '\n'
             output += self.fitfcn_table(particle)
             output += '\n'
-            output += str(self.error_budget(particle))
+            # output += str(self.error_budget(particle))
+            
         return output
 
 
@@ -74,7 +80,7 @@ class VerboseFitfcn(object):
 
     def error_budget(self,particle):
         output = None
-        if particle not in self.model['particles']:
+        if particle not in self.model_info['particles']:
             return None
 
         #use above dict to fill in values where particle name goes.. leave hardcoded for now
@@ -102,7 +108,10 @@ class VerboseFitfcn(object):
         #stat_keys = ['lam_chi','eps2_a','m_lambda','m_pi','m_k']
 
         #output = {}
-        mdls = fit.fit_routine(prior=self.prior, data=self.data, model_info=self.model)
+        mdls = fit.FitRoutine(data=self.data,prior=self.prior , model_info=self.model_info,
+                              force_correlation=True,units='phys',scheme='w0_imp',
+                              discard_cov=True,truncate=True,svd_test=False,svd_tol=0.06,
+                              emp_bayes=None,fv=False,empbayes_grouping=None)
         #print(mdls.fit)
     
         result = {}
@@ -135,7 +144,7 @@ class VerboseFitfcn(object):
 
 
     def fitfcn_table(self, particle):
-        if particle not in self.model['particles']:
+        if particle not in self.model_info['particles']:
             return None
 
         xdata = {}
@@ -147,7 +156,7 @@ class VerboseFitfcn(object):
 
         values = {}
         if particle == 'lambda':
-            lsqfit_model = fit.Lambda(datatag=None, model_info=self.model)
+            lsqfit_model = fit.Lambda(datatag=None, model_info=self.model_info)
 
             if 'm_{sigma,0}' in self.p:
                 xdata['eps_sigma'] = (self.p['m_{sigma,0}'] - self.p['m_{lambda,0}']) / self.data['lam_chi']
@@ -157,7 +166,7 @@ class VerboseFitfcn(object):
             values['LLO:ct'] = self.p['m_{lambda,0}']
 
         elif particle == 'sigma':
-            lsqfit_model = fit.Sigma(datatag=None, model_info=self.model)
+            lsqfit_model = fit.Sigma(datatag=None, model_info=self.model_info)
 
             if 'm_{lambda,0}' in self.p:
                 xdata['eps_lambda'] = (self.p['m_{sigma,0}'] - self.p['m_{lambda,0}']) / self.data['lam_chi']
@@ -167,7 +176,7 @@ class VerboseFitfcn(object):
             values['LLO:ct'] = self.p['m_{sigma,0}']
 
         elif particle == 'sigma_st':
-            lsqfit_model = fit.Sigma_st(datatag=None, model_info=self.model)
+            lsqfit_model = fit.Sigma_st(datatag=None, model_info=self.model_info)
 
             if 'm_{lambda,0}' in self.p:
                 xdata['eps_lambda'] = (self.p['m_{sigma_st,0}'] - self.p['m_{lambda,0}']) / self.data['lam_chi']
@@ -177,14 +186,14 @@ class VerboseFitfcn(object):
             values['LLO:ct'] = self.p['m_{sigma_st,0}']
 
         elif particle == 'xi':
-            lsqfit_model = fit.Xi(datatag=None, model_info=self.model)
+            lsqfit_model = fit.Xi(datatag=None, model_info=self.model_info)
             if 'm_{xi_st,0}' in self.p:
                 xdata['eps_delta'] = (self.p['m_{xi_st,0}'] - self.p['m_{xi,0}']) / self.data['lam_chi']
 
             values['LLO:ct'] = self.p['m_{xi,0}']
 
         elif particle == 'xi_st':
-            lsqfit_model = fit.Xi_st(datatag=None, model_info=self.model)
+            lsqfit_model = fit.Xi_st(datatag=None, model_info=self.model_info)
 
             if 'm_{xi,0}' in self.p:
                 xdata['eps_delta'] = (self.p['m_{xi_st,0}'] - self.p['m_{xi,0}']) / self.data['lam_chi']

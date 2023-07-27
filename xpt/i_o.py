@@ -26,12 +26,10 @@ mpl.rcParams['text.usetex'] = True
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar average datasets'''
     def __init__(self,
-                 force_correlation:bool,
-                 scheme:str,
-                 units:str):
-        self.force_correlation = force_correlation
-        self.scheme = scheme 
-        self.units = units 
+                 model_info:dict):
+        
+        self.scheme = model_info['scheme']
+        self.units = model_info['units']
 
         cwd = Path(os.getcwd())
         project_root = cwd.parent
@@ -82,10 +80,10 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                if self.force_correlation:
-                    data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
-                else:
-                    data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
+                # if self.force_correlation:
+                data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
+                # else:
+                    # data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
 
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
@@ -119,7 +117,6 @@ class InputOutput:
                 # if units == 'Fpi':
                 #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
                 #         data[ens]['m_'+obs]= data[ens]['m_'+obs] / data[ens]['lam_chi']
-
         return data
     
     def perform_svdcut(self):
