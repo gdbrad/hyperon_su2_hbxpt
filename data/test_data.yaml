@@ -6,6 +6,12 @@ data:
   eps_pi: 0.24783599088838268
 
 prior:
+  # m_{lambda,0}: 1000(5)
+  # m_{sigma,0}: 1200(5)
+  # m_{sigma_st,0}: 1400(5)
+  # m_{xi,0} : 1100(5)
+  # m_{xi_st,0} : 1300(5)
+
   m_{lambda,0}: 1000
   m_{sigma,0}: 1200
   m_{sigma_st,0}: 1400

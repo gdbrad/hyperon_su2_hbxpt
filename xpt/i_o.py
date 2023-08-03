@@ -9,29 +9,17 @@ import os
 import h5py
 import pprint
 
-# Set de#faults for plots
-import matplotlib as mpl
-mpl.rcParams['lines.linewidth'] = 1
-mpl.rcParams['figure.figsize']  = (6.75, 6.75/1.618034333)
-mpl.rcParams['font.size']  = 20
-mpl.rcParams['legend.fontsize'] =  16
-mpl.rcParams["lines.markersize"] = 5
-mpl.rcParams['xtick.direction'] = 'in'
-mpl.rcParams['ytick.direction'] = 'in'
-mpl.rcParams['xtick.labelsize'] = 12
-mpl.rcParams['ytick.labelsize'] = 12
-
-mpl.rcParams['text.usetex'] = True
 
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar average datasets'''
     def __init__(self,
-                 force_correlation:bool,
                  scheme:str,
-                 units:str):
-        self.force_correlation = force_correlation
-        self.scheme = scheme 
+                 units:str,
+                 system:str):
+        
+        self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
         self.units = units 
+        self.system = system
 
         cwd = Path(os.getcwd())
         project_root = cwd.parent
@@ -45,7 +33,6 @@ class InputOutput:
             ens_hyp = sorted([e.replace('_hp', '') for e in  ens_hyp])
 
         # bootstrapped scale setting data 
-        # TODO replace with new scale set data 
         with h5py.File(data_path_input, 'r') as f: 
             ens_in = sorted(list(f.keys()))
 
@@ -58,8 +45,10 @@ class InputOutput:
         ensembles.remove('a12m180L')
         self.ensembles = ensembles
         # self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi']
-        self.dim1_obs=['m_lambda', 'm_sigma', 'm_sigma_st','m_pi','m_k','lam_chi','eps_pi']
-    # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
+        if self.system == 'xi':
+            self.dim1_obs=['m_xi', 'm_xi_st','m_pi','m_k','lam_chi','eps_pi']
+        else:
+            self.dim1_obs=['m_lambda', 'm_sigma', 'm_sigma_st','m_pi','m_k','lam_chi','eps_pi']
 
     def _get_bs_data(self):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
@@ -82,10 +71,10 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                if self.force_correlation:
-                    data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
-                else:
-                    data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
+                # if self.force_correlation:
+                data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
+                # else:
+                #     data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
 
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
@@ -125,7 +114,7 @@ class InputOutput:
     def perform_svdcut(self):
         svd_data = {}
         bs_data = self._get_bs_data()
-        svd_data  = {(ens,o): bs_data[ens][o] for ens in list(bs_data) for o in [p for p in self.lam_sigma_obs]}
+        svd_data  = {(ens,o): bs_data[ens][o] for ens in list(bs_data) for o in [p for p in self.dim1_obs]}
         s= gv.dataset.svd_diagnosis(svd_data)
         # avgdata = gv.svd(s.avgdata,svdcut=s.svdcut)
         s.plot_ratio(show=True)

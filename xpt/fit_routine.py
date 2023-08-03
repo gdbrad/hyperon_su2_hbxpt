@@ -48,23 +48,14 @@ class FitRoutine:
     """
 
     def __init__(self,
-                 force_correlation:bool,
                  model_info:dict,
-                 units:str,
-                 scheme:str,
                  discard_cov:bool,
-                 truncate: bool,
                  svd_test:bool,
                  svd_tol:float,
                  emp_bayes:bool,
-                 fv:bool,
                  empbayes_grouping,
                 ):
-        self.force_correlation = force_correlation
-        self.units = units
-        self.scheme = scheme
         self.discard_cov = discard_cov
-        self.truncate = truncate
         self.svd_test = svd_test
         self.svd_tol = svd_tol
         
@@ -89,14 +80,13 @@ class FitRoutine:
 
         # this is manually reconstructing the gvar to decorrelate x and y data
         lam_sigma_particles = ['lambda', 'sigma', 'sigma_st']
-        scale_params = ['m_pi','m_k','lam_chi','eps2_a']
+        xi_particles = ['xi','xi_st']
         y_particles = ['xi','xi_st','lambda', 'sigma', 'sigma_st']
         if self.model_info['units'] == 'phys':
-            if self.truncate:
+            if 'lambda' in self.model_info['particles']:
                 self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
-                self.data_subset.update({part:self.data[part]for part in scale_params})
             else:
-                self.data_subset = {part:self.data['m_'+part] for part in y_particles}
+                self.data_subset = {part:self.data['m_'+part] for part in xi_particles}
         if self.discard_cov:
             self.y = self.data_subset
         elif self.discard_cov is False:
@@ -807,10 +797,10 @@ class Xi(BaseMultiFitterModel):
             return xdata['eps_pi']**4 * p['b_{xi,4}']
 
         def compute_order_chiral():
-            if self.model_info['fv']:
-                return xdata['eps_pi']**4 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10)  * p['a_{xi,4}']
-            else:
-                return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi,4}']
+            # if self.model_info['fv']:
+            #     return xdata['eps_pi']**4 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10)  * p['a_{xi,4}']
+            # else:
+            return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi,4}']
 
         output = 0
 
@@ -1136,10 +1126,10 @@ class Xi_st(BaseMultiFitterModel):
             return xdata['eps_pi']**4 * p['b_{xi_st,4}']
 
         def compute_order_chiral():
-            if self.model_info['fv']:
-                return p['a_{xi_st,4}']* (xdata['eps_pi']**4*fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10))
-            else:
-                return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi_st,4}']
+            # if self.model_info['fv']:
+            #     return p['a_{xi_st,4}']* (xdata['eps_pi']**4*fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10))
+            # else:
+            return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi_st,4}']
 
         output = 0
 
@@ -1674,21 +1664,26 @@ class Sigma(BaseMultiFitterModel):
     def fitfcn_lo_ct(self, p, xdata):
         ''''taylor extrapolation to O(m_pi^2) without terms coming from xpt expressions'''
         output = 0 
+        if self.model_info['units'] == 'phys':
+            if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
+                output+= p['m_{sigma,0}']*(p['d_{sigma,a}'] * xdata['eps2_a'])
 
-        if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
-            output+= (p['d_{sigma,a}'] * xdata['eps2_a'])
+            if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
-        if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
-            output+= (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= p['m_{sigma,0}']*(p['d_{sigma,s}'] * xdata['d_eps2_s'])
+        if self.model_info['units'] == 'fpi': # lam_chi dependence ON #
+            if self.model_info['order_disc'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['d_{sigma,a}'] * xdata['eps2_a'])
 
-        if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
-            output+= (p['d_{sigma,s}'] * xdata['d_eps2_s'])
+            if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['s_{sigma}'] * xdata['lam_chi'] * xdata['eps_pi']**2)
 
-        if self.model_info['units'] == 'phys': # lam_chi dependence ON #
-            return p['m_{sigma,0}']*output
-        else:
-            return output
-
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['d_{sigma,s}'] * xdata['d_eps2_s'])
+         
+        return output
     def fitfcn_lo_deriv(self,p,xdata):
         '''derivative expansion to O(m_pi^2)'''
         output = 0
