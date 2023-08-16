@@ -37,29 +37,25 @@ class Xpt_Fit_Analysis:
     
     def __init__(self, 
                  model_info:dict,
-                 scheme: str,
-                 units:str,
                  discard_cov:bool,
-                 truncate:bool,
                  verbose:bool,
                  extrapolate:bool,
-                 force_correlation:bool,
                  svd_test:bool,
                  svd_tol:float):
         
-        self.units = units
-        self.scheme = scheme      
+        
         self.discard_cov = discard_cov 
-        self.truncate = truncate
-        self.force_correlation = force_correlation
-        self.input_output = i_o.InputOutput(force_correlation=self.force_correlation,scheme=self.scheme,units=self.units)
+        self.model_info = model_info
+        self.units = self.model_info['units']
+        self.scheme = self.model_info['scheme']      
+
+        if 'lambda' in self.model_info['particles']:
+            self.system = 'lambda_sigma'
+        else:
+            self.system = 'xi'
+        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,system=self.system)
         self.ensembles = self.input_output.ensembles
         self.data = self.input_output.perform_gvar_processing()
-
-
-
-    
-
 
         @property
         def phys_point_data(self):
@@ -83,14 +79,13 @@ class Xpt_Fit_Analysis:
         prior = self.input_output.make_prior(data=self.data,prior=_prior)
         self._prior = prior
         
-        self.model_info = model_info
         self.verbose = verbose # print all data points
         self.fitter = {}
         self._input_prior = prior
         self._fit = {}
         self.svd_test = svd_test
         self.svd_tol = svd_tol
-        self.fitter = fit.FitRoutine(model_info=self.model_info,force_correlation=self.force_correlation,discard_cov=self.discard_cov,truncate=self.truncate,units=self.units,scheme=self.scheme,svd_test= self.svd_test,svd_tol=self.svd_tol, emp_bayes=None,empbayes_grouping=None,fv=False)
+        self.fitter = fit.FitRoutine(model_info=self.model_info,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol, emp_bayes=None,empbayes_grouping=None)
         self.fit = self.fitter.fit
         self.model_collection = []
         self.extrapolate = extrapolate
@@ -140,7 +135,7 @@ class Xpt_Fit_Analysis:
             output += '\n---\n'
             output+= 'Extrapolation:'
             output += '\n'
-            output+= str(self.extrapolation(observables=['mass']))
+            output+= str(self.format_extrapolation(observables=['mass']))
         output += '\n---\n'
         output += '\nError Budget:\n'
         for particle in self.model_info['particles']:
@@ -163,20 +158,34 @@ class Xpt_Fit_Analysis:
         return output 
     
     def extrapolation(self,observables=None,p=None,data=None):
-        """returns extrapolated mass or sigma term"""
+        """returns extrapolated mass and/or sigma term"""
         if data is None:
             data = self._phys_point_data
         if p is None:
             p = self.posterior
         _extrapolation = self.fitter.extrapolation(observables,p,data)
+        return _extrapolation
+    
+    def format_extrapolation(self, observables=None):
+        """formats the extrapolation dictionary to a string"""
+        extrapolation_data = self.extrapolation(observables=observables)
+        pdg_mass = {
+            'xi': gv.gvar(1314.86,20),
+            'xi_st': gv.gvar(1531.80,32),
+            'lambda': gv.gvar(1115.683,6),
+            'sigma': gv.gvar(1192.642,24),
+            'sigma_st': gv.gvar(1383.7,1.0)
+        }
         output = ""
-        for particle, data in _extrapolation.items():
+        for particle, data in extrapolation_data.items():
             output += f"Particle: {particle}\n"
             for obs, val in data.items():
-                output += f"{obs}: {val}\n"
+                measured = pdg_mass[particle]
+                output += f"{obs}: {val} [PDG: {measured}]\n"
             output += "---\n"
 
         return output
+
 
     @property
     def error_budget(self):
@@ -301,7 +310,7 @@ class Xpt_Fit_Analysis:
     def extrapolated_mass(self):
         '''returns mass of a hyperon extrapolated to the physical point'''
         output = {}
-        mdls = fit.FitRoutine(model_info=self.model_info,force_correlation=self.force_correlation,discard_cov=self.discard_cov,truncate=self.truncate,units=self.units,scheme=self.scheme,svd_tol=self.svd_tol,svd_test=self.svd_test, emp_bayes=None,empbayes_grouping=None,fv=False)
+        mdls = fit.FitRoutine(model_info=self.model_info,discard_cov=self.discard_cov,svd_tol=self.svd_tol,svd_test=self.svd_test, emp_bayes=None,empbayes_grouping=None)
                               
         output = mdls.get_fitfcn(p=self.posterior, data=self.phys_point_data)
 

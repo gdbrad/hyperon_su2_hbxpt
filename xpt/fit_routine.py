@@ -58,20 +58,21 @@ class FitRoutine:
         self.discard_cov = discard_cov
         self.svd_test = svd_test
         self.svd_tol = svd_tol
+        self.model_info = model_info.copy()
+        if 'xi' in self.model_info['particles']:
+            self.system = 'xi'
+        else:
+            self.system = 'lambda_sigma'
         
-        self.input_output = i_o.InputOutput(force_correlation=self.force_correlation,units=self.units,scheme=self.scheme)
+        self.input_output = i_o.InputOutput(units=self.model_info['units'],scheme=self.model_info['scheme'],system=self.system)
         self.ensembles = self.input_output.ensembles
         self.data = self.input_output.perform_gvar_processing()
-        # print(self.data)
-
         phys_point_data = self.input_output.get_data_phys_point()
         self._phys_point_data = phys_point_data
-
         _prior = priors.get_prior(units='mev')
         prior = self.input_output.make_prior(data=self.data,prior=_prior)
         self.prior = prior
 
-        self.model_info = model_info.copy()
         self._posterior = None
         self.emp_bayes = False 
         self.empbayes_grouping = None #groups for empirical bayes prior study
@@ -83,6 +84,7 @@ class FitRoutine:
         xi_particles = ['xi','xi_st']
         y_particles = ['xi','xi_st','lambda', 'sigma', 'sigma_st']
         if self.model_info['units'] == 'phys':
+            # when one performs a simult. fit of s=1,2 hyperons, must ensure that the hyperons of other strangeness are excluded from the y data
             if 'lambda' in self.model_info['particles']:
                 self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
             else:
@@ -91,12 +93,8 @@ class FitRoutine:
             self.y = self.data_subset
         elif self.discard_cov is False:
             self.y = gv.gvar(dict(gv.mean(self.data_subset)),dict(gv.evalcov(self.data_subset)))
-
-
-
         self.models, self.models_dict = self._make_models()
         
-
     def __str__(self):
         return str(self.fit)
 
@@ -133,8 +131,8 @@ class FitRoutine:
         Returns(takes a given subset of observables as a list):
         - extrapolated mass (meV)
         - pion sigma term 
-        - barred pion sigma term / M_B 
-        '''
+        - barred pion sigma term / M_B '''
+
         if p is None:
             p = self.posterior
         if data is not None:
@@ -392,7 +390,7 @@ class FitRoutine:
         '''
         if data is None:
             data = self.data
-        print(list(data))
+        # print(list(data))
         prior = self.prior
         new_prior = {}
         particles = []

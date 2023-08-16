@@ -112,18 +112,18 @@ models:
       fv: True
       units: phys
 
-    xi:xi_st:d_n2lo:l_n2lo:s_lo:x_n2lo:
-      name: xi:xi_st:d_n2lo:l_n2lo:s_lo:x_n2lo
+    xi:xi_st:d_n2lo:l_n2lo:s_n2lo:x_n2lo:
+      name: xi:xi_st:d_n2lo:l_n2lo:s_n2lo:x_n2lo
       particles: [xi, xi_st]
       eps2a_defn: w0_imp
       order_chiral: n2lo
       order_disc: n2lo
-      order_strange: lo
+      order_strange: n2lo
       order_light: n2lo
       xpt: True
-      fv: True
+      fv: False
       units: phys
-
+      scheme: w0_imp
   lam_sigma_system:
 
     lam:sigma:sigma_st:l_lo:d_n2lo:
@@ -137,6 +137,7 @@ models:
       xpt : False
       fv : True
       units: phys
+      scheme: w0_imp
 
 
     lam:sigma:sigma_st:l_n2lo:d_n2lo:
@@ -150,21 +151,39 @@ models:
       xpt : False
       fv : True
       units: phys
+      scheme: w0_imp
+
       
 
-    lam:sigma:sigma_st:l_n2lo:d_n2lo:x_n2lo:
-      name: lam:sigma:sigma_st:l_n2lo:d_n2lo:x_n2lo
+    lam:sigma:sigma_st:l_n2lo:d_n2lo:s_n2lo:x_n2lo:
+      name: lam:sigma:sigma_st:l_n2lo:d_n2lo:s_n2lo:x_n2lo
       # particles : [lambda,sigma,sigma_st]
       particles : [sigma,sigma_st,lambda]
       eps2a_defn : w0_imp
       order_chiral  : n2lo
+      order_disc : n2lo
+      order_strange : n2lo
+      order_light: n2lo
+      xpt : True
+      fv : True
+      units : phys
+      scheme: w0_imp
+
+
+    lam:sigma:sigma_st:l_n2lo:d_n2lo:x_nlo:
+      name: lam:sigma:sigma_st:l_n2lo:d_n2lo:x_nlo
+      # particles : [lambda,sigma,sigma_st]
+      particles : [sigma,sigma_st,lambda]
+      eps2a_defn : w0_imp
+      order_chiral  : nlo
       order_disc : n2lo
       order_strange : null
       order_light: n2lo
       xpt : True
       fv : True
       units : phys
-    
+      scheme: w0_imp
+
 
     lam:sigma:sigma_st:l_lo:d_n2lo:s_lo:
       name: lam:sigma:sigma_st:l_lo:d_n2lo:s_lo
@@ -177,6 +196,7 @@ models:
       xpt : False
       fv : True
       units: phys
+      scheme: w0_imp
       
 
     lam:sigma:sigma_st:l_n2lo:d_n2lo:s_lo:
@@ -190,6 +210,8 @@ models:
       xpt : False
       fv : True
       units: phys
+      scheme: w0_imp
+
       
 
     lam:sigma:sigma_st:l_n2lo:s_lo:d_n2lo:
@@ -203,4 +225,6 @@ models:
       xpt : False
       fv : True
       units: phys
+      scheme: w0_imp
+
       

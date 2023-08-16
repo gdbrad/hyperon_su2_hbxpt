@@ -33,22 +33,28 @@ import lsqfitics
 
 class ModelComparsion:
     '''Final analysis class. Generates a pdf with the model average and plots for each model'''
+
+    verbose = True
+    extrapolate = True
+    svd_test = True
+    svd_tol = 0.06
+    discard_cov = True
     def __init__(self,
                 models:dict,
-                units:str,
-                force_correlation:bool,
-                verbose:bool,
-                extrapolate:bool,
-                svd_test:bool):
-        # super().__init__(model_info=self.model_info,units=self.units,extrapolate=self.extrapolate,force_correlation=self.force_correlation,
-        #                                     verbose=self.verbose,svd_test=self.svd_test)
+                **kwargs):
         self.models = models
-        self.units = units
-        self.force_correlation = force_correlation
-        self.verbose = verbose
-        self.extrapolate = extrapolate
-        self.svd_test = svd_test
-        self.input_output = i_o.InputOutput(force_correlation=self.force_correlation)
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        
+        # Default args for Xpt_Fit_Analysis
+        self.default_args = {
+            'verbose': self.verbose,
+            'extrapolate': self.extrapolate,
+            'svd_test': self.svd_test,
+            'svd_tol': self.svd_tol,
+            'discard_cov': self.discard_cov
+        }
 
     def physical_points(self):
         physical_points = {
@@ -99,9 +105,7 @@ class ModelComparsion:
         plt.close(fig_comp)
         for mdl_key in self.models:
             _model_info = self.models[mdl_key]
-            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info,units=self.units, 
-                                            force_correlation=self.force_correlation,verbose=self.verbose,
-                                            extrapolate=self.extrapolate,svd_test=self.svd_test)
+            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info, **self.default_args)
             # fit_out = xfa_instance.fit
             
             # fit_results_fig = self.add_fit_results_figure(fit_out, title='Model:'+mdl_key)
@@ -145,9 +149,7 @@ class ModelComparsion:
         fit_collection = {}
         for mdl_key in self.models:
             _model_info = self.models[mdl_key]
-            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info,units=self.units, 
-                                            force_correlation=self.force_correlation,verbose=self.verbose,
-                                            extrapolate=self.extrapolate,svd_test=self.svd_test)
+            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info, **self.default_args)
             fit_out = xfa_instance.fit
             fit_collection[mdl_key] = fit_out
             for part in particles:
@@ -168,10 +170,9 @@ class ModelComparsion:
 
         for mdl_key in self.models:
             _model_info = self.models[mdl_key]
-            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info,units=self.units, 
-                                            force_correlation=self.force_correlation,verbose=self.verbose,
-                                            extrapolate=self.extrapolate,svd_test=self.svd_test)
+            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info,**self.default_args)
             mass = xfa_instance.extrapolation(observables=['mass'])
+            # print(mass)
             models.append(mdl_key)
             info = xfa_instance.fit_info
             chi2_ = info['chi2/df']
