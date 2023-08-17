@@ -263,10 +263,13 @@ class Xpt_Fit_Analysis:
                             [self.phys_point_data[key] for key in phys_keys if key in phys_keys])
                 
                 output[particle]['stat'] = self.extrapolated_mass[particle].partialsdev(
-                    [self.fit.prior[key] for key in ['eps2_a'] if key in self.fit.prior]
-                    + [self._get_prior(stat_key)] 
+                    [self.fit.prior[key] for key in ['eps2_a'] if key in self.fit.prior]+
+                    # + 
+                    [self._get_prior(stat_key)] 
                     + [self.fit.y[particle]]
                 )
+
+                
 
         return output
 
