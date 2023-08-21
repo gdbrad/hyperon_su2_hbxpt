@@ -23,7 +23,7 @@ def main():
     parser.add_argument('system',    help='test cascade system or lambda/sigma')
     args = parser.parse_args()
 
-    input_output = i_o.InputOutput(units='phys',scheme='w0_org',system=args.system)
+    input_output = i_o.InputOutput(units='fpi',scheme='w0_org',system=args.system)
     with open('../xpt/models.yaml', 'r') as f:
         models = yaml.load(f, Loader=yaml.FullLoader)
     xi_models = models['models']['xi_system']

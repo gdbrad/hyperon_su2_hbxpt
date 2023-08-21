@@ -1,26 +1,22 @@
 import numpy as np
 import gvar as gv
 from pathlib import Path
-import sys
-import datetime
-import re
 import os
 #import yaml
 import h5py
-import pprint
-
 
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar average datasets'''
     def __init__(self,
                  scheme:str,
                  units:str,
-                 system:str):
+                 system:str,
+                 convert_data:bool):
         
         self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
         self.units = units 
         self.system = system
-
+        self.convert_data = convert_data
         cwd = Path(os.getcwd())
         project_root = cwd.parent
         self.data_dir = os.path.join(project_root, "data")
@@ -49,7 +45,6 @@ class InputOutput:
             self.dim1_obs=['m_xi', 'm_xi_st','m_pi','m_k','lam_chi','eps_pi']
         else:
             self.dim1_obs=['m_lambda', 'm_sigma', 'm_sigma_st','m_pi','m_k','lam_chi','eps_pi']
-
     def _get_bs_data(self):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
         hbar_c = self.get_data_phys_point('hbarc') # MeV-fm (PDG 2019 conversion constant)
@@ -67,12 +62,15 @@ class InputOutput:
                 if scheme in ['w0_org','w0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]] /scale_factors[scheme+':w0']
                     data[ens]['a_fm'] = 1/ (scale_factors[scheme+':'+ens[:3]] /scale_factors[scheme+':w0']) # in fm
+                elif scheme in ['w0_org', 'w0_imp'] and self.units=='fpi':
+                    data[ens]['units'] = scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['w0_org', 'w0_imp'] and self.units=='w0':
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
                 # if self.force_correlation:
-                data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
+                if self.units == 'phys':
+                    data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
                 # else:
                 #     data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
 
@@ -103,8 +101,9 @@ class InputOutput:
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
-                # for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
-                #     data[ens].update({'eps_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi']})
+                if self.units == 'fpi':
+                    for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
+                        data[ens].update({'m_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi'][1:]})
                 # if units == 'Fpi':
                 #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
                 #         data[ens]['m_'+obs]= data[ens]['m_'+obs] / data[ens]['lam_chi']
@@ -134,10 +133,17 @@ class InputOutput:
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in self.dim1_obs:
+                # if self.convert_data:
                 if self.units == 'phys':
                     gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
-                if self.units == 'fpi':
-                    gv_data[ens][obs] = gv_data[ens][obs] 
+                elif self.units == 'fpi':
+                    gv_data[ens][obs] = gv_data[ens][obs]
+
+                    # gv_data[ens][obs] = gv_data[ens][obs] / bs_data[ens]['lam_chi']
+
+                # else:
+                #     gv_data[ens][obs] = gv_data[ens][obs]
+
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
             gv_data[ens]['L'] = gv.gvar(bs_data[ens]['L'], bs_data[ens]['L'] / 10**6)
