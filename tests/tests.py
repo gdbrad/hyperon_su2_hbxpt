@@ -126,9 +126,8 @@ class VerboseFitfcn(object):
 
         #output = {}
         mdls = fit.FitRoutine(data=self.data,prior=self.prior , model_info=self.model_info,
-                              force_correlation=True,units='phys',scheme='w0_imp',
-                              discard_cov=True,truncate=True,svd_test=False,svd_tol=0.06,
-                              emp_bayes=None,fv=False,empbayes_grouping=None)
+                              discard_cov=True,svd_test=False,svd_tol=0.06,
+                              emp_bayes=None,empbayes_grouping=None)
         #print(mdls.fit)
     
         result = {}

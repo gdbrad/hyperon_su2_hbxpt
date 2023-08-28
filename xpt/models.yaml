@@ -174,7 +174,7 @@ models:
       name: lam:sigma:sigma_st:l_n2lo:d_n2lo:s_n2lo:x_n2lo
       # particles : [lambda,sigma,sigma_st]
       particles : [sigma,sigma_st,lambda]
-      eps2a_defn : w0_imp
+      eps2a_defn : w0_org
       order_chiral  : n2lo
       order_disc : n2lo
       order_strange : n2lo
@@ -182,7 +182,7 @@ models:
       xpt : True
       fv : True
       units : phys
-      scheme: w0_imp
+      scheme: w0_org
       convert: True
 
     

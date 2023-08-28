@@ -3,9 +3,6 @@ import lsqfit
 import numpy as np
 import h5py as h5
 import gvar as gv
-import pprint
-import sys
-import os
 import functools
 from pathlib import Path
 import matplotlib.pyplot as plt

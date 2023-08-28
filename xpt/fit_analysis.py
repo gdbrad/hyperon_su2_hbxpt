@@ -162,7 +162,7 @@ class Xpt_Fit_Analysis:
         for particle in [p for p in self.model_info['particles']]:
             output += particle
             output += '\n'
-            for key in {k: v for k, v in sorted(self.error_budget[particle].items(), key=lambda item: item[1], reverse=True)}:
+            for key in dict(sorted(self.error_budget[particle].items(), key=lambda item: item[1], reverse=True)):
                 output += '  '
                 output += key.ljust(max_len+1)
                 output += '{: .1%}\n'.format((self.error_budget[particle][key]/self.extrapolated_mass[particle].sdev)**2).rjust(7)
@@ -183,7 +183,7 @@ class Xpt_Fit_Analysis:
         return _extrapolation
     
     def format_extrapolation(self, observables=None):
-        """formats the extrapolation dictionary to a string"""
+        """formats the extrapolation dictionary"""
         extrapolation_data = self.extrapolation(observables=observables)
         pdg_mass = {
             'xi': gv.gvar(1314.86,20),
@@ -212,9 +212,13 @@ class Xpt_Fit_Analysis:
 
     def _get_error_budget(self, verbose=False,**kwargs):
         '''
-        list of chiral expansion parameters associated with each hyperon,
-        calculates a parameter's relative contribution to the total error inherent 
-        in the mass expansion
+        list of expansion parameters associated with each hyperon,
+        calculates a parameter's relative contribution to the total error.
+        Types:
+        - statistics 
+        - chiral model
+        - lattice spacing (discretization)
+        - physical point input
         '''
         output = None
         strange_keys = [
@@ -280,10 +284,10 @@ class Xpt_Fit_Analysis:
                 
                 output[particle]['stat'] = self.extrapolated_mass[particle].partialsdev(
                     [self.fit.prior[key] for key in ['eps2_a'] if key in self.fit.prior]+
-                    # + 
                     [self._get_prior(stat_key)] 
-                    + [self.fit.y[particle]]
+                    + [self.fit.p[f'm_{{{particle},0}}']]
                 )
+            
 
         return output
 
