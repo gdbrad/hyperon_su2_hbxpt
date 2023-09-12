@@ -39,9 +39,9 @@ def fcn_dR(g):
 
 def fcn_F(eps_pi, eps_delta):
     output = (
-        - eps_delta *(eps_delta**2 - eps_pi**2) *fcn_R((eps_pi/eps_delta)**2)
+        - eps_delta *(eps_delta**2 - eps_pi**2) *fcn_R((eps_pi/eps_delta**2))
         - (3/2) *eps_pi**2 *eps_delta *np.log(eps_pi**2)
-        - eps_delta**3 *np.log(4 *(eps_delta/eps_pi)**2)
+        - eps_delta**3 *np.log(4 *(eps_delta/eps_pi)**2) 
     )
     return output
 
@@ -70,6 +70,13 @@ def fcn_dJ(eps_pi,eps_delta):
     output += 4*eps_pi*fcn_dR(eps_pi**2/eps_delta**2) 
     output += 2*eps_pi*np.log(eps_pi**2) + 2*eps_pi
     return output
+
+def safe_divide(num, denom, default=0):
+    # This handles both scalars and arrays
+    return np.where(denom != 0, num / denom, default)
+
+    
+
 
 
     

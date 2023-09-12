@@ -49,6 +49,9 @@ models:
       xpt: False
       fv: True
       units: phys
+      convert_data_before: False
+      emp_bayes: False
+      emp_bayes_grouping: null
 
     xi:xi_st:d_n2lo:l_n2lo:
       name: xi:xi_st:d_n2lo:l_n2lo
@@ -61,6 +64,9 @@ models:
       xpt: False
       fv: True
       units: phys
+      convert_data_before: False
+      emp_bayes: False
+      emp_bayes_grouping: null
 
 
     xi:xi_st:d_n2lo:l_n2lo:x_n2lo:
@@ -74,7 +80,9 @@ models:
       xpt: True
       fv: True
       units: phys
-
+      convert_data_before: False
+      emp_bayes: False
+      emp_bayes_grouping: null
 
     xi:xi_st:d_n2lo:l_nlo:x_n2lo:
       name: xi:xi_st:d_n2lo:l_nlo:x_n2lo
@@ -87,9 +95,13 @@ models:
       xpt: True
       fv: True
       units: phys
+      convert_data_before: False
+      emp_bayes: False
+      emp_bayes_grouping: null
 
     xi:xi_st:d_n2lo:l_lo:s_lo:
       name: xi:xi_st:d_n2lo:l_n2lo:s_lo
+      
       particles: [xi, xi_st]
       eps2a_defn: w0_imp
       order_chiral: null
@@ -99,6 +111,9 @@ models:
       xpt: False
       fv: True
       units: phys
+      convert_data_before: False
+      emp_bayes: False
+      emp_bayes_grouping: null
 
     xi:xi_st:d_n2lo:l_nlo:s_lo:x_n2lo:
       name: xi:xi_st:d_n2lo:l_nlo:s_lo:x_n2lo
@@ -111,6 +126,9 @@ models:
       xpt: True
       fv: True
       units: phys
+      convert_data_before: False
+      emp_bayes: False
+      emp_bayes_grouping: null
 
     xi:xi_st:d_n2lo:l_n2lo:s_n2lo:x_n2lo:
       name: xi:xi_st:d_n2lo:l_n2lo:s_n2lo:x_n2lo
@@ -124,6 +142,56 @@ models:
       fv: False
       units: phys
       scheme: w0_imp
+      convert_data_before: False
+      emp_bayes: False
+      emp_bayes_grouping: null
+
+      xi:xi_st:d_n2lo:l_n2lo:s_n2lo:x_n2lo_lat:
+        name: xi:xi_st:d_n2lo:l_n2lo:s_n2lo:x_n2lo_lat
+        particles: [xi, xi_st]
+        eps2a_defn: w0_imp
+        order_chiral: n2lo
+        order_disc: n2lo
+        order_strange: n2lo
+        order_light: n2lo
+        xpt: True
+        fv: False
+        units: lattice
+        scheme: w0_imp
+        convert_data_before: False
+        emp_bayes: False
+        emp_bayes_grouping: null
+
+
+  #   xi:xi_st:s_lo:d_lo:l_lo:x_nlo_fpi:
+  #       name: xi:xi_st:s_lo:d_lo:l_lo:x_nlo_fpi
+  #       particles: [xi,xi_st]
+  #       eps2a_defn: w0_imp
+  #       order_chiral: nlo
+  #       order_disc: lo
+  #       order_strange: lo
+  #       order_light: lo
+  #       xpt: True
+  #       fv: False
+  #       units: fpi
+  #       scheme: w0_imp
+  #       convert: False
+  #       fpi_log: False
+
+  #   xi:xi_st:d_n2lo:l_n2lo:s_lo:x_n2lo_fpi:
+  #       name: xi:xi_st:s_lo:d_lo:l_lo:x_nlo_fpi
+  #       particles: [xi,xi_st]
+  #       eps2a_defn: w0_imp
+  #       order_chiral: n2lo
+  #       order_disc: n2lo
+  #       order_strange: lo
+  #       order_light: n2lo
+  #       xpt: True
+  #       fv: False
+  #       units: fpi
+  #       convert_data_before: False
+  #       emp_bayes: False
+  #       emp_bayes_grouping: null
   lam_sigma_system:
 
     lam:sigma:sigma_st:l_lo:d_n2lo:
@@ -140,8 +208,8 @@ models:
       scheme: w0_imp
 
 
-    lam:sigma:sigma_st:l_n2lo:d_n2lo:
-      name: lam:sigma:sigma_st:l_n2lo:d_n2lo
+    lam:sigma:sigma_st:l_n2lo:d_n2lo_phys:
+      name: lam:sigma:sigma_st:l_n2lo:d_n2lo_phys
       particles : [lambda,sigma,sigma_st]
       eps2a_defn : w0_imp
       order_chiral  : null
@@ -152,6 +220,21 @@ models:
       fv : True
       units: phys
       scheme: w0_imp
+
+    lam:sigma:sigma_st:l_n2lo:d_n2lo_fpi:
+      name: lam:sigma:sigma_st:l_n2lo:d_n2lo_fpi
+      particles : [lambda,sigma,sigma_st]
+      eps2a_defn : w0_imp
+      order_chiral  : null
+      order_disc : n2lo
+      order_strange : null
+      order_light: n2lo
+      xpt : False
+      fv : True
+      units: fpi
+      scheme: w0_imp
+      convert: False
+      fpi_log: False
 
       
 
@@ -164,13 +247,14 @@ models:
       order_disc : n2lo
       order_strange : n2lo
       order_light: n2lo
-      xpt : True
+      fpi_log : True
+      xpt : False
       fv : True
       units : fpi
       scheme: w0_imp
-      convert: True
+      convert_data_before: True
 
-    lam:sigma:sigma_st:l_n2lo:d_n2lo:s_n2lo:x_n2lo_phys:
+    lam:sigma:sigma_st:l_n2lo:d_n2lo:s_n2lo:x_n2lo:
       name: lam:sigma:sigma_st:l_n2lo:d_n2lo:s_n2lo:x_n2lo
       # particles : [lambda,sigma,sigma_st]
       particles : [sigma,sigma_st,lambda]
@@ -183,7 +267,9 @@ models:
       fv : True
       units : phys
       scheme: w0_org
-      convert: True
+      convert_data_before: True
+      emp_bayes: False
+      emp_bayes_grouping: False
 
     
 

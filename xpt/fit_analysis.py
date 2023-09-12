@@ -37,6 +37,9 @@ class Xpt_Fit_Analysis:
     
     def __init__(self, 
                  data:dict,
+                 prior:dict,
+                 phys_pt_data:dict,
+                 units:str,
                  model_info:dict,
                  discard_cov:bool,
                  verbose:bool,
@@ -47,9 +50,9 @@ class Xpt_Fit_Analysis:
         
         self.discard_cov = discard_cov 
         self.model_info = model_info
-        self.units = self.model_info['units']
-        self.scheme = self.model_info['scheme']      
-        self.convert_data = self.model_info['convert']
+        self.units = units
+        self.scheme = self.model_info['eps2a_defn']      
+        self.convert_data = self.model_info['convert_data_before']
         if 'lambda' in self.model_info['particles']:
             self.system = 'lambda_sigma'
         else:
@@ -61,27 +64,17 @@ class Xpt_Fit_Analysis:
         if self.data is None:
             self.data = self.input_output.perform_gvar_processing()
 
-        @property
-        def phys_point_data(self):
-            return self._phys_point_data
+        self._phys_point_data = phys_pt_data
         
-        @phys_point_data.setter
-        def phys_point_data(self,value):
-            self._phys_point_data = value
-
-        self._phys_point_data = self.input_output.get_data_phys_point()
-
-        @property
-        def prior(self):
-            return self._prior
+        # @property
+        # def prior(self):
+        #     return self._prior
         
-        @prior.setter
-        def prior(self,value):
-            self._prior = value
+        # @prior.setter
+        # def prior(self,value):
+        #     self._prior = value
 
-        _prior = priors.get_prior(units=self.units)
-        prior = self.input_output.make_prior(data=self.data,prior=_prior)
-        self._prior = prior
+        self._input_prior = prior
         
         self.verbose = verbose # print all data points
         self.fitter = {}
@@ -89,18 +82,16 @@ class Xpt_Fit_Analysis:
         self._fit = {}
         self.svd_test = svd_test
         self.svd_tol = svd_tol
-        self.fitter = fit.FitRoutine(data=self.data,model_info=self.model_info,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol, emp_bayes=None,empbayes_grouping=None)
+        self.fitter = fit.FitRoutine(data=self.data,prior=prior,phys_pt_data=phys_pt_data,model_info=self.model_info,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol)
         self.fit = self.fitter.fit
         self.model_collection = []
         self.extrapolate = extrapolate
 
     def svd_analysis(self):
         # Specify the svd_tol values to loop over
-        svd_tol_values = np.linspace(10e-6,0,num=25)
-        q = []
+        svd_tol_values = np.linspace(10e-5, 0, num=20)
         chi2 = []
-
-        fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15, 5), sharex=False)
+        q = []
 
         # Prepare a dictionary to store results
         results = {particle: {'mean': [], 'std': []} for particle in self.model_info['particles']}
@@ -109,7 +100,7 @@ class Xpt_Fit_Analysis:
             # Update svd_tol value
             self.svd_tol = svd_tol
 
-            self.fitter = fit.FitRoutine(data=self.data,model_info=self.model_info, discard_cov=self.discard_cov, svd_test=self.svd_test, svd_tol=self.svd_tol, emp_bayes=None, empbayes_grouping=None)
+            self.fitter = fit.FitRoutine(data=self.data,prior=self.prior,phys_pt_data=self.phys_point_data,model_info=self.model_info, discard_cov=self.discard_cov, svd_test=self.svd_test, svd_tol=self.svd_tol)
             info = self.fitter.fit_info
             chi2.append(info['chi2/df'])
             q.append(info['Q'])
@@ -122,27 +113,39 @@ class Xpt_Fit_Analysis:
                 results[particle]['mean'].append(extrapolation[particle]['mass'].mean)
                 results[particle]['std'].append(extrapolation[particle]['mass'].sdev)
 
+        # Generate plots for each particle
         for particle, values in results.items():
-            axs[0].errorbar(svd_tol_values, values['mean'], yerr=values['std'], label=particle,fmt='o', alpha=0.6)
+            plt.figure(figsize=(8,6))
+            plt.errorbar(svd_tol_values, values['mean'], yerr=values['std'], label=particle,fmt='o', alpha=0.6)
+            plt.xlabel('svd_tol')
+            plt.ylabel('Extrapolated Mass')
+            plt.title(f"Results for {particle}")
+            plt.legend()
+            plt.grid(True, which="both", ls="--")
+            plt.xscale('log')
+            plt.tight_layout()
+            plt.show()
 
-        axs[0].set_xlabel('svd_tol')
-        axs[0].set_ylabel('Extrapolated Mass')
-        axs[0].legend()
-
-        axs[1].plot(svd_tol_values, q, label='q-value')
-        axs[1].set_xlabel('svd_tol')
-        axs[1].set_ylabel('q-value')
-        axs[1].legend()
-
-        axs[2].plot(svd_tol_values, chi2, label='chi2')
-        axs[2].set_xlabel('svd_tol')
-        axs[2].set_ylabel('chi2')
-        axs[2].legend()
-        # for ax in axs:
-        #     ax.axvline(x=0.06, linestyle='--', color='grey')
-
-        plt.tight_layout()
+        # Plot q-values
+        plt.figure(figsize=(8,6))
+        plt.plot(svd_tol_values, q, label='q-value')
+        plt.xlabel('svd_tol')
+        plt.ylabel('q-value')
+        plt.xscale('log')
+        plt.grid(True, which="both", ls="--")
+        plt.legend()
         plt.show()
+
+        # Plot chi2
+        plt.figure(figsize=(8,6))
+        plt.plot(svd_tol_values, chi2, label='chi2')
+        plt.xlabel('svd_tol')
+        plt.ylabel('chi2')
+        plt.xscale('log')
+        plt.grid(True, which="both", ls="--")
+        plt.legend()
+        plt.show()
+
 
 
     def __str__(self):
@@ -235,10 +238,11 @@ class Xpt_Fit_Analysis:
         'a_{sigma_st,4}', 'a_{xi,4}', 'a_{xi_st,4}'] 
         
         disc_keys = [
-        'd_{lambda,a}', 'd_{sigma,a}',  
-        'd_{sigma_st,a}', 'd_{xi,a}',  'd_{xi_st,a}', 'd_{lambda,aa}', 'd_{lambda,al}', 
-        'd_{sigma,aa}', 'd_{sigma,al}',  'd_{sigma_st,aa}', 'd_{sigma_st,al}', 
-        'd_{xi,aa}', 'd_{xi,al}',  'd_{xi_st,aa}', 'd_{xi_st,al}']
+        'd_{lambda,a}','d_{lambda,aa}','d_{lambda,al}', 
+        'd_{sigma,a}', 'd_{sigma,aa}', 'd_{sigma,al}',
+        'd_{sigma_st,a}', 'd_{sigma_st,aa}', 'd_{sigma_st,al}', 
+        'd_{xi,a}', 'd_{xi,aa}', 'd_{xi,al}'
+        'd_{xi_st,a}'  'd_{xi_st,aa}', 'd_{xi_st,al}']
 
         stat_keys_y = [
             'm_{lambda,0}', 'm_{sigma,0}', 'm_{sigma_st,0}', 'm_{xi,0}', 'm_{xi_st,0}'
@@ -285,7 +289,7 @@ class Xpt_Fit_Analysis:
                 output[particle]['stat'] = self.extrapolated_mass[particle].partialsdev(
                     [self.fit.prior[key] for key in ['eps2_a'] if key in self.fit.prior]+
                     [self._get_prior(stat_key)] 
-                    + [self.fit.p[f'm_{{{particle},0}}']]
+                    + [self.fit.y[particle]]
                 )
             
 
@@ -331,7 +335,7 @@ class Xpt_Fit_Analysis:
     def extrapolated_mass(self):
         '''returns mass of a hyperon extrapolated to the physical point'''
         output = {}
-        mdls = fit.FitRoutine(data=self.data,model_info=self.model_info,discard_cov=self.discard_cov,svd_tol=self.svd_tol,svd_test=self.svd_test, emp_bayes=None,empbayes_grouping=None)
+        mdls = fit.FitRoutine(data=self.data,prior=self.prior,model_info=self.model_info,phys_pt_data=self._phys_point_data,discard_cov=self.discard_cov,svd_tol=self.svd_tol,svd_test=self.svd_test)
                               
         output = mdls.get_fitfcn(p=self.posterior, data=self.phys_point_data)
 

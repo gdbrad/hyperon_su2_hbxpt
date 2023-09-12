@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 #import yaml
 import h5py
+from xpt import priors
 
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar average datasets'''
@@ -11,12 +12,17 @@ class InputOutput:
                  scheme:str,
                  units:str,
                  system:str,
-                 convert_data:bool):
+                 convert_data:bool, # convert data to fpi or phys units at time of ingestion 
+                 decorr_scale:bool=None, # decorrelate lattice spacing between a06,a09 etc.
+                 decorr_scale_full:bool=None, # decorrelate lattice spacing between all individual ensembles
+                ):
         
-        self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp' (see hep-lat/2011.12166)
-        self.units = units 
-        self.system = system
+        self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp'
+        self.units = units # physical or fpi units
+        self.system = system # strangeness S=1,2
         self.convert_data = convert_data
+        self.decorr_scale = decorr_scale
+        self.decorr_scale_full = decorr_scale_full
         cwd = Path(os.getcwd())
         project_root = cwd.parent
         self.data_dir = os.path.join(project_root, "data")
@@ -45,10 +51,11 @@ class InputOutput:
             self.dim1_obs=['m_xi', 'm_xi_st','m_pi','m_k','lam_chi','eps_pi']
         else:
             self.dim1_obs=['m_lambda', 'm_sigma', 'm_sigma_st','m_pi','m_k','lam_chi','eps_pi']
+            
     def _get_bs_data(self):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
-        hbar_c = self.get_data_phys_point('hbarc') # MeV-fm (PDG 2019 conversion constant)
-        scale_factors = gv.load(self.data_dir +'/scale_setting.p')
+        hbar_c = self.get_data_phys_point(param='hbarc',fpi_units=None) # MeV-fm (PDG 2019 conversion constant)
+        scale_factors = gv.load(self.data_dir +'/scale_setting.p') # on-disk scale data
         a_fm =  gv.load(self.data_dir +'/a_fm_results.p')
         scheme = self.scheme
         if scheme is None:
@@ -68,17 +75,25 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                # if self.force_correlation:
-                if self.units == 'phys':
+                # if self.decorr_scale: # this is only relevant for fitting in physical units 
+                #     if self.units == 'phys':
+                # data[ens]['units_MeV'] = hbar_c / 
+                if self.decorr_scale:
+                    data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]] 
+                else:
                     data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
+
+
+
                 # else:
-                #     data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
+                #     data[ens]['units_MeV'] = hbar_c / t)
+
 
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
-                data[ens]['m_pi'] = f[ens]['mpi'][:]
-                data[ens]['m_k'] = f[ens]['mk'][:]
-                data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][:]
+                data[ens]['m_pi'] = f[ens]['mpi'][1:]
+                data[ens]['m_k'] = f[ens]['mk'][1:]
+                data[ens]['lam_chi'] = 4 *np.pi *f[ens]['Fpi'][1:]
                 data[ens]['Fpi'] = f[ens]['Fpi'][:] 
                 data[ens]['eps_pi'] = data[ens]['m_pi'] / data[ens]['lam_chi']
                 data[ens]['units_Fpi'] = 1/data[ens]['lam_chi'][:]
@@ -103,7 +118,7 @@ class InputOutput:
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
                 if self.units == 'fpi':
                     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
-                        data[ens].update({'m_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi'][1:]})
+                        data[ens].update({'m_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi'][:]})
                 # if units == 'Fpi':
                 #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
                 #         data[ens]['m_'+obs]= data[ens]['m_'+obs] / data[ens]['lam_chi']
@@ -133,17 +148,12 @@ class InputOutput:
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in self.dim1_obs:
-                # if self.convert_data:
-                if self.units == 'phys':
-                    gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
-                elif self.units == 'fpi':
+                if self.convert_data:
+                    if self.units == 'phys':
+                        gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
+                else:
+                    # if self.units == 'fpi':
                     gv_data[ens][obs] = gv_data[ens][obs]
-
-                    # gv_data[ens][obs] = gv_data[ens][obs] / bs_data[ens]['lam_chi']
-
-                # else:
-                #     gv_data[ens][obs] = gv_data[ens][obs]
-
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
             gv_data[ens]['L'] = gv.gvar(bs_data[ens]['L'], bs_data[ens]['L'] / 10**6)
@@ -163,7 +173,7 @@ class InputOutput:
         output = self.perform_gvar_processing()
         return output
             
-    def get_data_phys_point(self, param=None):
+    def get_data_phys_point(self, fpi_units=None,param=None):
         '''
         define physical point data
         '''
@@ -196,8 +206,9 @@ class InputOutput:
         'eps_xi_st': 'm_xi_st'
     }
         # Compute new values for dim0_obs keys
-        for obs, m_baryon_key in dim0_obs_to_m_baryon.items():
-            data_phys_point[obs] = data_phys_point[m_baryon_key] / data_phys_point['lam_chi']
+        if fpi_units:
+            for obs, m_baryon_key in dim0_obs_to_m_baryon.items():
+                data_phys_point[m_baryon_key] = data_phys_point[m_baryon_key] / data_phys_point['lam_chi']
         if param is not None:
             return data_phys_point[param]
         return data_phys_point
@@ -227,6 +238,36 @@ class InputOutput:
         for key in ['m_pi', 'm_k', 'lam_chi', 'eps2_a']:
             new_prior[key] = data[key]
         return new_prior
+    
+def update_model_key_name(mdl_key, unit):
+    if unit not in mdl_key:
+        return f"{mdl_key}_{unit}"
+    return mdl_key
+    
+def get_unit_description(unit):
+    '''Returns a description based on the unit.'''
+    if unit == 'phys':
+        return "fitting in phys units"
+    elif unit == 'fpi':
+        return "fitting in fpi units"
+    else:
+        return f"fitting in {unit} units"
+
+def get_data_and_prior_for_unit(unit,system,scheme,convert_data):
+    prior = priors.get_prior(units=unit)
+    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data)
+    
+    data = input_output.perform_gvar_processing()
+    new_prior = input_output.make_prior(data=data, prior=prior)
+    
+    if unit == 'fpi':
+        phys_point_data = input_output.get_data_phys_point(fpi_units=True)
+    else:
+        phys_point_data = input_output.get_data_phys_point(fpi_units=False)
+    
+    return data, new_prior, phys_point_data
+    
+
     
     # def pickle_out(self,fit_info):
     #     model = fit_info['name']

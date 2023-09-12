@@ -57,29 +57,28 @@ def recalibrate_prior(prior, data,fit_result, scale_factor):
         else:
             new_prior[key] = data[key]
     return new_prior
-import yaml
-def get_prior(units=None):
 
+
+def get_prior(units=None):
    
-    if units=='mev':
+    if units=='phys':
         gs_baryons={
-    
         # not-even leading order 
-        'm_{xi,0}' : gv.gvar(1100,400), # MeV
-        'm_{xi_st,0}' : gv.gvar(1300,400), # MeV
+        'm_{xi,0}' : gv.gvar(1100,400), 
+        'm_{xi_st,0}' : gv.gvar(1300,400), 
         'm_{lambda,0}' : gv.gvar(1000,400), 
         'm_{sigma,0}' : gv.gvar(1200,400), 
         'm_{sigma_st,0}' : gv.gvar(1400,400),
         'm_{omega,0}' : gv.gvar(1500,400),
         }
-    elif units =='fpi': # ensure these have a gap between means or else a float division error will occur
+    elif units in ('fpi','lattice'): # ensure these have a gap between means or else a float division error will occur
         gs_baryons = {
         # not-even leading order 
         'm_{xi,0}' : gv.gvar(1,1), 
-        'm_{xi_st,0}' :  gv.gvar(1.1,1), 
-        'm_{lambda,0}' :  gv.gvar(1.2,1), 
-        'm_{sigma,0}' :  gv.gvar(1.3,1), 
-        'm_{sigma_st,0}' :  gv.gvar(1.4,1),
+        'm_{xi_st,0}' :  gv.gvar(1.2,1), 
+        'm_{lambda,0}' :  gv.gvar(1.3,1), 
+        'm_{sigma,0}' :  gv.gvar(1.4,1), 
+        'm_{sigma_st,0}' :  gv.gvar(1.5,1),
         'm_{omega,0}' :  gv.gvar(1,1),
         }
 
@@ -89,14 +88,25 @@ def get_prior(units=None):
         **gs_baryons,
         # lo
         's_{xi}' : gv.gvar(0, 2),
+        'S_{xi}' : gv.gvar(0, 2),
+
         's_{xi,bar}' : gv.gvar(0, 2),
+        'S_{xi,bar}' : gv.gvar(0, 2),
+
         's_{lambda}' : gv.gvar(3,2),
+        'S_{lambda}' : gv.gvar(3,2),
+
         's_{sigma,bar}' : gv.gvar(0, 2),
+        'S_{sigma,bar}' : gv.gvar(0, 2),
+
         's_{sigma}' : gv.gvar(0, 2),
+        'S_{sigma}' : gv.gvar(0, 2),
+
         'l3_bar' : gv.gvar(3.53,2.6),
 
         
         'l4_bar':gv.gvar(4.02,4.02),
+        
 
         'F0'    : gv.gvar(85,30),
         'c2_F' : gv.gvar(0,20),
@@ -118,14 +128,19 @@ def get_prior(units=None):
         # n2lo
         'a_{xi,4}' : gv.gvar(0, 2),
         'b_{xi,4}' : gv.gvar(0, 2),
+        'B_{xi,4}': gv.gvar(0,2),
         'a_{xi_st,4}' : gv.gvar(0, 2),
         'b_{xi_st,4}' : gv.gvar(0, 5),
+        'B_{xi_st,4}': gv.gvar(0,2),
         'a_{sigma,4}' : gv.gvar(0, 5),
         'b_{sigma,4}' : gv.gvar(0, 5),
+        'B_{sigma,4}': gv.gvar(0,2),
         'a_{sigma_st,4}' : gv.gvar(0, 5),
         'b_{sigma_st,4}' : gv.gvar(0, 5),
+        'B_{sigma_st,4}': gv.gvar(0,2),
         'a_{lambda,4}' : gv.gvar(0, 5),
         'b_{lambda,4}' : gv.gvar(0, 5),
+        'B_{lambda,4}' : gv.gvar(0, 5),
 
         # note: no lo terms for taylor 
         # latt/strange nlo

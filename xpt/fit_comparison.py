@@ -1,4 +1,3 @@
-from xpt.fit_analysis import Xpt_Fit_Analysis
 import numpy as np
 import gvar as gv
 import datetime
@@ -26,24 +25,43 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['text.usetex'] = True
 
 #internal xpt modules
+from xpt.fit_analysis import Xpt_Fit_Analysis
 import xpt.fit_routine as fit
 import xpt.i_o as i_o
 import xpt.priors as priors
 import lsqfitics
+
+def get_data_and_prior_for_unit(unit,system):
+    prior = priors.get_prior(units=unit)
+    input_output = i_o.InputOutput(units=unit, scheme='w0_imp', system=system, convert_data=False)
+    
+    data = input_output.perform_gvar_processing()
+    new_prior = input_output.make_prior(data=data, prior=prior)
+    
+    if unit == 'fpi':
+        phys_point_data = input_output.get_data_phys_point(fpi_units=True)
+    else:
+        phys_point_data = input_output.get_data_phys_point(fpi_units=False)
+    
+    return data, new_prior, phys_point_data
+
 
 class ModelComparsion:
     '''Final analysis class. Generates a pdf with the model average and plots for each model'''
 
     verbose = True
     extrapolate = True
-    svd_test = True
+    svd_test = False
     svd_tol = 0.06
     discard_cov = True
     def __init__(self,
                 models:dict,
+                units:str,
                 **kwargs):
         self.models = models
-
+        self.units = units
+        for key, value in kwargs.items():
+            setattr(self, key, value)
         for key, value in kwargs.items():
             setattr(self, key, value)
         
@@ -63,7 +81,8 @@ class ModelComparsion:
             'sigma_st' : np.mean([gv.gvar(g) for g in ['1382.80(35)', '1383.7(1.0)', '1387.2(0.5)']]),
             'xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
             'xi_st' : np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]),
-            'proton' : gv.gvar(938.272,.0000058)
+            'proton' : gv.gvar(938.272,.0000058),
+            'lam_chi' : 4 *np.pi *gv.gvar('92.07(57)')
         }
         return physical_points
 
@@ -80,80 +99,89 @@ class ModelComparsion:
         return fig
 
     def model_plots(self,system=None):
-
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        pdf_pages = PdfPages(f'model_plots_{system}.pdf')
-        # Add model_average output.
-        if system == 'xi':
-            particles = ['xi','xi_st']
+        if self.compare_type == 'combined':
+            # Implement logic for combined plotting here
+            pass
         else:
-            particles=['lambda','sigma_st','sigma']
-        avg_out, weights = self.model_average(particles=particles)
-
-        avg_out_str = '\n'.join([f"{k}: {v}" for k, v in avg_out.items()])
-        weights_str = '\n'.join([f"{k}: {v}" for k, v in weights.items()])
-        avg_and_weights_str = f"Model averages:\n{avg_out_str}\n\nWeights:\n{weights_str}"
-        fig_avg = plt.figure(figsize=(10, 10))
-        plt.text(0.5, 0.5, avg_and_weights_str, fontsize=16, ha='center', va='center',
-                bbox=dict(facecolor='white', alpha=0.5, boxstyle="round,pad=1"))
-        plt.axis('off')
-        pdf_pages.savefig(fig_avg, bbox_inches='tight')
-        plt.close(fig_avg)
-
-        fig_comp = self.compare_models(particles)
-        pdf_pages.savefig(fig_comp, bbox_inches='tight')
-        plt.close(fig_comp)
-        for mdl_key in self.models:
-            _model_info = self.models[mdl_key]
-            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info, **self.default_args)
-            # fit_out = xfa_instance.fit
             
-            # fit_results_fig = self.add_fit_results_figure(fit_out, title='Model:'+mdl_key)
-            # pdf_pages.savefig(fit_results_fig)
-            # plt.close(fit_results_fig)
-            plt.figure(figsize=(10, 10))  # create a new figure with specific size
-            plt.text(0, 0, str(xfa_instance), fontsize=8)  # add text to figure
-            plt.axis('off')  # hide axes
-            pdf_pages.savefig()  # save current figure to pdf
-            plt.close()  # close current figure
-            if system == 'xi':
-                fig1= xfa_instance.plot_params_fit(param='a',observable='xi',eps=False)
-                fig2=xfa_instance.plot_params_fit(param='a',observable='xi_st',eps=False)
-                pdf_pages.savefig(fig1)
-                pdf_pages.savefig(fig2)
-                plt.close(fig1)
-                plt.close(fig2)
-            else:
-                fig1= xfa_instance.plot_params_fit(param='a',observable='lambda',eps=False)
-                fig2=xfa_instance.plot_params_fit(param='a',observable='sigma',eps=False)
-                fig3=xfa_instance.plot_params_fit(param='a',observable='sigma_st',eps=False)
-                pdf_pages.savefig(fig1)
-                pdf_pages.savefig(fig2)
-                pdf_pages.savefig(fig3)
-                plt.close(fig1)
-                plt.close(fig2)
-                plt.close(fig3)
-        if system == 'xi':
-            fig_mpi = xfa_instance.plot_params(xparam='mpi_sq',observables=['xi','xi_st'],show_plot=True)
-            fig_eps = xfa_instance.plot_params(xparam='eps2_a',observables=['xi','xi_st'],show_plot=True,eps=False)
-            pdf_pages.savefig(fig_mpi)
-            pdf_pages.savefig(fig_eps)
-            plt.close(fig_mpi)
-            plt.close(fig_eps)
 
-        pdf_pages.close()
+
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            pdf_pages = PdfPages(f'model_plots_{system}.pdf')
+            # Add model_average output.
+            if system == 'xi':
+                particles = ['xi','xi_st']
+            else:
+                particles=['lambda','sigma_st','sigma']
+            avg_out, weights = self.model_average(particles=particles)
+
+            avg_out_str = '\n'.join([f"{k}: {v}" for k, v in avg_out.items()])
+            weights_str = '\n'.join([f"{k}: {v}" for k, v in weights.items()])
+            avg_and_weights_str = f"Model averages:\n{avg_out_str}\n\nWeights:\n{weights_str}"
+            fig_avg = plt.figure(figsize=(10, 10))
+            plt.text(0.5, 0.5, avg_and_weights_str, fontsize=16, ha='center', va='center',
+                    bbox=dict(facecolor='white', alpha=0.5, boxstyle="round,pad=1"))
+            plt.axis('off')
+            pdf_pages.savefig(fig_avg, bbox_inches='tight')
+            plt.close(fig_avg)
+
+            fig_comp = self.compare_models(particles)
+            pdf_pages.savefig(fig_comp, bbox_inches='tight')
+            plt.close(fig_comp)
+            for mdl_key in self.models:
+                xfa_instance = self.models[mdl_key]
+
+                # fit_out = xfa_instance.fit
+                
+                # fit_results_fig = self.add_fit_results_figure(fit_out, title='Model:'+mdl_key)
+                # pdf_pages.savefig(fit_results_fig)
+                # plt.close(fit_results_fig)
+                plt.figure(figsize=(10, 10))  # create a new figure with specific size
+                plt.text(0, 0, str(xfa_instance), fontsize=8)  # add text to figure
+                plt.axis('off')  # hide axes
+                pdf_pages.savefig()  # save current figure to pdf
+                plt.close()  # close current figure
+                if system == 'xi':
+                    fig1= xfa_instance.plot_params_fit(param='a',observable='xi',eps=False)
+                    fig2=xfa_instance.plot_params_fit(param='a',observable='xi_st',eps=False)
+                    pdf_pages.savefig(fig1)
+                    pdf_pages.savefig(fig2)
+                    plt.close(fig1)
+                    plt.close(fig2)
+                else:
+                    fig1= xfa_instance.plot_params_fit(param='a',observable='lambda',eps=False)
+                    fig2=xfa_instance.plot_params_fit(param='a',observable='sigma',eps=False)
+                    fig3=xfa_instance.plot_params_fit(param='a',observable='sigma_st',eps=False)
+                    pdf_pages.savefig(fig1)
+                    pdf_pages.savefig(fig2)
+                    pdf_pages.savefig(fig3)
+                    plt.close(fig1)
+                    plt.close(fig2)
+                    plt.close(fig3)
+            if system == 'xi':
+                fig_mpi = xfa_instance.plot_params(xparam='mpi_sq',observables=['xi','xi_st'],show_plot=True)
+                fig_eps = xfa_instance.plot_params(xparam='eps2_a',observables=['xi','xi_st'],show_plot=True,eps=False)
+                pdf_pages.savefig(fig_mpi)
+                pdf_pages.savefig(fig_eps)
+                plt.close(fig_mpi)
+                plt.close(fig_eps)
+
+            pdf_pages.close()
 
     def model_average(self,particles):
         avg = {}
         avg_out = {}
         fit_collection = {}
         for mdl_key in self.models:
-            _model_info = self.models[mdl_key]
-            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info, **self.default_args)
+            xfa_instance= self.models[mdl_key]
             fit_out = xfa_instance.fit
             fit_collection[mdl_key] = fit_out
             for part in particles:
-                avg[part] = fit_out.p[f'm_{{{part},0}}']          
+                if self.units == 'phys':
+                    avg[part] = fit_out.p[f'm_{{{part},0}}']          
+                if self.units =='fpi':
+                    avg[part] = fit_out.p[f'm_{{{part},0}}'] * 4 *np.pi *gv.gvar('92.07(57)')          
+
         weights = lsqfitics.calculate_weights(fit_collection,'logGBF')
         # Sort weights dictionary by values in descending order
         weights = {k: v for k, v in sorted(weights.items(), key=lambda item: item[1], reverse=True)}
@@ -167,16 +195,19 @@ class ModelComparsion:
         extrapolated_masses = {particle: [] for particle in particles}
         q = []
         chi2_values_ = []
-
+        weights = []
+        _, weight_dict = self.model_average(particles)
         for mdl_key in self.models:
-            _model_info = self.models[mdl_key]
-            xfa_instance = Xpt_Fit_Analysis(model_info=_model_info,**self.default_args)
+            weight_value = weight_dict[mdl_key]
+            weights.append(weight_value)  # assuming th
+            xfa_instance = self.models[mdl_key]
             mass = xfa_instance.extrapolation(observables=['mass'])
             # print(mass)
             models.append(mdl_key)
             info = xfa_instance.fit_info
             chi2_ = info['chi2/df']
             q_ =  info['Q']
+            
             for particle in particles:
                 extrapolated_mass = mass[particle]['mass']
                 extrapolated_masses[particle].append(extrapolated_mass)
@@ -185,7 +216,7 @@ class ModelComparsion:
         chi2_values = np.array(chi2_values_)
         q_values = np.array(q)
 
-        fig, axs = plt.subplots(nrows=len(particles), ncols=2, figsize=(12, 6*len(particles)))
+        fig, axs = plt.subplots(nrows=len(particles), ncols=3, figsize=(12, 6*len(particles)))
         # Create y values for scatter plot (this is just a range of integers)
         y_values = range(len(models))
 
@@ -209,5 +240,11 @@ class ModelComparsion:
             axs[idx, 1].scatter(chi2_values, y_values, alpha=0.6)
             axs[idx, 1].set_xlabel('Chi2/df')
             axs[idx, 1].set_yticks([])  
+
+            # Weights subplot
+            axs[idx, 2].barh(y_values, weights, alpha=0.6)  # Assuming weights is a simple list; adjust as needed
+            axs[idx, 2].set_xlabel('Weights')
+            # axs[idx, 2].set_xlim([min(weights)-0.2, max(weights)+0.2])  # Adjust the x limits if required
+            axs[idx, 2].set_yticks([])  # Remove y-ticks for consistency
         plt.tight_layout()
         return fig
