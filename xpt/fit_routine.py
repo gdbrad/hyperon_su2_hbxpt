@@ -115,10 +115,11 @@ class FitRoutine:
             # for ens in self.ensembles:
             #     svd_test.plot_ratio(show=True)
         else:
-            if self.svd_tol is None:
-                fit = fitter.lsqfit(data=data, prior=prior_final, fast=False, mopt=False)
-            else:
-                fit = fitter.lsqfit(data=data, prior=prior_final, fast=False, mopt=False,svdcut=self.svd_tol)
+            # if self.svd_tol is None:
+            #     fit = fitter.lsqfit(data=data, prior=prior_final, fast=False, mopt=False)
+            # else:
+            
+            fit = fitter.lsqfit(data=data, prior=prior_final, fast=False, mopt=False,svdcut=self.svd_tol)
 
         return fit
     
@@ -239,12 +240,11 @@ class FitRoutine:
                     elif obs == 'mass':
                         if self.model_info['units'] == 'lattice':
                             for particle in self.model_info['particles']:
-                                output+= model_instance.fitfcn(p=p) * self.phys_point_data['lam_chi']
+                                output+= model_instance.fitfcn(p=p) * self.phys_point_data['hbarc']
                         if self.model_info['units'] == 'fpi':
                             output+= model_instance.fitfcn(p=p) * self.phys_point_data['lam_chi']
-                        else:
+                        if self.model_info['units'] == 'phys':
                             output+= model_instance.fitfcn(p=p) 
-                            # print(output)
                     results[particle][obs] = output
         return results
     

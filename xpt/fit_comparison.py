@@ -228,7 +228,7 @@ class ModelComparsion:
 
             # Plot the extrapolated masses for each particle with error bars
             scatter = axs[idx, 0].errorbar(means, y_values, xerr=stddevs, fmt='o', alpha=0.6)
-            axs[idx, 0].axvline(x=gv.mean(physical_point), color='r', linestyle='--', label='Physical point')
+            axs[idx, 0].axvline(x=gv.mean(physical_point), color='r', linestyle='--')
             axs[idx, 0].set_xlabel('Extrapolated Mass')
             axs[idx, 0].set_ylabel('Models')
             axs[idx, 0].set_yticks(y_values)

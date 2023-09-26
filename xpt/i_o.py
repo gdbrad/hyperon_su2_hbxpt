@@ -49,7 +49,7 @@ class InputOutput:
         # self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi']
         if self.system == 'xi':
             self.dim1_obs=['m_xi', 'm_xi_st','m_pi','m_k','lam_chi','eps_pi']
-        else:
+        if self.system == 'lam':
             self.dim1_obs=['m_lambda', 'm_sigma', 'm_sigma_st','m_pi','m_k','lam_chi','eps_pi']
             
     def _get_bs_data(self):
@@ -79,15 +79,9 @@ class InputOutput:
                 #     if self.units == 'phys':
                 # data[ens]['units_MeV'] = hbar_c / 
                 if self.decorr_scale:
-                    data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]] 
+                    data[ens]['units_MeV'] = hbar_c / f[ens]['a_fm'][scheme][:]
                 else:
-                    data[ens]['units_MeV'] = hbar_c / data[ens]['a_fm']
-
-
-
-                # else:
-                #     data[ens]['units_MeV'] = hbar_c / t)
-
+                    data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]] 
 
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
@@ -137,6 +131,7 @@ class InputOutput:
         return s.svdcut
     
     def perform_gvar_processing(self):
+        """convert raw baryon and pseudoscalar data to gvar datasets"""
         bs_data = self._get_bs_data()
         gv_data = {}
         for ens in self.ensembles:
@@ -148,8 +143,8 @@ class InputOutput:
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
             for obs in self.dim1_obs:
-                if self.convert_data:
-                    if self.units == 'phys':
+            # if self.convert_data:
+                if self.units == 'phys':
                         gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
                 else:
                     # if self.units == 'fpi':
@@ -253,9 +248,9 @@ def get_unit_description(unit):
     else:
         return f"fitting in {unit} units"
 
-def get_data_and_prior_for_unit(unit,system,scheme,convert_data):
+def get_data_and_prior_for_unit(unit,system,scheme,convert_data,decorr_scale):
     prior = priors.get_prior(units=unit)
-    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data)
+    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,decorr_scale=decorr_scale)
     
     data = input_output.perform_gvar_processing()
     new_prior = input_output.make_prior(data=data, prior=prior)

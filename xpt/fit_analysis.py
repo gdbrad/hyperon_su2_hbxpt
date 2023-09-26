@@ -89,11 +89,12 @@ class Xpt_Fit_Analysis:
 
     def svd_analysis(self):
         # Specify the svd_tol values to loop over
-        svd_tol_values = np.linspace(10e-5, 0, num=20)
+        svd_tol_values = np.linspace(10e-6, 0.05, num=30)  #this for some reason is not working..
+        # svd_tol_values = [1e-6,1e-5,1e-4,1e-3,1e-2]
+
         chi2 = []
         q = []
 
-        # Prepare a dictionary to store results
         results = {particle: {'mean': [], 'std': []} for particle in self.model_info['particles']}
 
         for svd_tol in svd_tol_values:
@@ -106,6 +107,8 @@ class Xpt_Fit_Analysis:
             q.append(info['Q'])
 
             # Run extrapolation
+            fit_out = self.fitter.fit
+            # mass_post = fit_out.p['m_{particle,0}']
             extrapolation = self.extrapolation(observables=['mass'])
 
             # Store results' means and standard deviations
