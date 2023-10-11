@@ -91,8 +91,8 @@ class FitRoutine:
             self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
         else:
             self.data_subset = {part:self.data['m_'+part] for part in xi_particles}
-        if self.discard_cov:
-            self.y = self.data_subset
+        if self.discard_cov: # discarding the off-diagonal terms in covariance matrix 
+            self.y = { k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
             self.x = {scale : self.data[scale] for scale in pseudoscalars}
         elif self.discard_cov is False:
             self.y = gv.gvar(dict(gv.mean(self.data_subset)),dict(gv.evalcov(self.data_subset)))
@@ -1402,8 +1402,8 @@ class Lambda(BaseMultiFitterModel):
 
             if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
                 output+= (p['S_{lambda}'] * xdata['eps_pi']**2)
-                if self.model_info['fpi_log']: #this extra log(eps_pi^2) term comes from fpi xpt expression
-                    output+= p['m_{lambda,0}'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
+                # if self.model_info['fpi_log']: #this extra log(eps_pi^2) term comes from fpi xpt expression
+                #     output+= p['m_{lambda,0}'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
                     
         return output
 
@@ -1731,8 +1731,8 @@ class Sigma(BaseMultiFitterModel):
             
             if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
                 output+= (p['S_{sigma}'] * xdata['eps_pi']**2)
-                if self.model_info['fpi_log']:
-                    output+= p['m_{sigma,0}'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
+                # if self.model_info['fpi_log']:
+                #     output+= p['m_{sigma,0}'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
                 
         return output
     def fitfcn_lo_deriv(self,p,xdata):
@@ -2069,8 +2069,8 @@ class Sigma_st(BaseMultiFitterModel):
 
             if self.model_info['order_light'] in ['lo', 'nlo', 'n2lo']:
                 output+= p['S_{sigma,bar}']  * xdata['eps_pi']**2 
-                if self.model_info['fpi_log']:
-                    output+= p['m_{sigma,0}'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
+                # if self.model_info['fpi_log']:
+                #     output+= p['m_{sigma,0}'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
 
         return output
     

@@ -46,7 +46,8 @@ class InputOutput:
         ensembles.remove('a12m220S')
         ensembles.remove('a12m180L')
         self.ensembles = ensembles
-        # self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi']
+        if self.system == 'all':
+            self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi']
         if self.system == 'xi':
             self.dim1_obs=['m_xi', 'm_xi_st','m_pi','m_k','lam_chi','eps_pi']
         if self.system == 'lam':
@@ -75,11 +76,10 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                # if self.decorr_scale: # this is only relevant for fitting in physical units 
-                #     if self.units == 'phys':
-                # data[ens]['units_MeV'] = hbar_c / 
                 if self.decorr_scale:
                     data[ens]['units_MeV'] = hbar_c / f[ens]['a_fm'][scheme][:]
+                elif self.decorr_scale_full:
+                    data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
                 else:
                     data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]] 
 
@@ -152,6 +152,7 @@ class InputOutput:
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
             gv_data[ens]['L'] = gv.gvar(bs_data[ens]['L'], bs_data[ens]['L'] / 10**6)
+            gv_data[ens]['units_MeV'] = bs_data[ens]['units_MeV']
         output = {}
         for param in gv_data[self.ensembles[0]]:
             output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])

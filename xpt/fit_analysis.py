@@ -87,6 +87,16 @@ class Xpt_Fit_Analysis:
         self.model_collection = []
         self.extrapolate = extrapolate
 
+    
+        
+    # def _compare_models(self):
+    #     compare_ = compare.ModelComparsion(models=self.model_data, compare_type='phys', units='phys')
+    #     compare_.compare_models(particles=['xi', 'xi_st'])
+    #     mdl_avg = compare_.model_average(particles=['xi', 'xi_st'])
+    #     print(mdl_avg)
+    #     compare_.model_plots(system='xi')
+
+
     def svd_analysis(self):
         # Specify the svd_tol values to loop over
         svd_tol_values = np.linspace(10e-6, 0.05, num=30)  #this for some reason is not working..
@@ -152,13 +162,14 @@ class Xpt_Fit_Analysis:
 
 
     def __str__(self):
-        output = "Model: %s" %(self.model_info['name'])
+        # output = "Model: %s" %(self.model_info['name'])
+        output = ""
         if self.extrapolate:
             output += '\n---\n'
             output+= 'Extrapolation:'
             output += '\n'
             output+= str(self.format_extrapolation(observables=['mass']))
-        output += '\n---\n'
+        # output += '\n---\n'
         output += '\nError Budget:\n'
         for particle in self.model_info['particles']:
             max_len = np.max([len(key) for key in self.error_budget[particle].keys()])
@@ -380,7 +391,7 @@ class Xpt_Fit_Analysis:
                 extrapolated_values[ens_j] = self.fitfcn(posterior=posterior, data={}, xdata=xdata,particle=observable)
         return extrapolated_values
     
-    def shift_latt_to_phys(self, ens=None, phys_params=None,observable=None,debug=None):
+    def shift_latt_to_phys(self, ens=None,eps=None, phys_params=None,observable=None,debug=None):
         '''
         shift fitted values of the hyperon on each lattice to a 
         new sector of parameter space in which all parameters are fixed except
@@ -395,6 +406,7 @@ class Xpt_Fit_Analysis:
                 value_latt =  y_fit[j]
                 value_fit = self._extrapolate_to_ens(ens_j,observable=observable)
                 value_fit_phys = self._extrapolate_to_ens(ens_j, phys_params,observable=observable)
+               
                 value_shifted[ens_j] = value_latt + value_fit_phys - value_fit
                 if debug:
                     print(value_latt,"latt")
@@ -419,12 +431,12 @@ class Xpt_Fit_Analysis:
     @property
     def phys_point_data(self):
         '''returns dict of physial constants from the PDG'''
-        return self._phys_point_data
+        return self._get_phys_point_data()
 
     # need to convert to/from lattice units
     def _get_phys_point_data(self, parameter=None):
         if parameter is None:
-            return self.phys_point_data
+            return copy.deepcopy(self._phys_point_data)
         return self.phys_point_data.get(parameter,None)
 
     @property
@@ -506,14 +518,17 @@ class Xpt_Fit_Analysis:
                     if param == 'eps2_a':
                         value = self.data['eps2_a'][i] 
                         label = '$\epsilon_a^2$'
-                    if param == 'mpi_sq':
+                    elif param == 'eps_pi':
+                        value = self.fit.p['eps_pi'][i]
+                        label = '$\epsilon_\pi$'
+
+                    elif param == 'mpi_sq':
                         if units == 'gev':
                             value = (self.data['m_pi'][i])**2 /100000 #gev^2
                             label = '$m_\pi^2(GeV^2)$'
                         else:
                             value = (self.data['m_pi'][i])**2
                             label = '$m_\pi^2(MeV^2)$'
-
                     if j == 0:
                         x[i] = value
                         xlabel = label
@@ -612,10 +627,11 @@ class Xpt_Fit_Analysis:
                     y[ens] = shift
                 else:
                     if eps:
-                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps_pi','d_eps2_s','m_pi','lam_chi'], observable=observable)
+                        # y[ens] = 
+                        y[ens] = self.shift_latt_to_phys(ens=ens,eps=True, phys_params=['eps_pi','d_eps2_s','m_pi','lam_chi'], observable=observable)
                     else:
-                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi','lam_chi'], observable=observable)
-
+                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps_pi','d_eps2_s','m_pi','lam_chi'], observable=observable)
+                                                                               
                 xlabel = r'$\epsilon_a^2$'
             elif param == 'epi':
                 x = self.data['eps_pi']
@@ -623,7 +639,8 @@ class Xpt_Fit_Analysis:
                     y[ens] = shift
                 else:
                     if eps:
-                        y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi'], observable=observable)
+                        y[ens] = self.shift_latt_to_phys(ens=ens,eps=True, phys_params=['eps2_a','d_eps2_s','m_pi','lam_chi'], observable=observable)
+
                     else:
                         y[ens] = self.shift_latt_to_phys(ens=ens, phys_params=['eps2_a','d_eps2_s','m_pi','lam_chi'], observable=observable)
                 xlabel = r'$\epsilon_\pi$'
@@ -645,11 +662,11 @@ class Xpt_Fit_Analysis:
             for e, v in zip(eVe, eVa.T):
                 ax.plot([gv.mean(x[i])-1*np.sqrt(e)*v[0], 1*np.sqrt(e)*v[0] + gv.mean(x[i])],
                         [gv.mean(y[ens])-1*np.sqrt(e)*v[1], 1*np.sqrt(e)*v[1] + gv.mean(y[ens])],
-                        alpha=1.0, lw=2.5, color=color)  # Increased linewidth
+                        alpha=1.0, lw=2.5, color=color)  
 
                 if label not in added_labels:
                     ax.plot(gv.mean(x[i]), gv.mean(y[ens]), marker='o', mec='w', markersize=10, 
-                            zorder=3, color=color, label=label)  # Increased markersize
+                            zorder=3, color=color, label=label)  
                     added_labels.add(label)
                 else:
                     ax.plot(gv.mean(x[i]), gv.mean(y[ens]), marker='o', mec='w', markersize=10, 
@@ -682,7 +699,7 @@ class Xpt_Fit_Analysis:
             # label = f'$M_{{{latex_baryon}}}$'
         ax.set_ylabel(label, fontsize = 20)
 
-        ax.plot(phys_point_xparam, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
+        # ax.plot(phys_point_xparam, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
         ax.axvline(phys_point_xparam, ls='--', color='black', label=label)
         
         return fig

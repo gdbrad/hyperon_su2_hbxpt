@@ -9,6 +9,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 import sys
 import copy
 import textwrap
+import yaml
 
 sys.setrecursionlimit(10000)
 
@@ -44,6 +45,121 @@ def get_data_and_prior_for_unit(unit,system):
         phys_point_data = input_output.get_data_phys_point(fpi_units=False)
     
     return data, new_prior, phys_point_data
+
+def run_analysis(units,strange,test_mdl_key=None,compare_models=None,verbose=None):
+    """run fits of all models or a single model"""
+
+    with open('../xpt/models.yaml', 'r') as f:
+        models = yaml.load(f, Loader=yaml.FullLoader)
+    if strange == '2':
+        system = 'xi'
+        _models = models['models']['xi_system']
+    if strange=='1':
+        system = 'lam'
+        _models = models['models']['lam_sigma_system']
+    decorrelate_scale_opts = [True, False]
+    discard_cov_opt = [True, False]
+    model_data = {}
+
+        
+    # for unit in units:
+    data, new_prior, phys_point_data = i_o.get_data_and_prior_for_unit(unit=units, system=system, scheme='w0_imp', convert_data=False, decorr_scale=None)
+    # if model_type == 'all':
+    if test_mdl_key is not None:
+        _model_info = _models[test_mdl_key].copy()
+        print(_model_info)
+        _model_info['units'] = units
+        updated_mdl_key = i_o.update_model_key_name(test_mdl_key, units)
+        for dc in discard_cov_opt:
+            xfa_instance = Xpt_Fit_Analysis(data=data,
+                                                prior=new_prior,
+                                                model_info=_model_info,
+                                                phys_pt_data=phys_point_data,
+                                                units=units,
+                                                extrapolate=True,
+                                                discard_cov=dc,
+                                                verbose=True,
+                                                svd_test=False,
+                                                svd_tol=None)
+            config_key = f"{updated_mdl_key}_discardcov-{dc}"
+            model_data[config_key] = xfa_instance  
+            for key, value in model_data.items():
+                # Extract the unit from the key assuming the unit was appended to the original key.
+                unit_from_info = value.model_info['units']
+                print(f"Results for {i_o.get_unit_description(unit_from_info)}:")
+                print(key)
+                print(value)
+                fig0= xfa_instance.plot_params(xparam='eps_pi',observables='xi',eps=True,show_plot=True)
+
+                # fig1= xfa_instance.plot_params_fit(param='a',observable='xi',eps=True)
+                # fig2=xfa_instance.plot_params_fit(param='a',observable='xi_st',eps=True)
+                # fig3=xfa_instance.plot_params_fit(param='epi',observable='xi_st',eps=True)
+                # fig4=xfa_instance.plot_params_fit(param='epi',observable='xi',eps=True)
+
+
+                # timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
+                # pdf_pages = PdfPages(f'model_plots_single_{system}_{timestamp}.pdf')
+                # pdf_pages.savefig(fig1)
+                # pdf_pages.savefig(fig2)
+                # pdf_pages.savefig(fig3)
+                # pdf_pages.savefig(fig4)
+
+                # plt.close(fig1)
+                # plt.close(fig2)
+                # plt.close(fig3)
+                # plt.close(fig4)
+
+    else:
+        for mdl_key in _models:
+            _model_info = _models[mdl_key].copy()
+            _model_info['units'] = units
+            updated_mdl_key = i_o.update_model_key_name(mdl_key, units)
+            for dc in discard_cov_opt:
+                xfa_instance = Xpt_Fit_Analysis(data=data,
+                                                prior=new_prior,
+                                                model_info=_model_info,
+                                                phys_pt_data=phys_point_data,
+                                                units=units,
+                                                extrapolate=True,
+                                                discard_cov=dc,
+                                                verbose=False,
+                                                svd_test=False,
+                                                svd_tol=None)
+                config_key = f"{updated_mdl_key}_discardcov-{dc}"
+                model_data[config_key] = xfa_instance  
+
+    # Print the results
+    if verbose:
+        for key, value in model_data.items():
+            # Extract the unit from the key assuming the unit was appended to the original key.
+            unit_from_info = value.model_info['units']
+            print(f"Results for {i_o.get_unit_description(unit_from_info)}:")
+            print(key)
+            print(value)
+
+    if compare_models:
+        compare_ = ModelComparsion(models=model_data,units=units)
+        if strange == '2':
+            particles = ['xi','xi_st']
+        else:
+            particles=['lambda','sigma_st','sigma']
+        compare_.compare_models(particles=particles)
+        mdl_avg = compare_.model_average(particles=particles)
+        weights_dict = mdl_avg[1]
+        top_model_key = max(weights_dict, key=weights_dict.get)
+        truncated_top_model_key = top_model_key.split('_fpi')[0]
+        print(f"Top weighted model key: {top_model_key}")
+        print(f"Weight: {weights_dict[top_model_key]}")
+        compare_.model_plots(system=system)
+
+        # Extract the top model instance and its fit result
+        top_model_instance = model_data[top_model_key]
+        fit_result = top_model_instance.fit 
+
+        # Print the fit result of the top model
+        print(f"Fit Result for {top_model_key}:")
+        print(fit_result)
+        compare_.model_plots(system=system)
 
 
 class ModelComparsion:
@@ -98,36 +214,34 @@ class ModelComparsion:
         plt.text(0.1, 0.5, title, rotation='vertical', fontsize=16, ha='center', va='center')
         return fig
 
-    def model_plots(self,system=None):
-        if self.compare_type == 'combined':
-            # Implement logic for combined plotting here
-            pass
+    def model_plots(self,system=None,single_mdl=None):
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
+        pdf_pages = PdfPages(f'model_plots_{system}_{timestamp}.pdf')
+        # Add model_average output.
+        if system == 'xi':
+            particles = ['xi','xi_st']
         else:
-            
+            particles=['lambda','sigma_st','sigma']
+        avg_out, weights = self.model_average(particles=particles)
 
+        avg_out_str = '\n'.join([f"{k}: {v}" for k, v in avg_out.items()])
+        weights_str = '\n'.join([f"{k}: {v}" for k, v in weights.items()])
+        avg_and_weights_str = f"Model averages:\n{avg_out_str}\n\nWeights:\n{weights_str}"
+        fig_avg = plt.figure(figsize=(10, 10))
+        plt.text(0.5, 0.5, avg_and_weights_str, fontsize=16, ha='center', va='center',
+                bbox=dict(facecolor='white', alpha=0.5, boxstyle="round,pad=1"))
+        plt.axis('off')
+        pdf_pages.savefig(fig_avg, bbox_inches='tight')
+        plt.close(fig_avg)
 
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            pdf_pages = PdfPages(f'model_plots_{system}.pdf')
-            # Add model_average output.
-            if system == 'xi':
-                particles = ['xi','xi_st']
-            else:
-                particles=['lambda','sigma_st','sigma']
-            avg_out, weights = self.model_average(particles=particles)
-
-            avg_out_str = '\n'.join([f"{k}: {v}" for k, v in avg_out.items()])
-            weights_str = '\n'.join([f"{k}: {v}" for k, v in weights.items()])
-            avg_and_weights_str = f"Model averages:\n{avg_out_str}\n\nWeights:\n{weights_str}"
-            fig_avg = plt.figure(figsize=(10, 10))
-            plt.text(0.5, 0.5, avg_and_weights_str, fontsize=16, ha='center', va='center',
-                    bbox=dict(facecolor='white', alpha=0.5, boxstyle="round,pad=1"))
-            plt.axis('off')
-            pdf_pages.savefig(fig_avg, bbox_inches='tight')
-            plt.close(fig_avg)
-
-            fig_comp = self.compare_models(particles)
-            pdf_pages.savefig(fig_comp, bbox_inches='tight')
-            plt.close(fig_comp)
+        fig_comp = self.compare_models(particles)
+        pdf_pages.savefig(fig_comp, bbox_inches='tight')
+        plt.close(fig_comp)
+        # print(self.models)
+        if single_mdl is not None:
+            xfa_instance = self.models[single_mdl]
+        else:
             for mdl_key in self.models:
                 xfa_instance = self.models[mdl_key]
 
@@ -235,7 +349,7 @@ class ModelComparsion:
             axs[idx, 0].set_yticklabels(models)
             axs[idx, 0].set_xlim([min(means)-max(stddevs)*1.5, max(means)+max(stddevs)*1.5])  # adjust this for desired zoom
             axs[idx, 0].set_title(particle)
-            axs[idx, 0].legend()
+            # axs[idx, 0].legend()
 
             axs[idx, 1].scatter(chi2_values, y_values, alpha=0.6)
             axs[idx, 1].set_xlabel('Chi2/df')
