@@ -13,8 +13,9 @@ class InputOutput:
                  units:str,
                  system:str,
                  convert_data:bool, # convert data to fpi or phys units at time of ingestion 
-                 decorr_scale:bool=None, # decorrelate lattice spacing between a06,a09 etc.
-                 decorr_scale_full:bool=None, # decorrelate lattice spacing between all individual ensembles
+                 decorr_scale:bool, # decorrelate lattice spacing between a06,a09 etc.
+                 decorr_scale_full:bool,
+                 partial_decorr:bool # decorrelate lattice spacing between all individual ensembles
                 ):
         
         self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp'
@@ -23,6 +24,7 @@ class InputOutput:
         self.convert_data = convert_data
         self.decorr_scale = decorr_scale
         self.decorr_scale_full = decorr_scale_full
+        self.partial_decorr = partial_decorr
         cwd = Path(os.getcwd())
         project_root = cwd.parent
         self.data_dir = os.path.join(project_root, "data")
@@ -55,9 +57,16 @@ class InputOutput:
             
     def _get_bs_data(self):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
+        to_gvar_afm = lambda g: gv.gvar(gv.mean(g),gv.sdev(g))
         hbar_c = self.get_data_phys_point(param='hbarc',fpi_units=None) # MeV-fm (PDG 2019 conversion constant)
         scale_factors = gv.load(self.data_dir +'/scale_setting.p') # on-disk scale data
         a_fm =  gv.load(self.data_dir +'/a_fm_results.p')
+        tmp_afm = {}
+        if self.partial_decorr:
+            for lattice_space in ['a06','a09','a12','a15']:
+                tmp_afm[lattice_space] = to_gvar_afm(a_fm[lattice_space])
+            a_fm = tmp_afm
+
         scheme = self.scheme
         if scheme is None:
             scheme = 'w0_imp'
@@ -76,12 +85,12 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                if self.decorr_scale:
-                    data[ens]['units_MeV'] = hbar_c / f[ens]['a_fm'][scheme][:]
+                if self.partial_decorr:
+                    data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
                 elif self.decorr_scale_full:
-                    data[ens]['units_MeV'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
+                    data[ens]['units_MeV'] = hbar_c / to_gvar_afm(a_fm[ens[:3]])
                 else:
-                    data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]] 
+                    data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]] #only correlating ensembles with same lattice spacing 
 
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
@@ -249,9 +258,9 @@ def get_unit_description(unit):
     else:
         return f"fitting in {unit} units"
 
-def get_data_and_prior_for_unit(unit,system,scheme,convert_data,decorr_scale):
+def get_data_and_prior_for_unit(unit,system,scheme,convert_data,decorr_scale,decorr_scale_full,partial_decorr):
     prior = priors.get_prior(units=unit)
-    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,decorr_scale=decorr_scale)
+    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,decorr_scale=decorr_scale,decorr_scale_full=decorr_scale_full,partial_decorr=partial_decorr)
     
     data = input_output.perform_gvar_processing()
     new_prior = input_output.make_prior(data=data, prior=prior)
