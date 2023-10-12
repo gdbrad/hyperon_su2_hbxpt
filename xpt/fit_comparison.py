@@ -46,7 +46,40 @@ def get_data_and_prior_for_unit(unit,system):
     
     return data, new_prior, phys_point_data
 
-def run_analysis(units,strange,test_mdl_key=None,compare_models=None,verbose=None):
+def plot_extrapolated_masses(extrapolated_values,decorr_scales):
+    decorr_scales = list(extrapolated_values.keys())
+    xi_masses = [extrapolated_values[scale]['xi']['mass'].mean for scale in decorr_scales]
+    xi_errors = [extrapolated_values[scale]['xi']['mass'].sdev for scale in decorr_scales]
+
+    xi_st_masses = [extrapolated_values[scale]['xi_st']['mass'].mean for scale in decorr_scales]
+    xi_st_errors = [extrapolated_values[scale]['xi_st']['mass'].sdev for scale in decorr_scales]
+
+    x = range(len(decorr_scales))
+
+    fig, axs = plt.subplots(2, 1, figsize=(10, 10))
+
+    # Plot xi on the first subplot
+    axs[0].errorbar(x, xi_masses, yerr=xi_errors, fmt='o', label='xi', capsize=5)
+    axs[0].set_xticks(x)
+    axs[0].set_xticklabels(decorr_scales)
+    axs[0].set_ylabel('Extrapolated Mass(MeV)')
+    axs[0].set_title('Scale data decorrelation: xi')
+    axs[0].legend()
+    axs[0].grid(True, which='both', linestyle='--', linewidth=0.5)
+
+    # Plot xi_st on the second subplot
+    axs[1].errorbar(x, xi_st_masses, yerr=xi_st_errors, fmt='^', label='xi_st', capsize=5)
+    axs[1].set_xticks(x)
+    axs[1].set_xticklabels(decorr_scales)
+    axs[1].set_ylabel('Extrapolated Mass(MeV)')
+    axs[1].set_title('Scale data decorrelation: xi_st')
+    axs[1].legend()
+    axs[1].grid(True, which='both', linestyle='--', linewidth=0.5)
+
+    plt.tight_layout()
+    plt.show()
+
+def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_scale=None,verbose=None):
     """run fits of all models or a single model"""
 
     with open('../xpt/models.yaml', 'r') as f:
@@ -57,39 +90,58 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,verbose=Non
     if strange=='1':
         system = 'lam'
         _models = models['models']['lam_sigma_system']
-    decorrelate_scale_opts = [True, False]
     discard_cov_opt = [True, False]
     model_data = {}
 
         
     # for unit in units:
-    data, new_prior, phys_point_data = i_o.get_data_and_prior_for_unit(unit=units, system=system, scheme='w0_imp', convert_data=False, decorr_scale=None)
+    if compare_scale:
+        extrapolated_vals = {}
+        for decorr in ['full','partial','no']:
+
+            data, new_prior, phys_point_data = i_o.get_data_and_prior_for_unit(unit=units, system=system, scheme='w0_imp', convert_data=False, decorr_scale=decorr)
+            print(data['units_MeV'])
     # if model_type == 'all':
-    if test_mdl_key is not None:
-        _model_info = _models[test_mdl_key].copy()
-        print(_model_info)
-        _model_info['units'] = units
-        updated_mdl_key = i_o.update_model_key_name(test_mdl_key, units)
-        for dc in discard_cov_opt:
-            xfa_instance = Xpt_Fit_Analysis(data=data,
-                                                prior=new_prior,
-                                                model_info=_model_info,
-                                                phys_pt_data=phys_point_data,
-                                                units=units,
-                                                extrapolate=True,
-                                                discard_cov=dc,
-                                                verbose=True,
-                                                svd_test=False,
-                                                svd_tol=None)
-            config_key = f"{updated_mdl_key}_discardcov-{dc}"
-            model_data[config_key] = xfa_instance  
-            for key, value in model_data.items():
-                # Extract the unit from the key assuming the unit was appended to the original key.
-                unit_from_info = value.model_info['units']
-                print(f"Results for {i_o.get_unit_description(unit_from_info)}:")
-                print(key)
-                print(value)
-                fig0= xfa_instance.plot_params(xparam='eps_pi',observables='xi',eps=True,show_plot=True)
+            if test_mdl_key is not None:
+                _model_info = _models[test_mdl_key].copy()
+                # print(_model_info)
+                _model_info['units'] = units
+                updated_mdl_key = i_o.update_model_key_name(test_mdl_key, units)
+                # for dc in discard_cov_opt:
+                xfa_instance = Xpt_Fit_Analysis(data=data,
+                                                    prior=new_prior,
+                                                    model_info=_model_info,
+                                                    phys_pt_data=phys_point_data,
+                                                    units=units,
+                                                    extrapolate=True,
+                                                    discard_cov=False,
+                                                    decorr_scale=decorr,
+                                                    verbose=False,
+                                                    svd_test=False,
+                                                    svd_tol=None)
+                config_key = f"{updated_mdl_key}_decorr_scale-{decorr}"
+                model_data[config_key] = xfa_instance  
+                extrapolated_vals[decorr] = xfa_instance.extrapolation(observables=['mass'])
+
+        for decorr,value in extrapolated_vals.items():
+            xi_mass = value['xi']['mass']
+            xi_st_mass = value['xi_st']['mass']
+            print(f"Extrapolated mass for decorr_scale={decorr}: xi: {xi_mass}, xi_st: {xi_st_mass}")
+        plot_extrapolated_masses(extrapolated_vals,decorr_scales=decorr)
+
+                
+
+# Calling the function
+
+    for key, value in model_data.items():
+        # Extract the unit from the key assuming the unit was appended to the original key.
+        unit_from_info = value.model_info['units']
+        print(f"Results for {i_o.get_unit_description(unit_from_info)}:")
+        print(key)
+        print(value)
+    fig0= xfa_instance.plot_params(xparam='eps_pi',observables=['xi','xi_st'],eps=False,show_plot=True)
+    fig1= xfa_instance.plot_params(xparam='eps2_a',observables=['xi','xi_st'],eps=False,show_plot=True)
+
 
                 # fig1= xfa_instance.plot_params_fit(param='a',observable='xi',eps=True)
                 # fig2=xfa_instance.plot_params_fit(param='a',observable='xi_st',eps=True)
@@ -109,24 +161,24 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,verbose=Non
                 # plt.close(fig3)
                 # plt.close(fig4)
 
-    else:
-        for mdl_key in _models:
-            _model_info = _models[mdl_key].copy()
-            _model_info['units'] = units
-            updated_mdl_key = i_o.update_model_key_name(mdl_key, units)
-            for dc in discard_cov_opt:
-                xfa_instance = Xpt_Fit_Analysis(data=data,
-                                                prior=new_prior,
-                                                model_info=_model_info,
-                                                phys_pt_data=phys_point_data,
-                                                units=units,
-                                                extrapolate=True,
-                                                discard_cov=dc,
-                                                verbose=False,
-                                                svd_test=False,
-                                                svd_tol=None)
-                config_key = f"{updated_mdl_key}_discardcov-{dc}"
-                model_data[config_key] = xfa_instance  
+    # else:
+    #     for mdl_key in _models:
+    #         _model_info = _models[mdl_key].copy()
+    #         _model_info['units'] = units
+    #         updated_mdl_key = i_o.update_model_key_name(mdl_key, units)
+    #         for dc in discard_cov_opt:
+    #             xfa_instance = Xpt_Fit_Analysis(data=data,
+    #                                             prior=new_prior,
+    #                                             model_info=_model_info,
+    #                                             phys_pt_data=phys_point_data,
+    #                                             units=units,
+    #                                             extrapolate=True,
+    #                                             discard_cov=dc,
+    #                                             verbose=False,
+    #                                             svd_test=False,
+    #                                             svd_tol=None)
+    #             config_key = f"{updated_mdl_key}_discardcov-{dc}"
+    #             model_data[config_key] = xfa_instance  
 
     # Print the results
     if verbose:

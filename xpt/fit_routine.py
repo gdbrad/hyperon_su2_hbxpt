@@ -50,6 +50,7 @@ class FitRoutine:
                  phys_pt_data:dict,
                  model_info:dict,
                  discard_cov:bool,
+                 decorr_scale:str,
                  svd_test:bool,
                  svd_tol:float,
                 ):
@@ -70,8 +71,9 @@ class FitRoutine:
         self.scheme = self.model_info['eps2a_defn']
         self.units = self.model_info['units']
         self.convert_data = self.model_info['convert_data_before']
+        self.decorr_scale = decorr_scale
 
-        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,system=self.system,convert_data=self.convert_data)
+        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,system=self.system,convert_data=self.convert_data,decorr_scale=self.decorr_scale)
 
         self._posterior = None
         self.emp_bayes = self.model_info['emp_bayes']

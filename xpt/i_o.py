@@ -6,6 +6,21 @@ import os
 import h5py
 from xpt import priors
 
+def get_data_and_prior_for_unit(unit,system,scheme,convert_data,decorr_scale):
+    prior = priors.get_prior(units=unit)
+    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,decorr_scale=decorr_scale)
+    
+    data = input_output.perform_gvar_processing()
+    new_prior = input_output.make_prior(data=data, prior=prior)
+    
+    if unit == 'fpi':
+        phys_point_data = input_output.get_data_phys_point(fpi_units=True)
+    else:
+        phys_point_data = input_output.get_data_phys_point(fpi_units=False)
+    
+    return data, new_prior, phys_point_data
+    
+
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar average datasets'''
     def __init__(self,
@@ -13,9 +28,7 @@ class InputOutput:
                  units:str,
                  system:str,
                  convert_data:bool, # convert data to fpi or phys units at time of ingestion 
-                 decorr_scale:bool, # decorrelate lattice spacing between a06,a09 etc.
-                 decorr_scale_full:bool,
-                 partial_decorr:bool # decorrelate lattice spacing between all individual ensembles
+                 decorr_scale:str, # decorrelate lattice spacing between a06,a09 etc.
                 ):
         
         self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp'
@@ -23,8 +36,6 @@ class InputOutput:
         self.system = system # strangeness S=1,2
         self.convert_data = convert_data
         self.decorr_scale = decorr_scale
-        self.decorr_scale_full = decorr_scale_full
-        self.partial_decorr = partial_decorr
         cwd = Path(os.getcwd())
         project_root = cwd.parent
         self.data_dir = os.path.join(project_root, "data")
@@ -62,7 +73,7 @@ class InputOutput:
         scale_factors = gv.load(self.data_dir +'/scale_setting.p') # on-disk scale data
         a_fm =  gv.load(self.data_dir +'/a_fm_results.p')
         tmp_afm = {}
-        if self.partial_decorr:
+        if self.decorr_scale == 'partial':
             for lattice_space in ['a06','a09','a12','a15']:
                 tmp_afm[lattice_space] = to_gvar_afm(a_fm[lattice_space])
             a_fm = tmp_afm
@@ -85,12 +96,14 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                if self.partial_decorr:
+                if self.decorr_scale == 'partial':
                     data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
-                elif self.decorr_scale_full:
+                    data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
+
+                elif self.decorr_scale == 'full':
                     data[ens]['units_MeV'] = hbar_c / to_gvar_afm(a_fm[ens[:3]])
-                else:
-                    data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]] #only correlating ensembles with same lattice spacing 
+                elif self.decorr_scale == 'no':
+                    data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]]
 
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
@@ -258,20 +271,7 @@ def get_unit_description(unit):
     else:
         return f"fitting in {unit} units"
 
-def get_data_and_prior_for_unit(unit,system,scheme,convert_data,decorr_scale,decorr_scale_full,partial_decorr):
-    prior = priors.get_prior(units=unit)
-    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,decorr_scale=decorr_scale,decorr_scale_full=decorr_scale_full,partial_decorr=partial_decorr)
-    
-    data = input_output.perform_gvar_processing()
-    new_prior = input_output.make_prior(data=data, prior=prior)
-    
-    if unit == 'fpi':
-        phys_point_data = input_output.get_data_phys_point(fpi_units=True)
-    else:
-        phys_point_data = input_output.get_data_phys_point(fpi_units=False)
-    
-    return data, new_prior, phys_point_data
-    
+
 
     
     # def pickle_out(self,fit_info):

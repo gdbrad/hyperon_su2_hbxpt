@@ -42,6 +42,7 @@ class Xpt_Fit_Analysis:
                  units:str,
                  model_info:dict,
                  discard_cov:bool,
+                 decorr_scale:str,
                  verbose:bool,
                  extrapolate:bool,
                  svd_test:bool,
@@ -57,7 +58,8 @@ class Xpt_Fit_Analysis:
             self.system = 'lambda_sigma'
         else:
             self.system = 'xi'
-        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,system=self.system,convert_data=self.convert_data)
+        self.decorr_scale = decorr_scale
+        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,system=self.system,convert_data=self.convert_data,decorr_scale=self.decorr_scale)
         self.ensembles = self.input_output.ensembles
         # allows manual override of x,y data 
         self.data = data
@@ -82,7 +84,7 @@ class Xpt_Fit_Analysis:
         self._fit = {}
         self.svd_test = svd_test
         self.svd_tol = svd_tol
-        self.fitter = fit.FitRoutine(data=self.data,prior=prior,phys_pt_data=phys_pt_data,model_info=self.model_info,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol)
+        self.fitter = fit.FitRoutine(data=self.data,prior=prior,phys_pt_data=phys_pt_data,model_info=self.model_info,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol,decorr_scale=self.decorr_scale)
         self.fit = self.fitter.fit
         self.model_collection = []
         self.extrapolate = extrapolate
@@ -349,7 +351,7 @@ class Xpt_Fit_Analysis:
     def extrapolated_mass(self):
         '''returns mass of a hyperon extrapolated to the physical point'''
         output = {}
-        mdls = fit.FitRoutine(data=self.data,prior=self.prior,model_info=self.model_info,phys_pt_data=self._phys_point_data,discard_cov=self.discard_cov,svd_tol=self.svd_tol,svd_test=self.svd_test)
+        mdls = fit.FitRoutine(data=self.data,prior=self.prior,model_info=self.model_info,phys_pt_data=self._phys_point_data,discard_cov=self.discard_cov,svd_tol=self.svd_tol,svd_test=self.svd_test,decorr_scale=self.decorr_scale)
                               
         output = mdls.get_fitfcn(p=self.posterior, data=self.phys_point_data)
 
@@ -488,6 +490,7 @@ class Xpt_Fit_Analysis:
         }
         x = {}
         y = {observable: {} for observable in observables}
+        # y = {observable:{}}
         baryon_latex = {
             'sigma': '\Sigma',
             'sigma_st': '\Sigma^*',
@@ -564,16 +567,29 @@ class Xpt_Fit_Analysis:
             ax.grid(True)
             ax.set_xlabel(xlabel, fontsize=16)
             ax.set_ylabel(ylabel, fontsize=16)
+            # This is inside the for loop where observable is the current baryon being plotted
             if eps:
                 phys_point_observable = self._get_phys_point_data(parameter='eps_'+observable)
             else:
                 phys_point_observable = self._get_phys_point_data(parameter='m_'+observable)
-            ax.plot(0, gv.mean(phys_point_observable), marker='o', color='black', markersize=10, zorder=4)
+                        
+            if observable == 'xi':
+                marker_style = 'o'
+                label = 'xi'
+            elif observable == 'xi_st':
+                marker_style = '^'
+                label = 'xi_st'
+            else:
+                marker_style = 's'
+                label = observable
+                        
+            ax.plot(0, gv.mean(phys_point_observable), marker=marker_style, color='black', markersize=10, zorder=4)
             ax.axvline(0, ls='--', color='black')
 
+
         plt.tight_layout()
-        # if show_plot:
-        #     plt.show()
+        if show_plot:
+            plt.show()
         plt.close()
         return fig
 
