@@ -79,6 +79,53 @@ def plot_extrapolated_masses(extrapolated_values,decorr_scales):
     plt.tight_layout()
     plt.show()
 
+def plot_extrapolated_masses_lam(extrapolated_values,decorr_scales):
+    decorr_scales = list(extrapolated_values.keys())
+    xi_masses = [extrapolated_values[scale]['lambda']['mass'].mean for scale in decorr_scales]
+    xi_errors = [extrapolated_values[scale]['lambda']['mass'].sdev for scale in decorr_scales]
+
+    xi_st_masses = [extrapolated_values[scale]['sigma_st']['mass'].mean for scale in decorr_scales]
+    xi_st_errors = [extrapolated_values[scale]['sigma_st']['mass'].sdev for scale in decorr_scales]
+
+    sigma_masses = [extrapolated_values[scale]['sigma']['mass'].mean for scale in decorr_scales]
+    sigma_errors = [extrapolated_values[scale]['sigma']['mass'].sdev for scale in decorr_scales]
+
+
+    x = range(len(decorr_scales))
+
+    fig, axs = plt.subplots(3, 1, figsize=(10, 10))
+
+    # Plot xi on the first subplot
+    axs[0].errorbar(x, xi_masses, yerr=xi_errors, fmt='o', label=None, capsize=5)
+    axs[0].set_xticks(x)
+    axs[0].set_xticklabels(decorr_scales)
+    axs[0].set_ylabel('Extrapolated Mass(MeV)')
+    axs[0].set_title('Scale data decorrelation: lambda')
+    axs[0].legend()
+    axs[0].grid(True, which='both', linestyle='--', linewidth=0.5)
+
+    # Plot xi_st on the second subplot
+    axs[1].errorbar(x, xi_st_masses, yerr=xi_st_errors, fmt='^', label=None, capsize=5)
+    axs[1].set_xticks(x)
+    axs[1].set_xticklabels(decorr_scales)
+    axs[1].set_ylabel('Extrapolated Mass(MeV)')
+    axs[1].set_title('Scale data decorrelation: sigma_st')
+    axs[1].legend()
+    axs[1].grid(True, which='both', linestyle='--', linewidth=0.5)
+
+    # Plot xi_st on the second subplot
+    axs[2].errorbar(x, sigma_masses, yerr=sigma_errors, fmt='^', label=None, capsize=5)
+    axs[2].set_xticks(x)
+    axs[2].set_xticklabels(decorr_scales)
+    axs[2].set_ylabel('Extrapolated Mass(MeV)')
+    axs[2].set_title('Scale data decorrelation: sigma')
+    axs[2].legend()
+    axs[2].grid(True, which='both', linestyle='--', linewidth=0.5)
+
+    plt.tight_layout()
+    plt.show()
+
+
 def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_scale=None,verbose=None):
     """run fits of all models or a single model"""
 
@@ -124,10 +171,21 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_sca
                 extrapolated_vals[decorr] = xfa_instance.extrapolation(observables=['mass'])
 
         for decorr,value in extrapolated_vals.items():
-            xi_mass = value['xi']['mass']
-            xi_st_mass = value['xi_st']['mass']
-            print(f"Extrapolated mass for decorr_scale={decorr}: xi: {xi_mass}, xi_st: {xi_st_mass}")
-        plot_extrapolated_masses(extrapolated_vals,decorr_scales=decorr)
+            if system == 'xi':
+                xi_mass = value['xi']['mass']
+                xi_st_mass = value['xi_st']['mass']
+                print(f"Extrapolated mass for decorr_scale={decorr}: xi: {xi_mass}, xi_st: {xi_st_mass}")
+                plot_extrapolated_masses(extrapolated_vals,decorr_scales=decorr)
+
+            if system == 'lam':
+                lambda_mass = value['lambda']['mass']
+                sigma_mass = value['sigma']['mass']
+                sigma_st_mass = value['sigma_st']['mass']
+
+                print(f"Extrapolated mass for decorr_scale={decorr}: lam: {lambda_mass}, sigma_st: {sigma_st_mass}, sigma: {sigma_mass}")
+                plot_extrapolated_masses_lam(extrapolated_vals,decorr_scales=decorr)
+
+            
 
                 
 
@@ -139,8 +197,13 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_sca
         print(f"Results for {i_o.get_unit_description(unit_from_info)}:")
         print(key)
         print(value)
-    fig0= xfa_instance.plot_params(xparam='eps_pi',observables=['xi','xi_st'],eps=False,show_plot=True)
-    fig1= xfa_instance.plot_params(xparam='eps2_a',observables=['xi','xi_st'],eps=False,show_plot=True)
+    if system == 'xi':
+        fig0= xfa_instance.plot_params(xparam='eps_pi',observables=['xi','xi_st'],eps=False,show_plot=True)
+        fig1= xfa_instance.plot_params(xparam='eps2_a',observables=['xi','xi_st'],eps=False,show_plot=True)
+    if system == 'lam':
+        fig0= xfa_instance.plot_params(xparam='eps_pi',observables=['lambda','sigma_st','sigma'],eps=False,show_plot=True)
+        fig1= xfa_instance.plot_params(xparam='eps2_a',observables=['lambda','sigma_st','sigma'],eps=False,show_plot=True)
+
 
 
                 # fig1= xfa_instance.plot_params_fit(param='a',observable='xi',eps=True)
