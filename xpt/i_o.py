@@ -28,14 +28,14 @@ class InputOutput:
                  units:str,
                  system:str,
                  convert_data:bool, # convert data to fpi or phys units at time of ingestion 
-                 decorr_scale:str, # decorrelate lattice spacing between a06,a09 etc.
+                 scale_correlation:str, # decorrelate lattice spacing between a06,a09 etc.
                 ):
         
         self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp'
         self.units = units # physical or fpi units
         self.system = system # strangeness S=1,2
         self.convert_data = convert_data
-        self.decorr_scale = decorr_scale
+        self.scale_correlation = scale_correlation
         cwd = Path(os.getcwd())
         project_root = cwd.parent
         self.data_dir = os.path.join(project_root, "data")
@@ -99,7 +99,6 @@ class InputOutput:
                 if self.decorr_scale == 'partial':
                     data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
                     data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
-
                 elif self.decorr_scale == 'full':
                     data[ens]['units_MeV'] = hbar_c / to_gvar_afm(a_fm[ens[:3]])
                 elif self.decorr_scale == 'no':
