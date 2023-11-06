@@ -6,9 +6,9 @@ import os
 import h5py
 from xpt import priors
 
-def get_data_and_prior_for_unit(unit,system,scheme,convert_data,decorr_scale):
+def get_data_and_prior_for_unit(unit,system,scheme,convert_data,scale_correlation):
     prior = priors.get_prior(units=unit)
-    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,decorr_scale=decorr_scale)
+    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,scale_correlation=scale_correlation)
     
     data = input_output.perform_gvar_processing()
     new_prior = input_output.make_prior(data=data, prior=prior)
@@ -59,6 +59,8 @@ class InputOutput:
         ensembles.remove('a12m220S')
         ensembles.remove('a12m180L')
         self.ensembles = ensembles
+        if self.system == '0':
+            self.dim1_obs = ['m_proton','m_pi','m_k','lam_chi','eps_pi']
         if self.system == 'all':
             self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi']
         if self.system == 'xi':
@@ -73,7 +75,7 @@ class InputOutput:
         scale_factors = gv.load(self.data_dir +'/scale_setting.p') # on-disk scale data
         a_fm =  gv.load(self.data_dir +'/a_fm_results.p')
         tmp_afm = {}
-        if self.decorr_scale == 'partial':
+        if self.scale_correlation == 'partial':
             for lattice_space in ['a06','a09','a12','a15']:
                 tmp_afm[lattice_space] = to_gvar_afm(a_fm[lattice_space])
             a_fm = tmp_afm
@@ -87,6 +89,8 @@ class InputOutput:
         with h5py.File(self.data_dir+'/input_data.h5','r') as f: 
             for ens in self.ensembles:
                 data[ens] = {}
+                data[ens]['a_fm'] = to_gvar(f[ens]['a_fm'][scheme][:])
+
                 if scheme in ['w0_org','w0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]] /scale_factors[scheme+':w0']
                     data[ens]['a_fm'] = 1/ (scale_factors[scheme+':'+ens[:3]] /scale_factors[scheme+':w0']) # in fm
@@ -96,12 +100,12 @@ class InputOutput:
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
                     data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                if self.decorr_scale == 'partial':
+                if self.scale_correlation == 'partial':
                     data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
                     data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
-                elif self.decorr_scale == 'full':
+                elif self.scale_correlation == 'full':
                     data[ens]['units_MeV'] = hbar_c / to_gvar_afm(a_fm[ens[:3]])
-                elif self.decorr_scale == 'no':
+                elif self.scale_correlation == 'no':
                     data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]]
 
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
@@ -132,7 +136,7 @@ class InputOutput:
                     for obs in list(f[ens+'_hp']):
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
                 if self.units == 'fpi':
-                    for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
+                    for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi','proton']:
                         data[ens].update({'m_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi'][:]})
                 # if units == 'Fpi':
                 #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
@@ -174,6 +178,8 @@ class InputOutput:
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
             gv_data[ens]['L'] = gv.gvar(bs_data[ens]['L'], bs_data[ens]['L'] / 10**6)
             gv_data[ens]['units_MeV'] = bs_data[ens]['units_MeV']
+            gv_data[ens]['a_fm'] = bs_data[ens]['a_fm']
+
         output = {}
         for param in gv_data[self.ensembles[0]]:
             output[param] = np.array([gv_data[ens][param] for ens in self.ensembles])

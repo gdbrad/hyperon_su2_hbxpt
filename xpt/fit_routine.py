@@ -93,13 +93,11 @@ class FitRoutine:
             self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
         else:
             self.data_subset = {part:self.data['m_'+part] for part in xi_particles}
-        if self.discard_cov: # discarding the off-diagonal terms in covariance matrix 
-            self.y = { k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
-            self.x = {scale : self.data[scale] for scale in pseudoscalars}
-        elif self.discard_cov is False:
-            self.y = gv.gvar(dict(gv.mean(self.data_subset)),dict(gv.evalcov(self.data_subset)))
-
-        self.models, self.models_dict = self._make_models()
+        if self.model_info['units'] == 'fpi':
+            self.y = {k:data['m_'+k]*4*np.pi*data['a_fm']*}
+            # self.y = {k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
+        self.y = { k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
+        self.x = {scale : self.data[scale] for scale in pseudoscalars}
         
     def __str__(self):
         return str(self.fit)

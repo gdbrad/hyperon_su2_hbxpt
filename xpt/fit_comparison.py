@@ -137,6 +137,9 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_sca
     if strange=='1':
         system = 'lam'
         _models = models['models']['lam_sigma_system']
+    if strange=='0':
+        system = 'proton'
+        _models = models['models']['proton']
     discard_cov_opt = [True, False]
     model_data = {}
 
