@@ -129,14 +129,16 @@ def plot_extrapolated_masses_lam(extrapolated_values,decorr_scales):
 def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_scale=None,verbose=None):
     """run fits of all models or a single model"""
 
-    with open('../xpt/models.yaml', 'r') as f:
+    # with open('../xpt/models.yaml', 'r') as f:
+    with open('../xpt/models_test.yaml', 'r') as f:
+
         models = yaml.load(f, Loader=yaml.FullLoader)
     if strange == '2':
         system = 'xi'
-        _models = models['models']['xi_system']
+        _models = models['models']['xi']
     if strange=='1':
         system = 'lam'
-        _models = models['models']['lam_sigma_system']
+        _models = models['models']['lam']
     if strange=='0':
         system = 'proton'
         _models = models['models']['proton']
@@ -149,7 +151,7 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_sca
         extrapolated_vals = {}
         for decorr in ['full','partial','no']:
 
-            data, new_prior, phys_point_data = i_o.get_data_and_prior_for_unit(unit=units, system=system, scheme='w0_imp', convert_data=False, decorr_scale=decorr)
+            data, new_prior, phys_point_data = i_o.get_data_and_prior_for_unit(unit=units, system=system, scheme='w0_imp', scale_correlation=decorr)
             print(data['units_MeV'])
     # if model_type == 'all':
             if test_mdl_key is not None:

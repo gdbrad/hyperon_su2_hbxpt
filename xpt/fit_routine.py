@@ -86,18 +86,25 @@ class FitRoutine:
         xi_particles = ['xi','xi_st']
         y_particles = ['xi','xi_st','lambda', 'sigma', 'sigma_st']
         pseudoscalars = ['m_pi','m_k','eps_pi']
+        hbarc =  197.3269804, # MeV-fm
+
         # if self.model_info['units'] == 'phys':
             # self.scale_data = 
             # when one performs a simult. fit of s=1,2 hyperons, must ensure that the hyperons of other strangeness are excluded from the y data
         if 'lambda' in self.model_info['particles']:
             self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
-        else:
+        elif 'xi' in self.model_info['particles'] :
             self.data_subset = {part:self.data['m_'+part] for part in xi_particles}
-        if self.model_info['units'] == 'fpi':
-            self.y = {k:data['m_'+k]*4*np.pi*data['a_fm']*}
-            # self.y = {k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
-        self.y = { k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
-        self.x = {scale : self.data[scale] for scale in pseudoscalars}
+        elif 'proton' in self.model_info['particles'] :
+            self.data_subset = {'proton':self.data['m_proton']}
+            if self.model_info['units'] == 'fpi':
+                self.y = {'proton': data['m_proton']*data['lam_chi']*data['a_fm']}
+            if self.model_info['units'] == 'phys':
+                self.y = {'proton':data['m_proton']*data['a_fm']/hbarc}
+
+        #     # self.y = {k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
+        # self.y = { k : gv.gvar(gv.mean(data['m_'+k]), gv.sdev(data['m_'+k])) for k in self.data_subset}
+        # self.x = {scale : self.data[scale] for scale in pseudoscalars}
         
     def __str__(self):
         return str(self.fit)
@@ -519,10 +526,26 @@ class FitRoutine:
         else:
         # construct dict of lec names corresponding to particle, order, lec_type #
             output = {}
-            for p in ['lambda', 'sigma', 'sigma_st', 'xi', 'xi_st']:
+            for p in ['lambda', 'sigma', 'sigma_st', 'xi', 'xi_st','proton']:
                 output[p] = {}
                 for o in ['llo', 'lo', 'nlo', 'n2lo', 'n4lo']:
                     output[p][o] = {}
+
+            
+            output['proton']['llo' ]['light'  ] = ['m_{proton,0}']
+            output['proton']['lo'  ]['disc'   ] = ['d_{proton,a}']
+            output['proton']['lo'  ]['light'  ] = ['b_{proton,2}','l4_bar']
+            output['proton']['lo'  ]['strange'] = ['d_{proton,s}']
+            output['proton']['lo'  ]['xpt']     = ['l4_bar']
+            output['proton']['nlo' ]['xpt'    ] = ['g_{proton,proton}', 'g_{proton,delta}','m_{delta,0}']
+            output['proton']['n2lo']['disc'   ] = ['d_{proton,aa}', 'd_{proton,al}']
+            output['proton']['n2lo']['strange'] = ['d_{proton,as}', 'd_{proton,ls}','d_{proton,ss}']
+            output['proton']['n2lo']['light'  ] = ['b_{proton,4}']
+            output['proton']['n2lo']['xpt'    ] = ['a_{proton,4}', 'g_{proton,4}']
+            output['proton']['n4lo']['disc'   ] = ['d_{proton,all}', 'd_{proton,aal}']
+            output['proton']['n4lo']['strange'] = []
+            output['proton']['n4lo']['light'  ] = ['b_{proton,6}']
+            output['proton']['n4lo']['xpt'    ] = []
 
             output['lambda']['llo']['light'] = ['m_{lambda,0}']
             output['lambda']['lo']['disc'] = ['d_{lambda,a}']
@@ -613,6 +636,8 @@ class BaseMultiFitterModel(lsqfit.MultiFitterModel):
             xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
         else:
             xdata['eps_pi'] = p['eps_pi']
+        if self.datatag in ['proton']:
+            xdata['eps_delta'] = (p['m_{delta,0}'] - p['m_{proton,0}']) / p['lam_chi']
         if self.datatag in ['xi', 'xi_st']:
             xdata['eps_delta'] = (p['m_{xi_st,0}'] - p['m_{xi,0}']) / p['lam_chi']
         if self.datatag == 'lambda':
@@ -657,6 +682,216 @@ class BaseMultiFitterModel(lsqfit.MultiFitterModel):
                 + 2*p['c2_F'] + p['c1_F'] - p['l4_bar']*(p['l4_bar']-1))
 
         return output 
+    def builddata(self, data):
+        return data[self.datatag]
+    
+
+class Proton(BaseMultiFitterModel):
+    '''
+    SU(2) hbxpt extrapolation multifitter class for the proton.
+    Includes extrapolation function for the derivative nucleon mass in order to 
+    extract the nucleon sigma term
+    '''
+    def __init__(self, datatag, model_info):
+        super().__init__(datatag,model_info)
+        self.model_info = model_info
+
+    def fitfcn(self, p, data=None,xdata = None):
+        xdata = self.prep_data(p, data, xdata)
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
+    
+        # output = p['m_{xi,0}'] #llo
+        output = self.fitfcn_llo_ct(p,xdata)
+        output += self.fitfcn_lo_ct(p, xdata)
+        output += self.fitfcn_nlo_xpt(p, xdata) 
+        output += self.fitfcn_n2lo_ct(p, xdata) 
+        output += self.fitfcn_n2lo_xpt(p, xdata) 
+
+
+    def fitfcn_llo_ct(self,p,xdata):
+        output = 0
+        output+= p['m_{proton,0}']
+        return output 
+
+    def fitfcn_lo_xpt(self,p,xdata):
+        if self.model_info['xpt']:
+            output = (p['l4_bar'] + p['b_{proton,2}'])  * (xdata['eps_pi']**2 * p['m_{proton,0}'] * np.log(xdata['eps_pi']**2))
+        else:
+            return 0
+        return output
+
+    def fitfcn_lo_ct(self, p, xdata):
+        output = 0
+
+        if self.model_info['units'] == 'phys': # lam_chi dependence ON #
+            if self.model_info['order_disc']    in  ['lo', 'nlo', 'n2lo']:
+                output += p['m_{proton,0}'] * (p['d_{proton,a}'] * xdata['eps2_a'])
+        
+            if self.model_info['order_light'] in ['lo','nlo','n2lo']:
+                output+= p['b_{proton,2}'] * xdata['lam_chi'] * xdata['eps_pi']**2 
+
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= p['m_{proton,0}']*   (p['d_{proton,s}'] * xdata['d_eps2_s'])
+
+
+        elif self.model_info['units'] == 'fpi': # lam_chi dependence OFF #
+            if self.model_info['order_disc']    in  ['lo', 'nlo', 'n2lo']:
+                output += (p['d_{proton,a}'] * xdata['eps2_a'])
+            
+            if self.model_info['order_light'] in ['lo','nlo','n2lo','n4lo']:
+                output+= (xdata['eps_pi']**2 * p['b_{proton,2}'])
+
+            if self.model_info['order_strange'] in ['lo', 'nlo', 'n2lo']:
+                output+= (p['d_{proton,s}'] * xdata['d_eps2_s'])
+
+            if self.model['xpt']:
+                if self.model_info['order_chiral'] in ['lo', 'nlo', 'n2lo']: #include chiral log
+                    output += p['c0']*xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
+
+        return output
+
+    def fitfcn_nlo_xpt(self,p,xdata):
+        """XPT extrapolation to O(m_pi^3)"""
+
+        output = 0
+        
+        def compute_phys_output():
+            """Computes the output for 'phys' units, considering lam_chi dependence."""
+            term1 = xdata['lam_chi'] * (-3/2) * np.pi * p['g_{proton,proton}']**2 * xdata['eps_pi']**3
+            term2 = 4/3* p['g_{proton,delta}']**2 * xdata['lam_chi'] * naf.fcn_F(xdata['eps_pi'], xdata['eps_delta'])
+
+            return term1 - term2
+
+        def compute_fpi_output():
+            """Computes the output for 'fpi' units, not considering lam_chi dependence."""
+            term3 = (-3/2) * np.pi * p['g_{proton,proton}']** 2 * xdata['eps_pi'] ** 3
+            term4 = 4/3* p['g_{proton,delta}']** 2 * naf.fcn_F(xdata['eps_pi'], xdata['eps_delta'])
+            return term3 - term4
+
+        if self.model_info['xpt']:
+            if self.model_info['units'] == 'phys':
+                output += compute_phys_output()
+            elif self.model_info['units'] == 'fpi':
+                output += compute_fpi_output()
+        else:
+            return 0
+
+        return output
+
+    def fitfcn_n2lo_xpt(self, p, xdata):
+        """XPT extrapolation to O(m_pi^4)"""
+        output = 0
+
+        def base_term():
+            """Computes the base term which is common for both 'phys' and 'fpi' units."""
+            return p['g_{proton,4}'] * xdata['eps_pi'] ** 2 * naf.fcn_J(xdata['eps_pi'], xdata['eps_delta'])
+
+        def compute_phys_output():
+            """Computes the output for 'phys' units, considering lam_chi dependence."""
+            return xdata['lam_chi'] * base_term()
+
+        def compute_fpi_output():
+            """Computes the output for 'fpi' units, not considering lam_chi dependence."""
+            return base_term()
+
+        if self.model_info['xpt']:
+            if self.model_info['units'] == 'phys':
+                output = compute_phys_output()
+            elif self.model_info['units'] == 'fpi':
+                output = compute_fpi_output()
+        else:
+            return 0
+
+        return output
+
+    def fitfcn_n2lo_ct(self,p,xdata):
+        """Taylor extrapolation to O(m_pi^4) without terms coming from xpt expressions"""
+
+        output = 0
+        def compute_order_strange():
+            term1 = p['d_{proton,as}'] * xdata['eps2_a'] * xdata['d_eps2_s']
+            term2 = p['d_{proton,ls}'] * xdata['d_eps2_s'] * xdata['eps_pi']**2
+            term3 = p['d_{proton,ss}'] * xdata['d_eps2_s']**2
+
+            return term1 + term2 + term3
+
+        def compute_order_disc():
+            term1 = p['d_{proton,al}'] * xdata['eps2_a'] * xdata['eps_pi']**2
+            term2 = p['d_{proton,aa}'] * xdata['eps2_a']**2
+
+            return term1 + term2
+
+        def compute_order_light():
+            return xdata['eps_pi']**4 * p['b_{proton,4}']
+
+        def compute_order_chiral():
+            # if self.model_info['fv']:
+            #     return xdata['eps_pi']**4 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10)  * p['a_{xi,4}']
+            # else:
+            return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{proton,4}']
+
+        if self.model_info['units'] == 'phys':  # lam_chi dependence ON 
+            if self.model_info['order_strange'] in ['n2lo']:
+                output += p['m_{proton,0}'] * compute_order_strange()
+
+            if self.model_info['order_disc'] in ['n2lo']:
+                output += p['m_{proton,0}'] * compute_order_disc()
+
+            if self.model_info['order_light'] in ['n2lo']:
+                output += xdata['eps_pi']**4 * p['b_{proton,4}'] * xdata['lam_chi']
+
+            if self.model_info['order_chiral'] in ['n2lo']:
+                output += xdata['lam_chi'] * compute_order_chiral()
+
+        elif self.model_info['units'] == 'fpi':  # lam_chi dependence ON 
+            if self.model_info['order_strange'] in ['n2lo']:
+                output += compute_order_strange()
+
+            if self.model_info['order_disc'] in ['n2lo']:
+                output += compute_order_disc()
+
+            if self.model_info['order_light'] in ['n2lo']:
+                output += compute_order_light()
+
+            if self.model_info['order_chiral'] in ['n2lo']:
+                output += compute_order_chiral()
+
+        return output
+
+    def fitfcn_n4lo(self,p,xdata):
+        output = 0
+        if self.model_info['units'] == 'phys':
+            if self.model_info['order_light'] in ['n4lo']:
+                output += xdata['lam_chi'] * (
+                + xdata['eps_pi']**6 *p['b_{proton,6}'])
+            if self.model_info['order_disc'] in ['n4lo']:
+                output += xdata['lam_chi'] * (
+                + p['d_{proton,all}'] * xdata['eps2_a'] * xdata['eps_pi']**4
+                + p['d_{proton,aal}'] * xdata['eps2_a']**2 * xdata['eps_pi']**2
+                + p['d_{proton,aal}'] * xdata['eps2_a']**3)
+
+        elif self.model_info['units'] == 'fpi':
+            if self.model_info['order_light'] in ['n4lo']:
+                output += xdata['eps_pi']**6 *p['b_{proton,6}'] 
+            if self.model_info['order_disc'] in ['n4lo']:
+                output += (
+                + p['d_{proton,all}'] * xdata['eps2_a'] * xdata['eps_pi']**4
+                + p['d_{proton,aal}'] * xdata['eps2_a']**3)
+
+            # if self.model_info['order_strange'] in ['n4lo']:
+            #     output += 
+
+            # if self.model_info['order_chiral'] in ['n4lo']:
+                
+
+        return output
+
+
+    def buildprior(self, prior, mopt=False, extend=False):
+        return prior
+
     def builddata(self, data):
         return data[self.datatag]
    

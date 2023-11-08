@@ -6,11 +6,12 @@ import os
 import h5py
 from xpt import priors
 
-def get_data_and_prior_for_unit(unit,system,scheme,convert_data,scale_correlation):
+def get_data_and_prior_for_unit(unit,system,scheme,scale_correlation):
     prior = priors.get_prior(units=unit)
-    input_output = InputOutput(units=unit, scheme=scheme, system=system, convert_data=convert_data,scale_correlation=scale_correlation)
+    input_output = InputOutput(units=unit, scheme=scheme, system=system,scale_correlation=scale_correlation)
     
     data = input_output.perform_gvar_processing()
+    print(data.keys())
     new_prior = input_output.make_prior(data=data, prior=prior)
     
     if unit == 'fpi':
@@ -27,14 +28,12 @@ class InputOutput:
                  scheme:str,
                  units:str,
                  system:str,
-                 convert_data:bool, # convert data to fpi or phys units at time of ingestion 
                  scale_correlation:str, # decorrelate lattice spacing between a06,a09 etc.
                 ):
         
         self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp'
         self.units = units # physical or fpi units
         self.system = system # strangeness S=1,2
-        self.convert_data = convert_data
         self.scale_correlation = scale_correlation
         cwd = Path(os.getcwd())
         project_root = cwd.parent
@@ -59,6 +58,8 @@ class InputOutput:
         ensembles.remove('a12m220S')
         ensembles.remove('a12m180L')
         self.ensembles = ensembles
+        self.dim1_obs = []
+
         if self.system == '0':
             self.dim1_obs = ['m_proton','m_pi','m_k','lam_chi','eps_pi']
         if self.system == 'all':
@@ -67,6 +68,7 @@ class InputOutput:
             self.dim1_obs=['m_xi', 'm_xi_st','m_pi','m_k','lam_chi','eps_pi']
         if self.system == 'lam':
             self.dim1_obs=['m_lambda', 'm_sigma', 'm_sigma_st','m_pi','m_k','lam_chi','eps_pi']
+
             
     def _get_bs_data(self):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])

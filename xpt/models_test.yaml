@@ -1,15 +1,15 @@
 models:
   proton:
 
-    proton:d_n2lo:l_lo:s_lo_phys:
-      name: proton:d_n2lo:l_n2lo:s_lo
+    proton:d_n2lo:l_n2lo:s_n2lo:x_n2lo:
+      name: proton:d_n2lo:l_n2lo:s_n2lo:x_n2lo
       particles: [proton]
       eps2a_defn: w0_imp
-      order_chiral: null
+      order_chiral: n2lo
       order_disc: n2lo
       order_strange: n2lo
       order_light: n2lo
-      xpt: False
+      xpt: True
       fv: True
       units: phys
       emp_bayes: False
@@ -45,7 +45,7 @@ models:
       convert_data_before: False
       emp_bayes: False
       emp_bayes_grouping: null 
-  lambda:
+  lam:
 
     lam:sigma:sigma_st:l_n2lo:d_n2lo:x_nlo:
       name: lam:sigma:sigma_st:l_n2lo:d_n2lo:x_nlo
