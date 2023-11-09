@@ -43,6 +43,7 @@ class Xpt_Fit_Analysis:
                  model_info:dict,
                  discard_cov:bool,
                  decorr_scale:str,
+                 strange:str,
                  verbose:bool,
                  extrapolate:bool,
                  svd_test:bool,
@@ -53,13 +54,14 @@ class Xpt_Fit_Analysis:
         self.model_info = model_info
         self.units = units
         self.scheme = self.model_info['eps2a_defn']      
-        self.convert_data = self.model_info['convert_data_before']
-        if 'lambda' in self.model_info['particles']:
-            self.system = 'lambda_sigma'
-        else:
-            self.system = 'xi'
+        # self.convert_data = self.model_info['convert_data_before']
+        # if 'lambda' in self.model_info['particles']:
+        #     self.system = 'lambda_sigma'
+        # else:
+        #     self.system = 'xi'
+        self.strange = strange
         self.decorr_scale = decorr_scale
-        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,system=self.system,convert_data=self.convert_data,decorr_scale=self.decorr_scale)
+        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,strange=self.strange,scale_correlation=self.decorr_scale)
         self.ensembles = self.input_output.ensembles
         # allows manual override of x,y data 
         self.data = data
@@ -84,7 +86,7 @@ class Xpt_Fit_Analysis:
         self._fit = {}
         self.svd_test = svd_test
         self.svd_tol = svd_tol
-        self.fitter = fit.FitRoutine(data=self.data,prior=prior,phys_pt_data=phys_pt_data,model_info=self.model_info,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol,decorr_scale=self.decorr_scale)
+        self.fitter = fit.FitRoutine(data=self.data,prior=prior,phys_pt_data=phys_pt_data,model_info=self.model_info,strange=self.strange,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol,decorr_scale=self.decorr_scale)
         self.fit = self.fitter.fit
         self.model_collection = []
         self.extrapolate = extrapolate

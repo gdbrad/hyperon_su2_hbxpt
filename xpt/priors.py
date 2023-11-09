@@ -65,6 +65,8 @@ def get_prior(units=None):
         gs_baryons={
         # not-even leading order 
         'm_{xi,0}' : gv.gvar(1100,400), 
+        'm_{proton,0}':gv.gvar(1000,200),
+        'm_{delta,0}':gv.gvar(1300,200),
         'm_{xi_st,0}' : gv.gvar(1300,400), 
         'm_{lambda,0}' : gv.gvar(1000,400), 
         'm_{sigma,0}' : gv.gvar(1200,400), 
@@ -75,6 +77,8 @@ def get_prior(units=None):
         gs_baryons = {
         # not-even leading order 
         'm_{xi,0}' : gv.gvar(1,1), 
+        'm_{proton,0}': gv.gvar(1,1),
+        'm_{delta,0}': gv.gvar(2,1),
         'm_{xi_st,0}' :  gv.gvar(1.2,1), 
         'm_{lambda,0}' :  gv.gvar(1.3,1), 
         'm_{sigma,0}' :  gv.gvar(1.4,1), 
@@ -112,7 +116,7 @@ def get_prior(units=None):
         'c2_F' : gv.gvar(0,20),
         'c1_F' : gv.gvar(0,20),
 
-        'b_{xi,2}': gv.gvar(2,2),
+        'B_{xi,2}': gv.gvar(2,2),
         'c0': gv.gvar(2,2),
 
         # nlo
@@ -124,12 +128,49 @@ def get_prior(units=None):
         'g_{sigma,sigma}' : gv.gvar(0, 5),
         'g_{sigma_st,sigma}' : gv.gvar(0, 5),
         'g_{sigma_st,sigma_st}': gv.gvar(0, 5),
+        'g_{proton,delta}' : gv.gvar(1.48,5),
+        'g_{proton,proton}' : gv.gvar(1.27,5),
+        'g_{delta,delta}' : gv.gvar(-2.2,5),
+
+        'a_{proton,4}' : gv.gvar(0, 5),
+        'a_{proton,6}' : gv.gvar(0, 5),
+        'b_{proton,4}' : gv.gvar(0,2),
+        'b_{proton,6}' : gv.gvar(0,2),
+        'b_{proton,2}' : gv.gvar(2,2),
+        'g_{proton,4}' : gv.gvar(0,2),
+        'g_{proton,6}' : gv.gvar(0,5),
+        'd_{proton,a}' : gv.gvar(0,5),
+        'd_{proton,s}' : gv.gvar(0,5),
+        'd_{proton,aa}' : gv.gvar(0,5),
+        'd_{proton,al}' : gv.gvar(0,5),
+        'd_{proton,as}' : gv.gvar(0,5),
+        'd_{proton,ls}' : gv.gvar(0,5),
+        'd_{proton,ss}' : gv.gvar(0,5),
+        'd_{proton,all}' : gv.gvar(0,5),
+        'd_{proton,aal}' :  gv.gvar(0,5),
+
+        'g_{delta,4}' : gv.gvar(0,5),
+        'd_{delta,a}' : gv.gvar(0,5),
+        'b_{delta,4}' : gv.gvar(0,5),
+        'b_{delta,2}' : gv.gvar(0,5),
+        'a_{delta,4}' : gv.gvar(0,5),
+        'd_{delta,aa}' : gv.gvar(0,5),
+        'd_{delta,al}' : gv.gvar(0,5),
+        'd_{delta,as}' : gv.gvar(0,5),
+        'd_{delta,ls}' : gv.gvar(0,5),
+        'd_{delta,ss}' : gv.gvar(0,5),
+        'd_{delta,s}' : gv.gvar(0,5),
+
 
         # n2lo
         'a_{xi,4}' : gv.gvar(0, 2),
+        'A_{xi,4}' : gv.gvar(0, 2),
+
         'b_{xi,4}' : gv.gvar(0, 2),
         'B_{xi,4}': gv.gvar(0,2),
         'a_{xi_st,4}' : gv.gvar(0, 2),
+        'A_{xi_st,4}' : gv.gvar(0, 2),
+    
         'b_{xi_st,4}' : gv.gvar(0, 5),
         'B_{xi_st,4}': gv.gvar(0,2),
         'a_{sigma,4}' : gv.gvar(0, 5),

@@ -6,34 +6,18 @@ import os
 import h5py
 from xpt import priors
 
-def get_data_and_prior_for_unit(unit,system,scheme,scale_correlation):
-    prior = priors.get_prior(units=unit)
-    input_output = InputOutput(units=unit, scheme=scheme, system=system,scale_correlation=scale_correlation)
-    
-    data = input_output.perform_gvar_processing()
-    print(data.keys())
-    new_prior = input_output.make_prior(data=data, prior=prior)
-    
-    if unit == 'fpi':
-        phys_point_data = input_output.get_data_phys_point(fpi_units=True)
-    else:
-        phys_point_data = input_output.get_data_phys_point(fpi_units=False)
-    
-    return data, new_prior, phys_point_data
-    
-
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar average datasets'''
     def __init__(self,
                  scheme:str,
                  units:str,
-                 system:str,
+                 strange:str,
                  scale_correlation:str, # decorrelate lattice spacing between a06,a09 etc.
                 ):
         
         self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp'
         self.units = units # physical or fpi units
-        self.system = system # strangeness S=1,2
+        self.strange = strange # strangeness S=0,1,2
         self.scale_correlation = scale_correlation
         cwd = Path(os.getcwd())
         project_root = cwd.parent
@@ -58,22 +42,38 @@ class InputOutput:
         ensembles.remove('a12m220S')
         ensembles.remove('a12m180L')
         self.ensembles = ensembles
-        self.dim1_obs = []
+        # self.dim1_obs = []
+        self.masses = []
 
-        if self.system == '0':
-            self.dim1_obs = ['m_proton','m_pi','m_k','lam_chi','eps_pi']
-        if self.system == 'all':
-            self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_xi_st', 'm_xi','m_pi','m_k','lam_chi','eps_pi']
-        if self.system == 'xi':
-            self.dim1_obs=['m_xi', 'm_xi_st','m_pi','m_k','lam_chi','eps_pi']
-        if self.system == 'lam':
-            self.dim1_obs=['m_lambda', 'm_sigma', 'm_sigma_st','m_pi','m_k','lam_chi','eps_pi']
+        if self.strange == '0':
+            self.dim1_obs = ['m_proton','m_delta' ,'m_pi', 'm_k', 'lam_chi', 'eps_pi']
+            self.masses = ['m_proton','m_delta']
+        elif self.strange == '2':
+            self.dim1_obs = ['m_xi', 'm_delta','m_xi_st', 'm_pi', 'm_k', 'lam_chi', 'eps_pi']
+            self.masses = ['m_xi', 'm_xi_st']
+        elif self.strange == '1':
+            self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_pi', 'm_k', 'lam_chi', 'eps_pi']
+        else:
+            raise ValueError(f"Unknown strange value: {self.strange}")
+        
+    def get_data_and_prior_for_unit(self):
+        prior = priors.get_prior(units=self.units)
+    
+        if self.units == 'fpi':
+            phys_point_data = self.get_data_phys_point(fpi_units=True)
+        else:
+            phys_point_data = self.get_data_phys_point(fpi_units=False)
 
+        data = self.perform_gvar_processing()
+        new_prior = self.make_prior(data=data, prior=prior)
+        
+        return data, new_prior, phys_point_data
             
     def _get_bs_data(self):
         to_gvar = lambda arr : gv.gvar(arr[0], arr[1])
         to_gvar_afm = lambda g: gv.gvar(gv.mean(g),gv.sdev(g))
-        hbar_c = self.get_data_phys_point(param='hbarc',fpi_units=None) # MeV-fm (PDG 2019 conversion constant)
+        # hbar_c = self.get_data_phys_point(param='hbarc',fpi_units=None) # MeV-fm (PDG 2019 conversion constant)
+        hbar_c = 197.3269804
         scale_factors = gv.load(self.data_dir +'/scale_setting.p') # on-disk scale data
         a_fm =  gv.load(self.data_dir +'/a_fm_results.p')
         tmp_afm = {}
@@ -110,6 +110,8 @@ class InputOutput:
                 elif self.scale_correlation == 'no':
                     data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]]
 
+                data[ens]['hbar_c'] = hbar_c
+
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
                 data[ens]['m_pi'] = f[ens]['mpi'][1:]
@@ -137,9 +139,12 @@ class InputOutput:
                 if ens+'_hp' in list(f):
                     for obs in list(f[ens+'_hp']):
                         data[ens].update({obs : f[ens+'_hp'][obs][:]})
-                if self.units == 'fpi':
-                    for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi','proton']:
-                        data[ens].update({'m_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi'][:]})
+                    for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi','proton','delta']:
+                        if self.units == 'fpi':
+                            data[ens].update({'m_'+obs: data[ens]['m_'+obs] / data[ens]['lam_chi'][:]})
+                    #     elif self.units == 'phys':
+                    #         data[ens].update({'m_'+obs: data[ens]['m_'+obs] * data[ens]['a_fm'] *(data[ens]['hbar_c']/data[ens]['a_fm'])})
+
                 # if units == 'Fpi':
                 #     for obs in ['lambda', 'sigma', 'sigma_st', 'xi_st', 'xi']:
                 #         data[ens]['m_'+obs]= data[ens]['m_'+obs] / data[ens]['lam_chi']
@@ -159,27 +164,25 @@ class InputOutput:
     
     def perform_gvar_processing(self):
         """convert raw baryon and pseudoscalar data to gvar datasets"""
+
         bs_data = self._get_bs_data()
         gv_data = {}
         for ens in self.ensembles:
             gv_data[ens] = gv.BufferDict()
             for obs in self.dim1_obs:
-                #recentering data to avoid bias inherent from bootstrapping. getting estimate for central value.
                 gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
-                # gv_data[ens][obs] = bs_data[ens][obs] 
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
-            for obs in self.dim1_obs:
-            # if self.convert_data:
+            for obs in self.masses:
                 if self.units == 'phys':
                         gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
                 else:
-                    # if self.units == 'fpi':
-                    gv_data[ens][obs] = gv_data[ens][obs]
+                    if self.units == 'fpi':
+                        gv_data[ens][obs] = gv_data[ens][obs]
 
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
             gv_data[ens]['L'] = gv.gvar(bs_data[ens]['L'], bs_data[ens]['L'] / 10**6)
-            gv_data[ens]['units_MeV'] = bs_data[ens]['units_MeV']
+            # gv_data[ens]['units_MeV'] = bs_data[ens]['units_MeV']
             gv_data[ens]['a_fm'] = bs_data[ens]['a_fm']
 
         output = {}
@@ -221,14 +224,19 @@ class InputOutput:
             'm_xi' : np.mean([gv.gvar(g) for g in ['1314.86(20)', '1321.71(07)']]),
             'm_xi_st' : np.mean([gv.gvar(g) for g in ['1531.80(32)', '1535.0(0.6)']]),
             'm_omega' : gv.gvar(1672.45,29),
-            'm_proton' : gv.gvar(938.272,.0000058)
+            'm_proton' : gv.gvar(938.272,.0000058),
+            'm_delta' : gv.gvar(1232, 2),
+
+            
         }
         dim0_obs_to_m_baryon = {
         'eps_lambda': 'm_lambda',
         'eps_sigma': 'm_sigma',
         'eps_sigma_st': 'm_sigma_st',
         'eps_xi': 'm_xi',
-        'eps_xi_st': 'm_xi_st'
+        'eps_xi_st': 'm_xi_st',
+        'eps_delta': 'm_delta'
+
     }
         # Compute new values for dim0_obs keys
         if fpi_units:

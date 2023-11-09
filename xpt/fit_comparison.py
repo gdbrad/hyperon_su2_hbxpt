@@ -32,9 +32,9 @@ import xpt.i_o as i_o
 import xpt.priors as priors
 import lsqfitics
 
-def get_data_and_prior_for_unit(unit,system):
+def get_data_and_prior_for_unit(unit,strange):
     prior = priors.get_prior(units=unit)
-    input_output = i_o.InputOutput(units=unit, scheme='w0_imp', system=system, convert_data=False)
+    input_output = i_o.InputOutput(units=unit, scheme='w0_imp', strange=strange, convert_data=False)
     
     data = input_output.perform_gvar_processing()
     new_prior = input_output.make_prior(data=data, prior=prior)
@@ -151,7 +151,7 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_sca
         extrapolated_vals = {}
         for decorr in ['full','partial','no']:
 
-            data, new_prior, phys_point_data = i_o.get_data_and_prior_for_unit(unit=units, system=system, scheme='w0_imp', scale_correlation=decorr)
+            data, new_prior, phys_point_data = i_o.get_data_and_prior_for_unit(unit=units, strange=strange, scheme='w0_imp', scale_correlation=decorr)
             print(data['units_MeV'])
     # if model_type == 'all':
             if test_mdl_key is not None:
@@ -164,6 +164,7 @@ def run_analysis(units,strange,test_mdl_key=None,compare_models=None,compare_sca
                                                     prior=new_prior,
                                                     model_info=_model_info,
                                                     phys_pt_data=phys_point_data,
+                                                    strange=strange,
                                                     units=units,
                                                     extrapolate=True,
                                                     discard_cov=False,
