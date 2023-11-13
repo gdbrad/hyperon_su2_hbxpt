@@ -9,16 +9,15 @@ from xpt import priors
 class InputOutput:
     '''Bootstrapped data ingestion and output to gvar average datasets'''
     def __init__(self,
-                 scheme:str,
                  units:str,
                  strange:str,
-                 scale_correlation:str, # decorrelate lattice spacing between a06,a09 etc.
+                 scale_corr:str, # decorrelate lattice spacing between a06,a09 etc.
                 ):
         
-        self.scheme = scheme # Valid choices for scheme: 't0_org', 't0_imp', 'w0_org', 'w0_imp'
         self.units = units # physical or fpi units
         self.strange = strange # strangeness S=0,1,2
-        self.scale_correlation = scale_correlation
+        self.scale_corr = scale_corr # full, partial, no scale correlation
+
         cwd = Path(os.getcwd())
         project_root = cwd.parent
         self.data_dir = os.path.join(project_root, "data")
@@ -42,17 +41,16 @@ class InputOutput:
         ensembles.remove('a12m220S')
         ensembles.remove('a12m180L')
         self.ensembles = ensembles
-        # self.dim1_obs = []
-        self.masses = []
 
         if self.strange == '0':
             self.dim1_obs = ['m_proton','m_delta' ,'m_pi', 'm_k', 'lam_chi', 'eps_pi']
             self.masses = ['m_proton','m_delta']
-        elif self.strange == '2':
-            self.dim1_obs = ['m_xi', 'm_delta','m_xi_st', 'm_pi', 'm_k', 'lam_chi', 'eps_pi']
-            self.masses = ['m_xi', 'm_xi_st']
         elif self.strange == '1':
             self.dim1_obs = ['m_lambda', 'm_sigma', 'm_sigma_st', 'm_pi', 'm_k', 'lam_chi', 'eps_pi']
+        elif self.strange == '2':
+            self.dim1_obs = ['m_xi','m_xi_st', 'm_pi', 'm_k', 'lam_chi', 'eps_pi']
+            self.masses = ['m_xi', 'm_xi_st']
+        
         else:
             raise ValueError(f"Unknown strange value: {self.strange}")
         
@@ -77,16 +75,12 @@ class InputOutput:
         scale_factors = gv.load(self.data_dir +'/scale_setting.p') # on-disk scale data
         a_fm =  gv.load(self.data_dir +'/a_fm_results.p')
         tmp_afm = {}
-        if self.scale_correlation == 'partial':
+        if self.scale_corr == 'partial':
             for lattice_space in ['a06','a09','a12','a15']:
                 tmp_afm[lattice_space] = to_gvar_afm(a_fm[lattice_space])
             a_fm = tmp_afm
 
-        scheme = self.scheme
-        if scheme is None:
-            scheme = 'w0_imp'
-        if scheme not in ['t0_org', 't0_imp', 'w0_org', 'w0_imp']:
-            raise ValueError('Invalid scale setting scheme')
+        scheme = 'w0_imp'
         data = {}
         with h5py.File(self.data_dir+'/input_data.h5','r') as f: 
             for ens in self.ensembles:
@@ -100,18 +94,14 @@ class InputOutput:
                     data[ens]['units'] = scale_factors[scheme+':'+ens[:3]]
                 elif scheme in ['w0_org', 'w0_imp'] and self.units=='w0':
                     data[ens]['units'] = hbar_c *scale_factors[scheme+':'+ens[:3]]
-                elif scheme in ['t0_org', 't0_imp'] and self.units=='phys':
-                    data[ens]['units'] = hbar_c / to_gvar(f[ens]['a_fm'][scheme][:])
-                if self.scale_correlation == 'partial':
+                if self.scale_corr == 'partial':
                     data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
-                    data[ens]['units_MeV'] = hbar_c / a_fm[ens[:3]]  # can we remove hbarc correlation
-                elif self.scale_correlation == 'full':
+                elif self.scale_corr == 'full':
                     data[ens]['units_MeV'] = hbar_c / to_gvar_afm(a_fm[ens[:3]])
-                elif self.scale_correlation == 'no':
+                elif self.scale_corr == 'no':
                     data[ens]['units_MeV'] = hbar_c /a_fm[ens[:3]]
 
                 data[ens]['hbar_c'] = hbar_c
-
                 data[ens]['alpha_s'] = f[ens]['alpha_s']
                 data[ens]['L'] = f[ens]['L'][()]
                 data[ens]['m_pi'] = f[ens]['mpi'][1:]
@@ -125,13 +115,7 @@ class InputOutput:
                     data[ens]['units'] =  1/data[ens]['lam_chi'] #for removing lam_chi dependence of fits    
                 if scheme == 'w0_imp':
                     data[ens]['eps2_a'] = 1 / (2 *to_gvar(f[ens]['w0a_callat_imp']))**2
-                elif scheme ==  'w0_org':
-                    data[ens]['eps2_a'] = 1 / (2 *to_gvar(f[ens]['w0a_callat']))**2
-                elif scheme == 't0_imp':
-                    data[ens]['eps2_a'] = 1 / (4 *to_gvar(f[ens]['t0aSq_imp']))
-                elif scheme == 't0_org':
-                    data[ens]['eps2_a'] = 1 / (4 *to_gvar(f[ens]['t0aSq']))
-
+            
         with h5py.File(self.data_dir+'/hyperon_data.h5', 'r') as f:
             for ens in self.ensembles:
                 for obs in list(f[ens]):

@@ -200,7 +200,7 @@ class Xpt_Fit_Analysis:
             data = self._phys_point_data
         if p is None:
             p = self.posterior
-        _extrapolation = self.fitter.extrapolation(observables,p,data)
+        _extrapolation = self.extrapolation(observables,p,data)
         return _extrapolation
     
     def format_extrapolation(self, observables=None):
@@ -222,6 +222,67 @@ class Xpt_Fit_Analysis:
             output += "---\n"
 
         return output
+    
+    def extrapolation(self,observables, p=None, data=None, xdata=None):
+        '''chiral extrapolations of baryon mass data using the Feynman-Hellmann theorem to quantify pion mass and strange quark mass dependence of baryon masses. Extrapolations are to the physical point using PDG data. 
+        
+        Returns(takes a given subset of observables as a list):
+        - extrapolated mass (meV)
+        - pion sigma term 
+        - barred pion sigma term / M_B'''
+
+        if p is None:
+            p = self.posterior
+        if data is None:
+            data = self._phys_pt_data
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
+        if xdata is None:
+            xdata = {}
+        if self.model_info['units'] == 'phys':
+            xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
+        elif self.model_info['units'] == 'fpi':
+            xdata['eps_pi'] = p['eps_pi']
+        p['l3_bar'] = -1/4 * (
+            gv.gvar('3.53(26)') + np.log(xdata['eps_pi']**2))
+        p['l4_bar'] =  gv.gvar('4.73(10)')
+        p['c2_F'] = gv.gvar(0,20)
+        p['c1_F'] = gv.gvar(0,20)
+         
+        MULTIFIT_DICT = {
+            'xi': Xi,
+            'xi_st': Xi_st,
+        }
+
+
+        
+        results = {}
+
+        for particle in self.model_info['particles']:
+            model_class = MULTIFIT_DICT.get(particle)
+            if model_class is not None:
+                model_instance = model_class(datatag=particle, model_info=self.model_info)
+        
+                results[particle] = {}
+                for obs in observables:
+                # results = {}
+
+                    output = 0
+                    mass = 0
+                    # extrapolate hyperon mass to the physical point 
+                    if obs == 'mass':
+                        if self.model_info['units'] == 'lattice':
+                            for particle in self.model_info['particles']:
+                                output+= model_instance.fitfcn(p=p) * self.phys_point_data['hbarc']
+                        if self.model_info['units'] == 'fpi':
+                            output+= model_instance.fitfcn(p=p) * self.phys_point_data['lam_chi']
+                        if self.model_info['units'] == 'phys':
+                            output+= model_instance.fitfcn(p=p) 
+                    results[particle][obs] = output
+        return results
+    
+
 
 
     @property
