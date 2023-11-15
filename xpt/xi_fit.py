@@ -20,14 +20,14 @@ class Xi(lsqfit.MultiFitterModel):
     Note: the chiral order arising in the taylor expansion denotes inclusion of a chiral logarithm 
     '''
     def __init__(self, datatag, model_info):
-        super().__init__(datatag,model_info)
+        super().__init__(datatag)
         self.model_info = model_info
 
     def fitfcn(self, p, data=None,xdata = None):
         if xdata is None:
             xdata ={}
-        if 'a_fm' not in xdata:
-            xdata['a_fm'] = p['a_fm']
+        # if 'a_fm' not in xdata:
+        #     xdata['a_fm'] = p['a_fm']
         if 'm_pi' not in xdata:
             xdata['m_pi'] = p['m_pi']
         if 'lam_chi' not in xdata:
@@ -52,6 +52,8 @@ class Xi(lsqfit.MultiFitterModel):
         output += self.fitfcn_lo_ct(p, xdata)
         output += self.fitfcn_nlo_xpt(p, xdata) 
         output += self.fitfcn_n2lo_ct(p, xdata) 
+        if self.model_info['units'] == 'fpi':
+            output += self.fpi_corrections_n2lo(p,xdata)
         output += self.fitfcn_n2lo_xpt(p, xdata) 
 
         return output 
@@ -91,7 +93,7 @@ class Xi(lsqfit.MultiFitterModel):
                     #     output += p['c0'] * xdata['eps_pi']**2 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi',10])
                     # else:
                     output += p['B_{xi,2}'] * xdata['eps_pi']**2
-                    output += p['c0'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
+                    # output += p['c0'] * xdata['eps_pi']**2 * np.log(xdata['eps_pi']**2)
 
         return output
     
@@ -149,7 +151,7 @@ class Xi(lsqfit.MultiFitterModel):
             # if self.model_info['fv']:
             #     return xdata['eps_pi']**4 * fv.fcn_I_m(xdata['eps_pi']**2,xdata['L'],xdata['lam_chi'],10)  * p['a_{xi,4}']
             # else:
-            if fpi:
+            if self.model_info['order_fpi'] in ['n2lo']:
                 return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['A_{xi,4}']
 
             return xdata['eps_pi']**4 * np.log(xdata['eps_pi']**2) * p['a_{xi,4}']
@@ -198,7 +200,7 @@ class Xi(lsqfit.MultiFitterModel):
 
         def compute_fpi_output():
             """Computes the output for 'fpi' units, not considering lam_chi dependence."""
-            return -1/4*p['c0']*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2)**2 + base_term()
+            return base_term()
 
         if self.model_info['xpt']:
             if self.model_info['units'] == 'phys':
@@ -209,24 +211,49 @@ class Xi(lsqfit.MultiFitterModel):
             return 0
 
         return output
+    
+    def fpi_corrections_n2lo(self,p,xdata):
+        output = 0 
+
+        if self.model_info['units'] == 'fpi':
+            return -1/4*p['c0']*xdata['eps_pi']**4*np.log(xdata['eps_pi']**2)**2
+
 
     def buildprior(self, prior, mopt=False, extend=False):
         return prior
 
     def builddata(self, data):
-        return super().builddata(data)
+        return data[self.datatag]
 
 class Xi_st(lsqfit.MultiFitterModel):
     '''
     SU(2) hbxpt extrapolation multifitter class for the Xi baryon
     '''
     def __init__(self, datatag, model_info):
-        super().__init__(datatag,model_info)
+        super().__init__(datatag)
         self.model_info = model_info
 
     def fitfcn(self, p, data=None,xdata=None):
         '''extraplation formulae'''
-        xdata = self.prep_data(p,data,xdata)
+        if xdata is None:
+            xdata ={}
+        # if 'a_fm' not in xdata:
+        #     xdata['a_fm'] = p['a_fm']
+        if 'm_pi' not in xdata:
+            xdata['m_pi'] = p['m_pi']
+        if 'lam_chi' not in xdata:
+            xdata['lam_chi'] = p['lam_chi']
+        if self.model_info['units'] == 'phys':
+            xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
+        else:
+            xdata['eps_pi'] = p['eps_pi']
+        xdata['eps_delta'] = (p['m_{xi_st,0}'] - p['m_{xi,0}']) / p['lam_chi']
+        if 'eps2_a' not in xdata:
+            xdata['eps2_a'] = p['eps2_a']
+        #strange quark mass mistuning
+        if self.model_info['order_strange'] is not None:
+            xdata['d_eps2_s'] = ((2 * p['m_k']**2 - p['m_pi']**2) / p['lam_chi']**2) - 0.3513
+
         if data is not None:
             for key in data.keys():
                 p[key] = data[key]
@@ -237,9 +264,11 @@ class Xi_st(lsqfit.MultiFitterModel):
         output += self.fitfcn_n2lo_ct(p, xdata)
         output += self.fitfcn_n2lo_xpt(p, xdata)
 
-        if self.model_info['units'] == 'fpi':
+        return output
 
-            return output * xdata['lam_chi'] * xdata['a_fm']
+        # if self.model_info['units'] == 'fpi':
+
+        #     return output * xdata['lam_chi'] * xdata['a_fm']
         # elif self.model_info['units'] == 'phys':
 
         
@@ -369,4 +398,4 @@ class Xi_st(lsqfit.MultiFitterModel):
         return prior
 
     def builddata(self, data):
-        return super().builddata(data)
+        return data[self.datatag]

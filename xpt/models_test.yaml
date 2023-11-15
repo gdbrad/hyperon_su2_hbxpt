@@ -41,9 +41,10 @@ models:
       order_disc: n2lo
       order_strange: n2lo
       order_light: n2lo
+      order_fpi: null
       xpt: True
       fv: True
-      units: fpi
+      units: phys
       convert_data_before: False
       emp_bayes: False
       emp_bayes_grouping: null 

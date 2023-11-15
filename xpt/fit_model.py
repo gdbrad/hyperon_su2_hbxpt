@@ -9,8 +9,7 @@ import matplotlib.pyplot as plt
 
 # local modules
 import xpt.non_analytic_functions as naf
-import xi_fit
-
+import xpt.xi_fit as xi
 
 class FitModel:
     """
@@ -47,24 +46,44 @@ class FitModel:
                  data:dict,
                  prior:dict,
                  phys_pt_data:dict,
-                 fit_options:list,
                  model_info:dict,
+                 **kwargs
                 ):
-
-        self.prior = prior
         self.data = data
+        self.prior = prior
         if self.data is None:
             raise ValueError('you need to pass data to the fitter')
         self._phys_pt_data = phys_pt_data
-        
         self.model_info = model_info.copy()
-        self.svd_test = self.fit_options['svd_test']
-        self.svd_tol = self.model_info['svd_tol']
-        self.scheme = self.model_info['eps2a_defn']
-        self.units = self.model_info['units']
+        # default values for optional params 
+        self.svd_test = False
+        self.svd_tol = None
         self._posterior = None
         hbarc =  197.3269804, # MeV-fm
         self.models, self.models_dict = self._make_models()
+
+        lam_sigma_particles = ['lambda', 'sigma', 'sigma_st']
+        xi_particles = ['xi','xi_st']
+        y_particles = ['xi','xi_st','lambda', 'sigma', 'sigma_st']
+
+        if 'lambda' in self.model_info['particles']:
+            self.data_subset = {part : self.data['m_'+part] for part in lam_sigma_particles}
+        if 'xi' in self.model_info['particles'] :
+            self.data_subset = {part:self.data['m_'+part] for part in xi_particles}
+            if self.model_info['units'] == 'fpi':
+                # self.y = {part: self.data['m_'+part]*data['lam_chi']*data['a_fm'] for part in xi_particles}
+                self.y = {part: self.data['m_'+part] for part in xi_particles}
+
+            if self.model_info['units'] == 'phys':
+                # self.y = {part: self.data['m_'+part]*data['a_fm']/hbarc for part in xi_particles}
+                self.y = {part: self.data['m_'+part] for part in xi_particles}
+
+        if 'proton' in self.model_info['particles'] :
+            self.data_subset = {'proton':self.data['m_proton']}
+            if self.model_info['units'] == 'fpi':
+                self.y = {'proton': data['m_proton']*data['lam_chi']*data['a_fm']}
+            if self.model_info['units'] == 'phys':
+                self.y = {'proton':data['m_proton']*data['a_fm']/hbarc}
     
         
     def __str__(self):
@@ -114,12 +133,12 @@ class FitModel:
         model_dict = {}
 
         if 'xi' in model_info['particles']:
-            xi_model = xi_fit.Xi(datatag='xi', model_info=model_info)
+            xi_model = xi.Xi(datatag='xi', model_info=model_info)
             model_array = np.append(model_array, xi_model)
             model_dict['xi'] = xi_model
 
         if 'xi_st' in model_info['particles']:
-            xi_st_model = xi_fit.Xi_st(datatag='xi_st', model_info=model_info)
+            xi_st_model = xi.Xi_st(datatag='xi_st', model_info=model_info)
             model_array = np.append(model_array, xi_st_model)
             model_dict['xi_st'] = xi_st_model
 
@@ -142,7 +161,7 @@ class FitModel:
         orders = []
         for p in particles:
             for l, value in [('light', self.model_info['order_light']), ('disc', self.model_info['order_disc']),
-                             ('strange', self.model_info['order_strange']), ('xpt', self.model_info['order_chiral'])]:
+                             ('strange', self.model_info['order_strange']), ('xpt', self.model_info['order_chiral']),('fpi',self.model_info['order_fpi'])]:
                 # include all orders equal to and less than desired order in expansion #
                 if value == 'llo':
                     orders = ['llo']
@@ -170,7 +189,7 @@ class FitModel:
             new_prior['m_pi'] = data['m_pi']
             new_prior['lam_chi'] = data['lam_chi']
             new_prior['eps_pi'] = data['eps_pi']
-            new_prior['a_fm'] = data['a_fm']
+            # new_prior['a_fm'] = data['a_fm']
         if self.model_info['fv']:
             new_prior['L'] = data['L']
 
@@ -206,7 +225,7 @@ class FitModel:
 
         elif lec_type == 'all':
             output = []
-            for lec_type in ['disc', 'light', 'strange', 'xpt']:
+            for lec_type in ['disc', 'light', 'strange', 'xpt','fpi']:
                 keys = self._get_prior_keys(
                     particle=particle, order=order, lec_type=lec_type)
                 output.extend(keys)
@@ -280,7 +299,7 @@ class FitModel:
             output['xi']['lo']['disc'] = ['d_{xi,a}']
             output['xi']['lo']['light'] = ['s_{xi}','S_{xi}']
             output['xi']['lo']['strange'] = ['d_{xi,s}']
-            output['xi']['lo']['xpt'] = ['c0','B_{xi,2}']
+            output['xi']['lo']['xpt'] = ['B_{xi,2}']
 
             output['xi']['nlo']['xpt'] = [
                 'g_{xi,xi}', 'g_{xi_st,xi}', 'm_{xi_st,0}']
@@ -289,6 +308,7 @@ class FitModel:
                 'd_{xi,as}', 'd_{xi,ls}', 'd_{xi,ss}']
             output['xi']['n2lo']['light'] = ['b_{xi,4}','B_{xi,4}']
             output['xi']['n2lo']['xpt'] = ['a_{xi,4}', 's_{xi,bar}']
+            output['xi']['n2lo']['fpi'] = ['A_{xi,4}','c0']
 
             output['xi_st']['llo']['light'] = ['m_{xi_st,0}']
             output['xi_st']['lo']['disc'] = ['d_{xi_st,a}']

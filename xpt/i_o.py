@@ -11,12 +11,15 @@ class InputOutput:
     def __init__(self,
                  units:str,
                  strange:str,
-                 scale_corr:str, # decorrelate lattice spacing between a06,a09 etc.
+                 **kwargs
                 ):
         
         self.units = units # physical or fpi units
         self.strange = strange # strangeness S=0,1,2
-        self.scale_corr = scale_corr # full, partial, no scale correlation
+        
+        for key,value in kwargs.items():
+            if key == 'scale_corr':
+                self.scale_corr = value
 
         cwd = Path(os.getcwd())
         project_root = cwd.parent
@@ -157,7 +160,7 @@ class InputOutput:
                 gv_data[ens][obs] = bs_data[ens][obs] - np.mean(bs_data[ens][obs]) + bs_data[ens][obs][0]
 
             gv_data[ens] = gv.dataset.avg_data(gv_data[ens], bstrap=True) 
-            for obs in self.masses:
+            for obs in self.dim1_obs:
                 if self.units == 'phys':
                         gv_data[ens][obs] = gv_data[ens][obs] *bs_data[ens]['units_MeV']
                 else:
@@ -167,7 +170,7 @@ class InputOutput:
             gv_data[ens]['eps2_a'] = bs_data[ens]['eps2_a']
             gv_data[ens]['L'] = gv.gvar(bs_data[ens]['L'], bs_data[ens]['L'] / 10**6)
             # gv_data[ens]['units_MeV'] = bs_data[ens]['units_MeV']
-            gv_data[ens]['a_fm'] = bs_data[ens]['a_fm']
+            # gv_data[ens]['a_fm'] = bs_data[ens]['a_fm']
 
         output = {}
         for param in gv_data[self.ensembles[0]]:
