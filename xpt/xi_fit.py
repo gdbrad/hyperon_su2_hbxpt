@@ -16,7 +16,7 @@ import xpt.i_o as i_o
 
 class Xi(lsqfit.MultiFitterModel):
     '''
-    SU(2) hbxpt extrapolation multifitter class for the Xi baryon
+    Constructs the mass extrapolation functions to the physical point using SU(2) hbxpt. 
     Note: the chiral order arising in the taylor expansion denotes inclusion of a chiral logarithm 
     '''
     def __init__(self, datatag, model_info):

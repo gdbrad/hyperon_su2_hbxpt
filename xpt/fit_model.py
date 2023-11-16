@@ -6,10 +6,12 @@ import h5py as h5
 import functools
 from pathlib import Path
 import matplotlib.pyplot as plt
+import yaml
 
 # local modules
 import xpt.non_analytic_functions as naf
 import xpt.xi_fit as xi
+import xpt.i_o as i_o
 
 class FitModel:
     """
@@ -46,7 +48,7 @@ class FitModel:
                  data:dict,
                  prior:dict,
                  phys_pt_data:dict,
-                 model_info:dict,
+                 strange:str,
                  **kwargs
                 ):
         self.data = data
@@ -54,10 +56,23 @@ class FitModel:
         if self.data is None:
             raise ValueError('you need to pass data to the fitter')
         self._phys_pt_data = phys_pt_data
-        self.model_info = model_info.copy()
+        self.strange = strange
+        self._model_info = self.fetch_models()
+        self.options = kwargs
         # default values for optional params 
-        self.svd_test = False
-        self.svd_tol = None
+        self.svd_test = self.options.get('svd_test', False)
+        self.svd_tol = self.options.get('svd_tol', None)
+        self.mdl_key = self.options.get('mdl_key',None)
+        self.model_info = self._model_info[self.mdl_key]
+
+        # for key,value in kwargs.items():
+        #     if key == 'svd_test':
+        #         self.svd_test = value
+        #     if key == 'svd_tol':
+        #         self.svd_tol = int(value)
+        #     if key == 'extrapolate':
+        #         self.extrap = bool(value)
+
         self._posterior = None
         hbarc =  197.3269804, # MeV-fm
         self.models, self.models_dict = self._make_models()
@@ -84,10 +99,94 @@ class FitModel:
                 self.y = {'proton': data['m_proton']*data['lam_chi']*data['a_fm']}
             if self.model_info['units'] == 'phys':
                 self.y = {'proton':data['m_proton']*data['a_fm']/hbarc}
+
+    def update_svd_tol(self,new_svd_tol):
+        self.svd_tol = new_svd_tol
     
+    def fetch_models(self):
+        with open('../xpt/models_test.yaml', 'r') as f:
+            _models = yaml.load(f, Loader=yaml.FullLoader)
+        models = {}
+        if self.strange == '2':
+            models = _models['models']['xi']
+        elif self.strange == '1':
+            models = _models['models']['lam']    
+        elif self.strange == '0':
+            models = _models['models']['proton']
+        return models
+
+
+    def format_extrapolation(self):
+        """formats the extrapolation dictionary"""
+        extrapolation_data = self.extrapolation()
+        pdg_mass = {
+            'xi': gv.gvar(1314.86,20),
+            'xi_st': gv.gvar(1531.80,32),
+            'lambda': gv.gvar(1115.683,6),
+            'sigma': gv.gvar(1192.642,24),
+            'sigma_st': gv.gvar(1383.7,1.0)
+        }
+        output = ""
+        for particle, data in extrapolation_data.items():
+            output += f"Particle: {particle}\n"
+            measured = pdg_mass[particle]
+            output += f"{data} [PDG: {measured}]\n"
+            output += "---\n"
+
+        return output
+    
+    def extrapolation(self, p=None, data=None, xdata=None):
+        '''chiral extrapolations of baryon mass data using the Feynman-Hellmann theorem to quantify pion mass and strange quark mass dependence of baryon masses. Extrapolations are to the physical point using PDG data. 
+        Returns:
+            - extrapolated mass (meV)
+        '''
+
+        if p is None:
+            p = self.get_posterior
+        if data is None:
+            data = self._phys_pt_data
+        if data is not None:
+            for key in data.keys():
+                p[key] = data[key]
+        if xdata is None:
+            xdata = {}
+        if self.model_info['units'] == 'phys':
+            xdata['eps_pi'] = p['m_pi'] / p['lam_chi']
+        elif self.model_info['units'] == 'fpi':
+            xdata['eps_pi'] = p['eps_pi']
+        p['l3_bar'] = -1/4 * (
+            gv.gvar('3.53(26)') + np.log(xdata['eps_pi']**2))
+        p['l4_bar'] =  gv.gvar('4.73(10)')
+        p['c2_F'] = gv.gvar(0,20)
+        p['c1_F'] = gv.gvar(0,20)
+         
+        MULTIFIT_DICT = {
+            'xi': xi.Xi,
+            'xi_st': xi.Xi_st,
+        }
+        results = {}
+
+        for particle in self.model_info['particles']:
+            model_class = MULTIFIT_DICT.get(particle)
+            if model_class is not None:
+                model_instance = model_class(datatag=particle, model_info=self.model_info)
+        
+                results[particle] = {}
+                output = 0
+                # extrapolate hyperon mass to the physical point 
+                if self.model_info['units'] == 'lattice':
+                    for particle in self.model_info['particles']:
+                        output+= model_instance.fitfcn(p=p) * self.phys_point_data['hbarc']
+                if self.model_info['units'] == 'fpi':
+                    output+= model_instance.fitfcn(p=p) * self.phys_point_data['lam_chi']
+                if self.model_info['units'] == 'phys':
+                    output+= model_instance.fitfcn(p=p) 
+            results[particle] = output
+        return results
+
         
     def __str__(self):
-        return str(self.fit)
+        return f"{str(self.format_extrapolation())},{self.fit}"
 
 
     @functools.cached_property
@@ -125,6 +224,22 @@ class FitModel:
         }
         return fit_info
     
+    @property
+    def get_posterior(self):
+        return self._get_posterior()
+    
+    def _get_posterior(self,param=None):
+        if param is not None:
+            return self.fit.p[param]
+        elif param == 'all':
+            return self.fit.p
+        output = {}
+        for key in self.prior:
+            if key in self.fit.p:
+                output[key] = self.fit.p[key]
+        return output
+
+    
     def _make_models(self, model_info=None):
         if model_info is None:
             model_info = self.model_info.copy()
@@ -151,7 +266,6 @@ class FitModel:
         '''
         if data is None:
             data = self.data
-        # print(list(data))
         prior = self.prior
         new_prior = {}
         particles = []
@@ -161,7 +275,8 @@ class FitModel:
         orders = []
         for p in particles:
             for l, value in [('light', self.model_info['order_light']), ('disc', self.model_info['order_disc']),
-                             ('strange', self.model_info['order_strange']), ('xpt', self.model_info['order_chiral']),('fpi',self.model_info['order_fpi'])]:
+                             ('strange', self.model_info['order_strange']), ('xpt', self.model_info['order_chiral']),
+                             ('fpi',self.model_info['order_fpi'])]:
                 # include all orders equal to and less than desired order in expansion #
                 if value == 'llo':
                     orders = ['llo']
@@ -182,6 +297,7 @@ class FitModel:
         for key in keys:
             new_prior[key] = prior[key]
         
+        # this is "converting" the pseudoscalars into priors so that they do not count as data #
         if self.model_info['order_strange'] is not None:
             new_prior['m_k'] = data['m_k']
         if self.model_info['order_light'] is not None:

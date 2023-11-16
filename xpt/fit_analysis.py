@@ -25,7 +25,7 @@ mpl.rcParams['ytick.labelsize'] = 12
 mpl.rcParams['text.usetex'] = True
 
 #internal xpt modules
-import xpt.fit_routine as fit
+import xpt.fit_model as fit_model
 import xpt.i_o as i_o
 import xpt.priors as priors
 
@@ -41,58 +41,26 @@ class Xpt_Fit_Analysis:
                  phys_pt_data:dict,
                  units:str,
                  model_info:dict,
-                 discard_cov:bool,
-                 decorr_scale:str,
                  strange:str,
-                 verbose:bool,
-                 extrapolate:bool,
-                 svd_test:bool,
-                 svd_tol:float):
+                 **kwargs):
         
-        
-        self.discard_cov = discard_cov 
-        self.model_info = model_info
-        self.units = units
-        self.scheme = self.model_info['eps2a_defn']      
-        # self.convert_data = self.model_info['convert_data_before']
-        # if 'lambda' in self.model_info['particles']:
-        #     self.system = 'lambda_sigma'
-        # else:
-        #     self.system = 'xi'
-        self.strange = strange
-        self.decorr_scale = decorr_scale
-        self.input_output = i_o.InputOutput(scheme=self.scheme,units=self.units,strange=self.strange,scale_correlation=self.decorr_scale)
-        self.ensembles = self.input_output.ensembles
-        # allows manual override of x,y data 
-        self.data = data
-        if self.data is None:
-            self.data = self.input_output.perform_gvar_processing()
-
+        self.data = data      
+        self.prior = prior  
         self._phys_point_data = phys_pt_data
-        
-        # @property
-        # def prior(self):
-        #     return self._prior
-        
-        # @prior.setter
-        # def prior(self,value):
-        #     self._prior = value
-
+        self.units = units
+        self.strange = strange
+        self.model_info = model_info        # allows manual override of x,y data 
         self._input_prior = prior
-        
-        self.verbose = verbose # print all data points
-        self.fitter = {}
+
+        self.options = kwargs
+        self.verbose = self.options.get('verbose',False) # print all data points
+        self.svd_test = self.options.get('svd_test',False)
+        self.svd_tol = self.options.get('svd_tol',None)
+        self.fitter = fit_model.FitModel(data=self.data,prior=self.prior,phys_pt_data=phys_pt_data,strange=self.strange,kwargs= self.options)
         self._input_prior = prior
         self._fit = {}
-        self.svd_test = svd_test
-        self.svd_tol = svd_tol
-        self.fitter = fit.FitRoutine(data=self.data,prior=prior,phys_pt_data=phys_pt_data,model_info=self.model_info,strange=self.strange,discard_cov=self.discard_cov,svd_test= self.svd_test,svd_tol=self.svd_tol,decorr_scale=self.decorr_scale)
         self.fit = self.fitter.fit
         self.model_collection = []
-        self.extrapolate = extrapolate
-
-    
-        
     # def _compare_models(self):
     #     compare_ = compare.ModelComparsion(models=self.model_data, compare_type='phys', units='phys')
     #     compare_.compare_models(particles=['xi', 'xi_st'])
@@ -374,20 +342,6 @@ class Xpt_Fit_Analysis:
 
         return output
 
-    @property
-    def fit_info(self):
-        fit_info = {}
-        fit_info = {
-            'name' : self.model,
-            'logGBF' : self.fit.logGBF,
-            'chi2/df' : self.fit.chi2 / self.fit.dof,
-            'Q' : self.fit.Q,
-            'phys_point' : self.phys_point_data,
-            'error_budget' : self.error_budget,
-            'prior' : self.prior,
-            'posterior' : self.posterior
-        }
-        return fit_info
     
     def fitfcn(self, posterior=None, data=None, particle=None,xdata=None):
         '''returns resulting y_fit of hyperon extrapolation function'''
